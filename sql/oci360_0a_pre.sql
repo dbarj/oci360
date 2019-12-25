@@ -23,7 +23,7 @@ PRO Please wait ...
 
 -- Check oci360_exec_mode variable
 @@&&fc_def_empty_var. oci360_exec_mode
-@@&&fc_set_value_var_nvl. 'oci360_exec_mode' '&&oci360_exec_mode.' 'FULL'
+@@&&fc_set_value_var_nvl. 'oci360_exec_mode' '&&oci360_exec_mode.' 'REPORT_ONLY'
 @@&&fc_validate_variable. oci360_exec_mode NOT_NULL
 
 -- Check oci360_load_mode variable
@@ -73,9 +73,9 @@ END;
 
 -- Check Database version
 BEGIN
-  IF '&&is_ver_ge_12_2.' = 'N' THEN
+  IF '&&is_ver_ge_12_2.' = 'N' AND '&&oci360_load_mode.' != 'OFF' THEN
     RAISE_APPLICATION_ERROR(-20000, 'Database must be at least 12.2 as the tool uses DBMS_JSON.' || CHR(10) ||
-    'Check https://docs.oracle.com/en/database/oracle/oracle-database/12.2/newft/new-features.html#GUID-71B4582E-A6E2-425D-8D0C-A60D70F7050C.');
+    'Check https://docs.oracle.com/en/database/oracle/oracle-database/12.2/newft/new-features.html#GUID-71B4582E-A6E2-425D-8D0C-A60D70F7050C');
   END IF;
 END;
 /
@@ -89,9 +89,9 @@ BEGIN
   select value into v_result from v$parameter where name='compatible';
   V_1_DIG := SUBSTR(v_result,1,instr(v_result,'.'));
   V_2_DIG := SUBSTR(v_result,instr(v_result,'.')+1,instr(v_result,'.',1,2)-instr(v_result,'.')-1);
-  IF NOT (V_1_DIG>12 OR (V_1_DIG=12 AND V_2_DIG>=2)) THEN
+  IF NOT (V_1_DIG>12 OR (V_1_DIG=12 AND V_2_DIG>=2))  AND '&&oci360_load_mode.' != 'OFF' THEN
     RAISE_APPLICATION_ERROR(-20000, 'Database compatible parameter must be at least 12.2 to run this tool (Long Identifiers).' || CHR(10) ||
-   'Check https://docs.oracle.com/en/database/oracle/oracle-database/12.2/sqlrf/Database-Object-Names-and-Qualifiers.html#GUID-75337742-67FD-4EC0-985F-741C93D918DA.');
+   'Check https://docs.oracle.com/en/database/oracle/oracle-database/12.2/sqlrf/Database-Object-Names-and-Qualifiers.html#GUID-75337742-67FD-4EC0-985F-741C93D918DA');
   END IF;
 END;
 /
@@ -101,9 +101,9 @@ DECLARE
   V_RESULT      VARCHAR2(30);
 BEGIN
   select value into v_result from v$parameter where name='max_string_size';
-  IF UPPER(V_RESULT) != 'EXTENDED' THEN
+  IF UPPER(V_RESULT) != 'EXTENDED' AND '&&oci360_load_mode.' != 'OFF' THEN
     RAISE_APPLICATION_ERROR(-20000, 'Database must have extended max_string_size parameter to work with this tool.' || CHR(10) ||
-   'Check https://docs.oracle.com/database/121/REFRN/GUID-D424D23B-0933-425F-BC69-9C0E6724693C.htm#REFRN10321.');
+   'Check https://docs.oracle.com/database/121/REFRN/GUID-D424D23B-0933-425F-BC69-9C0E6724693C.htm#REFRN10321');
   END IF;
 END;
 /
@@ -142,6 +142,10 @@ HOS cp -a &&oci360_tables. &&oci360_jsontab_file.
 @@&&moat369_sw_folder./oci360_fc_exttables_create.sql
 
 ---- Skip Billing section if there is no info loaded
+-- TODO
+---- Skip Audit section if there is no info loaded
+-- TODO
+---- Skip Monitoring section if there is no info loaded
 -- TODO
 
 --
