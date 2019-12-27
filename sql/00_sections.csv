@@ -2,13 +2,11 @@
 -- Use "," as field separator
 -- Format: Section ID [1a - 9z], File Sufix Name, Section Description, Skip Variables (If last field is empty or its variables return NULL, sql WILL be executed)
 --
-1a,infrastructure.sql,'OCI Infrastructure'
-1b,tenancy.sql,'Tenancy Information'
-1c,instances.sql,'Compute Instances'
-1d,compmgt.sql,'Compute Management'
-1e,images.sql,'Compute Images'
-1f,pics.sql,'Partner Image Catalog (PIC)'
-1g,changes.sql,'Changes since last execution'
+1a,tenancy.sql,'Tenancy Information'
+1b,instances.sql,'Compute Instances'
+1c,compmgt.sql,'Compute Management'
+1d,images.sql,'Compute Images'
+1e,pics.sql,'Partner Image Catalog (PIC)'
 --
 2a,volumes.sql,'Volumes'
 2b,backups.sql,'Volumes Backups'
@@ -25,14 +23,10 @@
 4a,lb.sql,'Load Balance'
 4b,dns.sql,'DNS Zones'
 4c,email.sql,'Email Delivery'
-4d,monit.sql,'Monitoring'
-4e,monitoring_details.sql,'Monitoring Data'
 --
 5a,iam.sql,'Identity and Access Management'
 5b,audit.sql,'Audit'
 5c,kms.sql,'Key Management Service'
-5d,billing.sql,'Cloud Billing',&&skip_billing_sql.
-5e,billing_period_main.sql,'Billing Period',&&skip_billing_sql.
 --
 6a,databases.sql,'Database Services'
 6b,exadatas.sql,'Database Estimations',&&skip_billing_sql.
