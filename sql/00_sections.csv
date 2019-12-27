@@ -25,8 +25,7 @@
 4c,email.sql,'Email Delivery'
 --
 5a,iam.sql,'Identity and Access Management'
-5b,audit.sql,'Audit'
-5c,kms.sql,'Key Management Service'
+5b,kms.sql,'Key Management Service'
 --
 6a,databases.sql,'Database Services'
 6b,exadatas.sql,'Database Estimations',&&skip_billing_sql.
