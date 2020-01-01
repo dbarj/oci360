@@ -1,4 +1,9 @@
 -----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_DB_SYSTEMS'
+@@&&fc_json_loader. 'OCI360_DB_EXAINFRA'
+-----------------------------------------
 
 DEF title = 'Database Estimated Costs'
 DEF main_table = 'OCI360_DB_SYSTEMS'
@@ -28,7 +33,7 @@ SELECT /*+ materialize */
        SUBSTR(INST_TYPE,1,INSTR(INST_TYPE,'.',1,1)-1) DB_VERS,
        LIC_TYPE DB_LIC_TYPE,
        SUBSTR(INST_TYPE,INSTR(INST_TYPE,'.',1,1)+1) DB_OCPUS_INCL
-FROM   OCI360_PRICING
+FROM   "&&oci360_obj_pricing."
 WHERE  SUBJECT = 'DATABASE'
 AND    SUBSTR(INST_TYPE,INSTR(INST_TYPE,'.',1,1)+1) != 'OCPU'
 ),
@@ -39,7 +44,7 @@ SELECT /*+ materialize */
        MF,
        SUBSTR(INST_TYPE,1,INSTR(INST_TYPE,'.',1,1)-1) DB_VERS,
        LIC_TYPE DB_LIC_TYPE
-FROM   OCI360_PRICING
+FROM   "&&oci360_obj_pricing."
 WHERE  SUBJECT = 'DATABASE'
 AND    INSTR(INST_TYPE,'.',1,2) = 0
 AND    SUBSTR(INST_TYPE,INSTR(INST_TYPE,'.',1,1)+1) = 'OCPU'
@@ -116,7 +121,7 @@ SELECT /*+ materialize */
        SUBSTR(INST_TYPE,INSTR(INST_TYPE,'.',1,1)+1,INSTR(INST_TYPE,'.',1,2)-INSTR(INST_TYPE,'.',1,1)-1) EXA_SIZE,
        LIC_TYPE EXA_LIC_TYPE,
        SUBSTR(INST_TYPE,INSTR(INST_TYPE,'.',1,2)+1) EXA_OCPUS_INCL
-FROM   OCI360_PRICING
+FROM   "&&oci360_obj_pricing."
 WHERE  SUBJECT = 'EXADATA'
 AND    INSTR(INST_TYPE,'.',1,2) != 0
 ),
@@ -127,7 +132,7 @@ SELECT /*+ materialize */
        MF,
        SUBSTR(INST_TYPE,1,INSTR(INST_TYPE,'.',1,1)-1) EXA_VERS,
        LIC_TYPE EXA_LIC_TYPE
-FROM   OCI360_PRICING
+FROM   "&&oci360_obj_pricing."
 WHERE  SUBJECT = 'EXADATA'
 AND    INSTR(INST_TYPE,'.',1,2) = 0
 AND    SUBSTR(INST_TYPE,INSTR(INST_TYPE,'.',1,1)+1) = 'OCPU'

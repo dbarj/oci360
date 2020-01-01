@@ -1,4 +1,14 @@
 -----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_BV_BACKUPS'
+@@&&fc_json_loader. 'OCI360_BVOLUMES'
+@@&&fc_json_loader. 'OCI360_COMPARTMENTS'
+@@&&fc_json_loader. 'OCI360_BKP_POLICY'
+@@&&fc_json_loader. 'OCI360_BKP_POLICY_ASSIGN'
+-----------------------------------------
+
+-----------------------------------------
 -- Backups are not an identical copy of the volume being backed up.
 -- For incremental backups, they are a record of all the changes since the last backup.
 -- For full backups, they are a record of all the changes since the volume was created.
@@ -25,9 +35,9 @@ SELECT t2.display_name BOOTVOLUME_NAME,
        t1.image_id,
        t1.boot_volume_id,
        t1.id
-FROM   oci360_bv_backups t1,
-       oci360_bvolumes t2,
-       oci360_compartments t3
+FROM   OCI360_BV_BACKUPS t1,
+       OCI360_BVOLUMES t2,
+       OCI360_COMPARTMENTS t3
 WHERE  t1.lifecycle_state = 'AVAILABLE'
 AND    t1.boot_volume_id = t2.id (+)
 AND    t1.compartment_id = t3.id (+)
@@ -57,9 +67,9 @@ SELECT t2.display_name BOOTVOLUME_NAME,
        t1.image_id,
        t1.boot_volume_id,
        t1.id
-FROM   oci360_bv_backups t1,
-       oci360_bvolumes t2,
-       oci360_compartments t3
+FROM   OCI360_BV_BACKUPS t1,
+       OCI360_BVOLUMES t2,
+       OCI360_COMPARTMENTS t3
 WHERE  t1.lifecycle_state != 'AVAILABLE'
 AND    t1.boot_volume_id = t2.id (+)
 AND    t1.compartment_id = t3.id (+)
@@ -88,12 +98,12 @@ SELECT t1.display_name BACKUP_NAME,
        t1.unique_size_in_gbs,
        t1.time_request_received,
        t1.id
-FROM   oci360_bv_backups t1, oci360_bvolumes t2
+FROM   OCI360_BV_BACKUPS t1, OCI360_BVOLUMES t2
 WHERE  t1.type='INCREMENTAL'
 AND    t1.lifecycle_state='AVAILABLE'
 AND    t1.boot_volume_id = t2.id (+)
 AND    NOT EXISTS (SELECT 1
-                   FROM   oci360_bv_backups t3
+                   FROM   OCI360_BV_BACKUPS t3
                    WHERE  t1.type='FULL'
                    AND    t1.lifecycle_state='AVAILABLE'
                    AND    t1.boot_volume_id=t3.boot_volume_id
@@ -125,7 +135,7 @@ SELECT t1.display_name BACKUP_NAME,
        t1.unique_size_in_gbs,
        t1.time_request_received,
        t1.id
-FROM   oci360_bv_backups t1, oci360_bvolumes t2
+FROM   OCI360_BV_BACKUPS t1, OCI360_BVOLUMES t2
 WHERE  t1.lifecycle_state='AVAILABLE'
 AND    t1.boot_volume_id = t2.id (+)
 AND    t2.lifecycle_state (+) != 'TERMINATED'
@@ -171,7 +181,7 @@ SELECT id policy_id,
        schedules$period period,
        schedules$backup_type type,
        schedules$retention_seconds retention_seconds
-FROM   oci360_bkp_policy
+FROM   OCI360_BKP_POLICY
 ),
 bkps_in_future as (
 select t2.policy_name,
@@ -226,9 +236,9 @@ SELECT jt.DISPLAY_NAME BOOT_VOLUME_NAME,
        cast(to_timestamp_tz(t1.time_created,'&&oci360_tzcolformat.') AT LOCAL AS DATE) creation_date,
        nvl(cast(to_timestamp_tz(t1.expiration_time,'&&oci360_tzcolformat.') AT LOCAL AS DATE),sysdate+10000) expire_date,
        jt.ID
-FROM   oci360_bv_backups t1,
-       oci360_bvolumes jt,
-       oci360_compartments tcomp
+FROM   OCI360_BV_BACKUPS t1,
+       OCI360_BVOLUMES jt,
+       OCI360_COMPARTMENTS tcomp
 WHERE  t1.lifecycle_state = 'AVAILABLE'
 AND    t1.boot_volume_id = jt.id (+)
 AND    t1.compartment_id = tcomp.id
@@ -284,7 +294,7 @@ UNION ALL
 SELECT cast(to_timestamp_tz(t1.time_created,'&&oci360_tzcolformat.') AT LOCAL AS DATE) creation_date,
        nvl(cast(to_timestamp_tz(t1.expiration_time,'&&oci360_tzcolformat.') AT LOCAL AS DATE),sysdate+10000) expire_date,
        t1.type
-FROM   oci360_bv_backups t1
+FROM   OCI360_BV_BACKUPS t1
 WHERE  t1.lifecycle_state = 'AVAILABLE'
 ),
 bkps_sum as (
@@ -347,7 +357,7 @@ bkp_size_estimation as (
 select   DECODE(type,'INCREMENTAL',avg(unique_size_in_gbs),'FULL',max(unique_size_in_gbs)) est_unique_size_in_gbs,
          type,
          boot_volume_id
-FROM     oci360_bv_backups
+FROM     OCI360_BV_BACKUPS
 WHERE    lifecycle_state = 'AVAILABLE'
 GROUP BY type,
          boot_volume_id
@@ -370,7 +380,7 @@ SELECT cast(to_timestamp_tz(t1.time_created,'&&oci360_tzcolformat.') AT LOCAL AS
        nvl(cast(to_timestamp_tz(t1.expiration_time,'&&oci360_tzcolformat.') AT LOCAL AS DATE),sysdate+10000) expire_date,
        unique_size_in_gbs,
        t1.type
-FROM   oci360_bv_backups t1
+FROM   OCI360_BV_BACKUPS t1
 WHERE  t1.lifecycle_state = 'AVAILABLE'
 ),
 bkps_sum_day as (
@@ -447,7 +457,7 @@ bkp_size_estimation as (
 select   DECODE(type,'INCREMENTAL',avg(unique_size_in_gbs),'FULL',max(unique_size_in_gbs)) est_unique_size_in_gbs,
          type,
          boot_volume_id
-FROM     oci360_bv_backups
+FROM     OCI360_BV_BACKUPS
 WHERE    lifecycle_state = 'AVAILABLE'
 GROUP BY type,
          boot_volume_id
@@ -470,7 +480,7 @@ SELECT cast(to_timestamp_tz(t1.time_created,'&&oci360_tzcolformat.') AT LOCAL AS
        nvl(cast(to_timestamp_tz(t1.expiration_time,'&&oci360_tzcolformat.') AT LOCAL AS DATE),sysdate+10000) expire_date,
        unique_size_in_gbs,
        t1.type
-FROM   oci360_bv_backups t1
+FROM   OCI360_BV_BACKUPS t1
 WHERE  t1.lifecycle_state = 'AVAILABLE'
 ),
 bkps_sum_day as (
@@ -500,7 +510,7 @@ SELECT rank() over (order by vdate asc)                                      sna
        ROUND(SUM(CASE WHEN type = 'INCREMENTAL' THEN total ELSE 0 END)*MF,2) line2,
        ROUND(SUM(CASE WHEN type = 'FULL'        THEN total ELSE 0 END)*MF,2) line3
 FROM   bkps_sum_month,
-       oci360_pricing
+       "&&oci360_obj_pricing."
 WHERE  subject = 'STORAGE'
 AND    inst_type = 'Object Storage' -- Backups are encrypted and stored in Oracle Cloud Infrastructure Object Storage
 GROUP  BY vdate, MF

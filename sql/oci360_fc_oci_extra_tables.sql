@@ -1,13 +1,25 @@
--- Last update on 2018-09-13
+-- Last update on 2019-12-29
 
 INSERT ALL
-  INTO "&&oci360_obj_location." (NAME, LATITUDE, LONGITUDE) VALUES ('IAD', 39.0150271,  -77.4607984)
-  INTO "&&oci360_obj_location." (NAME, LATITUDE, LONGITUDE) VALUES ('PHX', 33.4546318, -111.9796236)
-  INTO "&&oci360_obj_location." (NAME, LATITUDE, LONGITUDE) VALUES ('LHR', 51.5245503,   -0.6371384)
-  INTO "&&oci360_obj_location." (NAME, LATITUDE, LONGITUDE) VALUES ('FRA', 50.0988793,    8.6337247)
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 3, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('IAD',  39.0150271,  -77.4607984, 'us-ashburn-1'  , 'US East (Ashburn)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 3, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('PHX',  33.4546318, -111.9796236, 'us-phoenix-1'  , 'US West (Phoenix)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 3, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('LHR',  51.5245503,   -0.6371384, 'uk-london-1'   , 'UK South (London)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 3, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('FRA',  50.0988793,    8.6337247, 'eu-frankfurt-1', 'Germany Central (Frankfurt)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 1, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('GRU', -23.6821604,  -46.8754842, 'sa-saopaulo-1' , 'Brazil East (Sao Paulo)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 1, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('SYD',  -33.847927,  150.6517933, 'ap-sydney-1'   , 'Australia East (Sydney)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 1, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('YYZ',  43.7181557,  -79.5181402, 'ca-toronto-1'  , 'Canada Southeast (Toronto)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 1, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('BOM',  19.0821978,   72.7411018, 'ap-mumbai-1'   , 'India West (Mumbai)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 1, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('NRT',  35.5079446,  139.2093918, 'ap-tokyo-1'    , 'Japan East (Tokyo)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 1, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('ICN',  37.5650172,  126.8494672, 'ap-seoul-1'    , 'South Korea Central (Seoul)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, 1, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('ZRH',  46.8077152,    7.1032512, 'eu-zurich-1'   , 'Switzerland North (Zurich)')
 SELECT 1 FROM DUAL;
 
+-- https://docs.cloud.oracle.com/iaas/Content/General/Concepts/regions.htm
+-- Precise locations: https://www.oracle.com/cloud/networking/fastconnect-providers.html
+
 COMMIT;
+
+-- Last update on 2018-09-13
 
 INSERT ALL
   -- Bare Metal Instances

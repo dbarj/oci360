@@ -1,4 +1,16 @@
+-----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_VOLUMES'
+@@&&fc_json_loader. 'OCI360_COMPARTMENTS'
+@@&&fc_json_loader. 'OCI360_BKP_POLICY'
 @@&&fc_json_loader. 'OCI360_BKP_POLICY_ASSIGN'
+@@&&fc_json_loader. 'OCI360_BACKUPS'
+@@&&fc_json_loader. 'OCI360_INSTANCES'
+@@&&fc_json_loader. 'OCI360_VOL_ATTACHS'
+@@&&fc_json_loader. 'OCI360_BVOLUMES'
+@@&&fc_json_loader. 'OCI360_BV_ATTACHS'
+@@&&fc_json_loader. 'OCI360_VOLGROUP'
 -----------------------------------------
 
 DEF title = 'Volumes'

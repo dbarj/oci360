@@ -1,4 +1,11 @@
 -----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_AUTONOMOUS_DB'
+@@&&fc_json_loader. 'OCI360_AUTONOMOUS_DB_BKP'
+@@&&fc_json_loader. 'OCI360_AUTONOMOUS_DW'
+@@&&fc_json_loader. 'OCI360_AUTONOMOUS_DW_BKP'
+-----------------------------------------
 
 DEF title = 'Autonomous Databases'
 DEF main_table = 'OCI360_AUTONOMOUS_DB'

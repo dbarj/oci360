@@ -1,4 +1,25 @@
 -----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_VNICS'
+@@&&fc_json_loader. 'OCI360_SUBNETS'
+@@&&fc_json_loader. 'OCI360_COMPARTMENTS'
+@@&&fc_json_loader. 'OCI360_VCNS'
+@@&&fc_json_loader. 'OCI360_VNIC_ATTACHS'
+@@&&fc_json_loader. 'OCI360_PRIVATEIPS'
+@@&&fc_json_loader. 'OCI360_DHCP_OPTIONS'
+@@&&fc_json_loader. 'OCI360_ROUTE_TABLES'
+@@&&fc_json_loader. 'OCI360_INTERNET_GW'
+@@&&fc_json_loader. 'OCI360_NAT_GATEWAYS'
+@@&&fc_json_loader. 'OCI360_DRGS'
+@@&&fc_json_loader. 'OCI360_DRG_ATTACHS'
+@@&&fc_json_loader. 'OCI360_FC_PROV_SRVCS'
+@@&&fc_json_loader. 'OCI360_LOCAL_PEERING'
+@@&&fc_json_loader. 'OCI360_REMOTE_PEERING'
+@@&&fc_json_loader. 'OCI360_NETSERVICES'
+@@&&fc_json_loader. 'OCI360_NETSERVICE_GW'
+@@&&fc_json_loader. 'OCI360_PUBLICIPS'
+-----------------------------------------
 
 DEF title = 'VNICs'
 DEF main_table = 'OCI360_VNICS'

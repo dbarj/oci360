@@ -1,4 +1,21 @@
 -----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_LB_LOADBALANCERS'
+@@&&fc_json_loader. 'OCI360_LB_LOADBALANCERS_HEALTH'
+@@&&fc_json_loader. 'OCI360_LB_BACKENDSETS'
+@@&&fc_json_loader. 'OCI360_LB_BACKENDSETS_HEALTH'
+@@&&fc_json_loader. 'OCI360_LB_BACKENDS'
+@@&&fc_json_loader. 'OCI360_LB_BACKENDS_HEALTH'
+@@&&fc_json_loader. 'OCI360_LB_CERTIFICATES'
+@@&&fc_json_loader. 'OCI360_LB_HEALTHCHECKS'
+@@&&fc_json_loader. 'OCI360_LB_HOSTNAMES'
+@@&&fc_json_loader. 'OCI360_LB_PATHROUTES'
+@@&&fc_json_loader. 'OCI360_LB_POLICIES'
+@@&&fc_json_loader. 'OCI360_LB_PROTOCOLS'
+@@&&fc_json_loader. 'OCI360_LB_SHAPES'
+@@&&fc_json_loader. 'OCI360_LB_WORKREQS'
+-----------------------------------------
 
 DEF title = 'Load Balancers'
 DEF main_table = 'OCI360_LB_LOADBALANCERS'

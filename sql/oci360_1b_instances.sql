@@ -27,7 +27,7 @@ WITH t1 as (select /*+ materialize */ * from OCI360_INSTANCES),
      t3 as (select /*+ materialize */ * from OCI360_IMAGES),
      t4 as (select /*+ materialize */ * from OCI360_VNIC_ATTACHS),
      t5 as (select /*+ materialize */ * from OCI360_VNICS)
-SELECT t1.id,
+SELECT distinct t1.id,
        t1.display_name,
        t1.shape,
        t1.region,

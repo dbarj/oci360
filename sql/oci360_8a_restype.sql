@@ -1,4 +1,8 @@
 -----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_RESTYPES'
+-----------------------------------------
 
 DEF title = 'Resource Types'
 DEF main_table = 'OCI360_RESTYPES'
@@ -20,7 +24,7 @@ DEF main_table = '&&oci360_obj_metadata.'
 BEGIN
   :sql_text := q'{
 SELECT t1.*
-FROM   &&oci360_obj_metadata. t1
+FROM   "&&oci360_obj_metadata." t1
 }';
 END;
 /
@@ -38,7 +42,7 @@ SELECT SUBJECT,
        INST_TYPE,
        TO_CHAR(CEIL(PAYG*100)/100,'999G990D99') PAYG_US$,
        TO_CHAR(CEIL(MF*100)/100,'999G990D99') MF_US$
-FROM   &&oci360_obj_pricing. t1
+FROM   "&&oci360_obj_pricing." t1
 }';
 END;
 /

@@ -1,4 +1,12 @@
 -----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_VAULTS'
+@@&&fc_json_loader. 'OCI360_KEYS'
+@@&&fc_json_loader. 'OCI360_KEY_VERSIONS'
+@@&&fc_json_loader. 'OCI360_BV_KEYS'
+@@&&fc_json_loader. 'OCI360_VOL_KEYS'
+-----------------------------------------
 
 DEF title = 'Vaults'
 DEF main_table = 'OCI360_VAULTS'

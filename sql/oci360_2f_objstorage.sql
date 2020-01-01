@@ -1,4 +1,15 @@
 -----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_NAMESERVER'
+@@&&fc_json_loader. 'OCI360_NAMESERVER_META'
+@@&&fc_json_loader. 'OCI360_BUCKETS'
+@@&&fc_json_loader. 'OCI360_MULTIPARTS'
+@@&&fc_json_loader. 'OCI360_OBJECTS'
+@@&&fc_json_loader. 'OCI360_PREAUTH_REQUESTS'
+@@&&fc_json_loader. 'OCI360_OS_WORKREQS'
+@@&&fc_json_loader. 'OCI360_OBJECT_POLICIES'
+-----------------------------------------
 
 DEF title = 'Nameserver'
 DEF main_table = 'OCI360_NAMESERVER'

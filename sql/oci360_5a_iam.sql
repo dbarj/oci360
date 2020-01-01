@@ -1,4 +1,18 @@
 -----------------------------------------
+-- Tables Used in this Section
+-----------------------------------------
+@@&&fc_json_loader. 'OCI360_USERS'
+@@&&fc_json_loader. 'OCI360_GROUPS'
+@@&&fc_json_loader. 'OCI360_DYN_GROUPS'
+@@&&fc_json_loader. 'OCI360_POLICIES'
+@@&&fc_json_loader. 'OCI360_AUTH_TOKEN'
+@@&&fc_json_loader. 'OCI360_SMTP_CREDENTIALS'
+@@&&fc_json_loader. 'OCI360_CUSTOMER_KEY'
+@@&&fc_json_loader. 'OCI360_REGIONS'
+@@&&fc_json_loader. 'OCI360_TAGS'
+@@&&fc_json_loader. 'OCI360_TAG_NAMESPACES'
+@@&&fc_json_loader. 'OCI360_IAM_WORKREQS'
+-----------------------------------------
 
 DEF title = 'Users'
 DEF main_table = 'OCI360_USERS'
