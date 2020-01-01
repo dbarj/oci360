@@ -65,7 +65,7 @@ v_zip_file_output="$2"
 [ "${MERGE_UNIQUE}" != "0" -a "${MERGE_UNIQUE}" != "1" ] && exitError "MERGE_UNIQUE must be 0 or 1. Found: ${MERGE_UNIQUE}"
 
 v_zip_files=$(ls -1 ${v_zip_file_pattern} 2>&-) && v_ret=$? || v_ret=$?
-[ $v_ret -eq 0 ] || exitError "Can't find any file with prefix ${v_zip_file_pattern}"
+[ $v_ret -eq 0 ] || exitError "Can't find any file with pattern ${v_zip_file_pattern}"
 
 if ! $(which ${v_jq} >&- 2>&-)
 then
