@@ -158,7 +158,7 @@ WITH t_reg  AS (SELECT /*+ materialize */ region_name, region_key from OCI360_RE
                 FROM oci360_instances),
      t_comp AS (SELECT /*+ materialize */ id, name || ' - ' || 'C' || rank() over (order by name, id) name FROM oci360_compartments),
      t_vols AS
-        (SELECT distinct t1.id,
+        (SELECT t1.id,
                 t3.display_name || ' - ' || 'V' || rank() over (order by t3.display_name, t3.id) display_name,
                 t3.size_in_gbs
          FROM   (SELECT /*+ materialize */ * FROM oci360_instances) t1,
@@ -168,7 +168,7 @@ WITH t_reg  AS (SELECT /*+ materialize */ region_name, region_key from OCI360_RE
          AND    t2.volume_id = t3.id
          AND    t2.lifecycle_state = 'ATTACHED'),
      t_bvols AS
-        (SELECT distinct t1.id,
+        (SELECT t1.id,
                 t3.display_name || ' - ' || 'B' || rank() over (order by t3.display_name, t3.id) display_name,
                 t3.size_in_gbs
          FROM   (SELECT /*+ materialize */ * FROM oci360_instances) t1,
@@ -178,7 +178,7 @@ WITH t_reg  AS (SELECT /*+ materialize */ region_name, region_key from OCI360_RE
          AND    t2.boot_volume_id = t3.id
          AND    t2.lifecycle_state = 'ATTACHED'),
      t_bvols_bkp AS
-        (SELECT distinct t1.id,
+        (SELECT t1.id,
                 t4.display_name || ' - ' || 'D' || rank() over (order by t4.display_name, t4.id) display_name,
                 t4.unique_size_in_gbs size_in_gbs
          FROM   (SELECT /*+ materialize */ * FROM oci360_instances) t1,
@@ -191,7 +191,7 @@ WITH t_reg  AS (SELECT /*+ materialize */ region_name, region_key from OCI360_RE
          AND    t3.id = t4.boot_volume_id
          AND    t4.lifecycle_state = 'AVAILABLE'),
      t_vols_bkp AS
-        (SELECT distinct t1.id,
+        (SELECT t1.id,
                 t4.display_name || ' - ' || 'E' || rank() over (order by t4.display_name, t4.id) display_name,
                 t4.unique_size_in_gbs size_in_gbs
          FROM   (SELECT /*+ materialize */ * FROM oci360_instances) t1,

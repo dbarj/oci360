@@ -97,12 +97,12 @@ DEF main_table = 'OCI360_INSTANCES'
 
 BEGIN
   :sql_text := q'{
-WITH tot as (SELECT count(*) total_global FROM oci360_instances)
+WITH tot as (SELECT count(*) total_global FROM OCI360_INSTANCES)
 SELECT t1.shape || ' - ' || count(*) shape,
        count(*) total,
        trim(to_char(round(count(*)/decode(total_global,0,1,total_global),4)*100,'990D99')) percent,
        NULL dummy_01
-FROM   oci360_instances t1, tot
+FROM   OCI360_INSTANCES t1, tot
 GROUP BY t1.shape,total_global
 }';
 END;
@@ -118,7 +118,7 @@ DEF main_table = 'OCI360_SHAPES'
 BEGIN
   :sql_text := q'{
 WITH
-  t_price_comp AS (SELECT /*+ materialize */ * FROM oci360_pricing WHERE subject = 'COMPUTE')
+  t_price_comp AS (SELECT /*+ materialize */ * FROM "&&oci360_obj_pricing." WHERE subject = 'COMPUTE')
 SELECT distinct t1.shape, t2.ocpu, t2.memory_gb, t2.local_disk_tb, t2.network_gbps, t2.gpu, t3.mf "Hour US$"
 FROM   OCI360_SHAPES t1,
        "&&oci360_obj_shape." t2,
@@ -180,18 +180,18 @@ DEF main_table = 'OCI360_INSTANCES'
 
 BEGIN
   :sql_text := q'{
-WITH t_inst AS (SELECT /*+ materialize */ * FROM oci360_instances),
+WITH t_inst AS (SELECT /*+ materialize */ * FROM OCI360_INSTANCES),
      t_comp AS (SELECT /*+ materialize */ * FROM oci360_compartments),
      t_img AS (SELECT /*+ materialize */ * FROM oci360_images),
-     t_price_comp AS (SELECT /*+ materialize */ inst_type, mf FROM oci360_pricing WHERE subject = 'COMPUTE'),
-     t_price_win AS (SELECT /*+ materialize */ * FROM oci360_pricing WHERE subject = 'OS_WINDOWS'),
-     t_price_vol AS (SELECT /*+ materialize */ * FROM oci360_pricing WHERE subject = 'STORAGE' AND inst_type = 'Block Volumes'),
-     t_price_bkp AS (SELECT /*+ materialize */ * FROM oci360_pricing WHERE subject = 'STORAGE' AND inst_type = 'Object Storage'),
+     t_price_comp AS (SELECT /*+ materialize */ inst_type, mf FROM "&&oci360_obj_pricing." WHERE subject = 'COMPUTE'),
+     t_price_win AS (SELECT /*+ materialize */ * FROM "&&oci360_obj_pricing." WHERE subject = 'OS_WINDOWS'),
+     t_price_vol AS (SELECT /*+ materialize */ * FROM "&&oci360_obj_pricing." WHERE subject = 'STORAGE' AND inst_type = 'Block Volumes'),
+     t_price_bkp AS (SELECT /*+ materialize */ * FROM "&&oci360_obj_pricing." WHERE subject = 'STORAGE' AND inst_type = 'Object Storage'),
      t_vols AS
         (SELECT t1.id,
                 t5.size_in_gbs              BOOTVOL_SIZE_GBS,
                 NVL(SUM(t3.size_in_gbs), 0) VOL_SIZE_GBS
-         FROM   (SELECT /*+ materialize */ * FROM oci360_instances) t1,
+         FROM   (SELECT /*+ materialize */ * FROM OCI360_INSTANCES) t1,
                 (SELECT /*+ materialize */ * FROM oci360_vol_attachs) t2,
                 (SELECT /*+ materialize */ * FROM oci360_volumes) t3,
                 (SELECT /*+ materialize */ * FROM oci360_bv_attachs) t4,
@@ -206,7 +206,7 @@ WITH t_inst AS (SELECT /*+ materialize */ * FROM oci360_instances),
      t_bvols_bkp AS
         (SELECT t1.id,
                 NVL(SUM(t4.unique_size_in_gbs), 0) BKP_BOOTVOL_SIZE_GBS
-         FROM   (SELECT /*+ materialize */ * FROM oci360_instances) t1,
+         FROM   (SELECT /*+ materialize */ * FROM OCI360_INSTANCES) t1,
                 (SELECT /*+ materialize */ * FROM oci360_bv_attachs) t2,
                 (SELECT /*+ materialize */ * FROM oci360_bvolumes) t3,
                 (SELECT /*+ materialize */ * FROM oci360_bv_backups) t4
@@ -219,7 +219,7 @@ WITH t_inst AS (SELECT /*+ materialize */ * FROM oci360_instances),
      t_vols_bkp AS
         (SELECT t1.id,
                 NVL(SUM(t4.unique_size_in_gbs), 0) BKP_VOL_SIZE_GBS
-         FROM   (SELECT /*+ materialize */ * FROM oci360_instances) t1,
+         FROM   (SELECT /*+ materialize */ * FROM OCI360_INSTANCES) t1,
                 (SELECT /*+ materialize */ * FROM oci360_vol_attachs) t2,
                 (SELECT /*+ materialize */ * FROM oci360_volumes) t3,
                 (SELECT /*+ materialize */ * FROM oci360_backups) t4
