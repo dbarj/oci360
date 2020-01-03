@@ -151,7 +151,7 @@ BEGIN
 WITH t_reg  AS (SELECT /*+ materialize */ region_name, region_key from OCI360_REGIONS_SUBS),
      t_inst AS
         (SELECT /*+ materialize */
-                distinct id,
+                id,
                 display_name || ' - ' || 'I' || rank() over (order by display_name, id) display_name,
                 compartment_id,
                 upper(decode(region,'eu-frankfurt-1','FRA','uk-london-1','LHR',region)) region
@@ -205,33 +205,33 @@ WITH t_reg  AS (SELECT /*+ materialize */ region_name, region_key from OCI360_RE
             AND t4.lifecycle_state = 'AVAILABLE')
 SELECT 'All Regions' "Object", null "Parent", 0 "Value", 0 Color
 FROM   dual
-UNION ALL
+UNION
 SELECT region_name, 'All Regions', 0, 0
 FROM   t_reg
-UNION ALL
+UNION
 SELECT name || ' - ' || region_key, region_name, 0, 0
 FROM   t_comp, t_reg
-UNION ALL
+UNION
 SELECT t2.display_name, t1.name || ' - ' || region, 0, 0
 FROM   t_comp t1,
        t_inst t2
 WHERE  t2.compartment_id = t1.id
-UNION ALL
+UNION
 SELECT t1.display_name, t2.display_name, t1.size_in_gbs, 0
 FROM   t_vols t1,
        t_inst t2
 WHERE  t2.id = t1.id
-UNION ALL
+UNION
 SELECT t1.display_name, t2.display_name, t1.size_in_gbs, 0
 FROM   t_bvols t1,
        t_inst t2
 WHERE  t2.id = t1.id
-UNION ALL
+UNION
 SELECT t1.display_name, t2.display_name, t1.size_in_gbs, 1
 FROM   t_vols_bkp t1,
        t_inst t2
 WHERE  t2.id = t1.id
-UNION ALL
+UNION
 SELECT t1.display_name, t2.display_name, t1.size_in_gbs, 1
 FROM   t_bvols_bkp t1,
        t_inst t2
