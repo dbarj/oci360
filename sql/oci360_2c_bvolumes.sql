@@ -53,7 +53,23 @@ BEGIN
   :sql_text := q'{
 with t1 as (select /*+ materialize */ * from OCI360_BVOLUMES),
      t2 as (select /*+ materialize */ * from OCI360_BV_ATTACHS)
-SELECT t1.*
+SELECT ID,
+       IMAGE_ID,
+       KMS_KEY_ID,
+       IS_HYDRATED,
+       SIZE_IN_GBS,
+       SIZE_IN_MBS,
+       DISPLAY_NAME,
+       TIME_CREATED,
+       FREEFORM_TAGS$OWNER,
+       FREEFORM_TAGS$PROJECT,
+       FREEFORM_TAGS$PURPOSE,
+       COMPARTMENT_ID,
+       SOURCE_DETAILS$ID,
+       SOURCE_DETAILS$TYPE,
+       LIFECYCLE_STATE,
+       VOLUME_GROUP_ID,
+       AVAILABILITY_DOMAIN
 FROM   t1
 WHERE  not exists (SELECT 1 FROM t2 WHERE t1.id = t2.boot_volume_id and t2.lifecycle_state = 'ATTACHED')
 }';

@@ -15,8 +15,8 @@ SELECT 'DEF oci360_current_region = ''' || region_key || '''' || CHR(10) ||
 FROM   ( SELECT   DISTINCT lower(t2.region_key) region_key,
                   t2.region_name
          FROM     OCI360_VCNS t1,
-                  -- For FRA and LHR, the region key used in objects OCID is actually the region name
-                  (select decode(region_key,'FRA',region_name,'LHR',region_name,region_key) region_key, region_name from OCI360_REGIONS_SUBS) t2
+                  -- For IAD and PHX, the key used in objects OCID is actually the region key, while in other is the region name
+                  (select decode(region_key,'IAD',region_key,'PHX',region_key,region_name) region_key, region_name from OCI360_REGIONS_SUBS) t2
          WHERE    substr(t1.id,instr(t1.id,'.',1,3)+1,instr(t1.id,'.',1,4)-instr(t1.id,'.',1,3)-1) = lower(t2.region_key)
          ORDER BY region_key);
 SPO OFF
