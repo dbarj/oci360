@@ -20,7 +20,7 @@ COL oci360_skip_if_loaded NEW_V oci360_skip_if_loaded
 SELECT DECODE(COUNT(*),0,'','&&fc_skip_script.') oci360_skip_if_loaded -- Skip if find any rows
 FROM   "&&oci360_obj_jsontabs."
 WHERE  table_name = '&&oci360_in_loader_p1.'
-AND    (in_zip = 0 or is_processed = 1);
+AND    (in_zip + in_csv = 0 or is_processed = 1);
 
 -- Don't load if oci360_pre_loader_filename is null.
 SELECT DECODE('&&oci360_pre_loader_filename.',NULL,'&&fc_skip_script.','&&oci360_skip_if_loaded.') oci360_skip_if_loaded FROM DUAL;

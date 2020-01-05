@@ -1,5 +1,5 @@
 -- DROP TABLE "&&oci360_obj_exttab." PURGE; - Moved to json_converter
-DROP TABLE "&&oci360_obj_jsoncols." PURGE;
+-- DROP TABLE "&&oci360_obj_jsoncols." PURGE;
 -- DROP TABLE "&&oci360_obj_jsontabs." PURGE;
 
 --

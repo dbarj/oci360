@@ -201,7 +201,8 @@ CREATE TABLE "&&oci360_obj_jsontabs."
   source,
   table_name,
   description,
-  in_zip,
+  in_zip, -- Tables that are inside the exported JSON ZIP file
+  in_csv, -- Tables that are inside the oci_cols_json.csv
   is_processed,
   CONSTRAINT "&&oci360_obj_jsontabs._PK" PRIMARY KEY (source),
   CONSTRAINT "&&oci360_obj_jsontabs._UK" UNIQUE (table_name)
@@ -210,6 +211,7 @@ COMPRESS NOPARALLEL NOMONITORING
 AS SELECT source,
           table_name,
           description,
+          0,
           0,
           0
 FROM "&&oci360_obj_jsontabs._2";
@@ -297,6 +299,14 @@ HOS echo 'COMMIT;' >> &&oci360_check_json_zip.
 @@&&fc_zip_driver_files. &&oci360_check_json_zip.
 UNDEF oci360_check_json_zip
 
+-- Check table in json csv
+@@&&fc_def_output_file. oci360_check_json_csv 'oci360_check_json_csv.sql'
+HOS cat &&oci360_jsoncol_file. | &&cmd_awk. -F',' '{print $1}' | sort -u | while read line || [ -n "$line" ]; do echo "UPDATE \"&&oci360_obj_jsontabs.\" SET in_csv=1 WHERE source='$line';"; done > &&oci360_check_json_csv.
+HOS echo 'COMMIT;' >> &&oci360_check_json_csv.
+@&&oci360_check_json_csv.
+@@&&fc_zip_driver_files. &&oci360_check_json_csv.
+UNDEF oci360_check_json_csv
+
 --------------------------------------------------
 -- Check if tables are pre-loaded or on-demand. --
 --------------------------------------------------
@@ -306,7 +316,7 @@ UNDEF oci360_check_json_zip
 -- Load Json into tables
 @@&&fc_spool_start.
 SPO &&step_json_full_loader.
-SELECT '@@&&fc_json_loader. ' ||  table_name FROM "&&oci360_obj_jsontabs." WHERE in_zip=1;
+SELECT '@@&&fc_json_loader. ' || table_name FROM "&&oci360_obj_jsontabs." WHERE in_zip=1 or in_csv=1;
 SPO OFF
 @@&&fc_spool_end.
 
