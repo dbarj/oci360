@@ -152,5 +152,9 @@ HOS cp -a &&oci360_tables. &&oci360_jsontab_file.
 COL skip_billing_sql NEW_V skip_billing_sql
 SELECT DECODE('&&oci360_skip_billing.','N','','&&fc_skip_script.') skip_billing_sql FROM DUAL;
 COL skip_billing_sql clear
+--
+COL skip_json_section NEW_V skip_json_section
+SELECT DECODE('&&oci360_load_mode.','OFF','&&fc_skip_script.','') skip_json_section FROM DUAL;
+COL skip_json_section clear
 
 ----------------------------
