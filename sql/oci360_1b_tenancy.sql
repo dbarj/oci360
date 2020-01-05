@@ -154,7 +154,8 @@ WITH t_reg  AS (SELECT /*+ materialize */ region_name, region_key from OCI360_RE
                 id,
                 display_name || ' - ' || 'I' || rank() over (order by display_name, id) display_name,
                 compartment_id,
-                upper(decode(region,'eu-frankfurt-1','FRA','uk-london-1','LHR',region)) region
+                -- For IAD and PHX, the key used in instance region column is actually the region key, while in other is the region name
+                decode(region,'iad','us-ashburn-1','phx','us-phoenix-1',region) region
                 FROM oci360_instances),
      t_comp AS (SELECT /*+ materialize */ id, name || ' - ' || 'C' || rank() over (order by name, id) name FROM oci360_compartments),
      t_vols AS
@@ -209,7 +210,7 @@ UNION
 SELECT region_name, 'All Regions', 0, 0
 FROM   t_reg
 UNION
-SELECT name || ' - ' || region_key, region_name, 0, 0
+SELECT name || ' - ' || region_name, region_name, 0, 0
 FROM   t_comp, t_reg
 UNION
 SELECT t2.display_name, t1.name || ' - ' || region, 0, 0
