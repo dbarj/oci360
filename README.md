@@ -13,7 +13,7 @@ OCI360 uses [moat369](https://github.com/dbarj/moat369) API to generate html and
 OCI360 will load and convert all the JSON information of your OCI tenancy into Oracle Database tables and views, creating a full metadata structured model.
 After the model is created on your database, it will query those tables and create reports about your OCI.
 
-The overall execution steps are:
+The overall execution can be divided in 3 steps:
 
 ### Exporter Phase
 
@@ -45,6 +45,8 @@ For the execution steps, please check the [Wiki Page](https://github.com/dbarj/o
 1. Unzip output **OCI360_YYYYMMDD_HH24MI.zip** into a directory on your PC.
 
 2. Review main html file **00001_oci360_index.html**.
+
+![Output](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/OCI360_Index.png)
 
 ## Latest change
 
