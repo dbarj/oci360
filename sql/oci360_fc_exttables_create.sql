@@ -38,7 +38,7 @@ COL oci360_user_session   CLEAR
 DEF oci360_obj_dir = '&&oci360_obj_dir._&&oci360_user_curschema.'
 DEF oci360_obj_dir_del = 'Y'
 
-SET TERM ON
+SET TERM ON SERVEROUT ON
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 
 DECLARE
@@ -104,7 +104,7 @@ WHENEVER SQLERROR CONTINUE
 @@&&fc_def_output_file. oci360_change_obj_dir 'oci360_change_obj_dir.sql'
 HOS touch &&oci360_change_obj_dir.
 HOS if [ -f "&&moat369_sw_output_fdr./directory.sql" ]; then echo "@&&moat369_sw_output_fdr./directory.sql"; fi >> &&oci360_change_obj_dir.
-HOS if [ -f "&&moat369_sw_output_fdr./directory.sql" ]; then echo "rm -f &&moat369_sw_output_fdr./directory.sql"; fi >> &&oci360_change_obj_dir.
+HOS if [ -f "&&moat369_sw_output_fdr./directory.sql" ]; then echo "! rm -f &&moat369_sw_output_fdr./directory.sql"; fi >> &&oci360_change_obj_dir.
 @&&oci360_change_obj_dir.
 HOS rm -f &&oci360_change_obj_dir.
 
