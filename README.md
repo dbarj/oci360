@@ -1,48 +1,54 @@
-# OCI360 #
+# OCI360 - Oracle Cloud Infrastructure 360º View
 
-OCI360 provides a human readable output of an OCI tenancy that allows for quick analysis of
-an existing cloud estate to better optimize the use of cloud resources.
-It takes around one hour to execute. Output ZIP file is usually small (~50 MBs), so
-you may want to execute OCI360 from any directory with at least 1 GB of free 
-space. OCI360 generated NO impact in cloud overall performance.
+**Oracle Cloud Infrastructure 360º View** is a free open-source framework and tool to generate fancy html output of your tenancy that allows for quick analysis of an existing cloud estate to better optimize the use of cloud resources.
 
-## How does it works ##
+The tool installs nothing on the tenancy, and all it needs is some read/inspect privileges on your tenancy (more information below). It takes around 30 minutes to execute.
 
-OCI360 will load and convert all the JSON information of your OCI tenancy into Oracle Database tables and views, creating a full metadata structure.
+Output ZIP file can be large (several MBs), so you may want to execute OCI360 from a system directory with at least 1 GB of free space.
+
+OCI360 uses [moat369](https://github.com/dbarj/moat369) API to generate html and graphs output. If you are familiar to edb360 and sqld360, you will notice they all have the same Look'n Feel.
+
+## How does it works
+
+OCI360 will load and convert all the JSON information of your OCI tenancy into Oracle Database tables and views, creating a full metadata structured model.
 After the model is created on your database, it will query those tables and create reports about your OCI.
 
-## Steps ##
+The overall execution steps are:
 
-1. Unzip oci360_master.zip, navigate to the root oci360_master directory, and connect as SYS, 
-   DBA, or any User with Data Dictionary access:
-```
-$ unzip oci360_master.zip
-$ cd oci360_master
-$ sqlplus / as sysdba
-```
-2. Move the your tenancy JSONs ZIP file (created using oci_json_export.sh) to the oci360_master folder.
+### Exporter Phase
 
-3. Execute OCI360.sql.
-```
-SQL> @oci360.sql
-```
-4. Unzip output oci360_YYYYMMDD_HH24MI.zip into a directory on your PC
+![Exporter](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/Exporter.png)
 
-5. Review main html file 00001_oci360_index.html
+In this step, the tool:
+- Connects to OCI through the delivered command line interface (CLI) and gets tenancy metadata in JSON format.
 
-## Notes ##
+### Converter Phase
 
-1. As oci360 can run for a long time, in some systems it's recommend to execute it unattended:
+![Converter](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/Converter.png)
 
-   $ nohup sqlplus / as sysdba @oci360.sql &
+In this step, the tool:
+- Collects the JSON files output by the extractor and loads the data to an Oracle Database for analysis and reporting.
 
-2. If you need to execute only a portion of OCI360 (i.e. a column, section or range) use 
-   these commands. Notice first parameter can be set to one section (i.e. 3b),
-   one column (i.e. 3), a range of sections (i.e. 5c-6b) or range of columns (i.e. 5-7):
+### Reporter Phase
 
-   SQL> @oci360.sql 3b
-   
-   note: valid column range for first parameter is 1 to 7. 
+![Reporter](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/Reporter.png)
 
-## Versions ##
-* v1801 (2019-09-24) by Rodrigo Jorge
+In this step, the tool:
+- Pulls data from the Oracle database to generate tables and charts that are then output in HTML format for consumption.
+
+## Execution Steps
+
+For the execution steps, please check the [Wiki Page](https://github.com/dbarj/oci360/wiki/Execution-Steps).
+
+## Results
+
+1. Unzip output **OCI360_YYYYMMDD_HH24MI.zip** into a directory on your PC.
+
+2. Review main html file **00001_oci360_index.html**.
+
+## Latest change
+
+* 2001 (2020-01-06)
+  - Initial Release.
+
+Check **CHANGELOG.md** for more info.
