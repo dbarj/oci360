@@ -27,6 +27,7 @@ PRO Please wait ...
 @@&&fc_validate_variable. oci360_exec_mode NOT_NULL
 
 -- Check oci360_load_mode variable
+-- Default value: PRE_LOAD if moat369_sections is unset, otherwise ON_DEMAND
 @@&&fc_def_empty_var. oci360_load_mode
 @@&&fc_set_value_var_nvl. 'oci360_load_mode' '&&oci360_load_mode_param.' '&&oci360_load_mode.'
 COL oci360_load_mode NEW_V oci360_load_mode
@@ -35,8 +36,11 @@ COL oci360_load_mode clear
 @@&&fc_validate_variable. oci360_load_mode NOT_NULL
 
 -- Check oci360_clean_on_exit variable
+-- Default value: OFF if oci360_load_mode is OFF, otherwise ON
 @@&&fc_def_empty_var. oci360_clean_on_exit
-@@&&fc_set_value_var_nvl. 'oci360_clean_on_exit' '&&oci360_clean_on_exit.' 'ON'
+COL oci360_clean_on_exit NEW_V oci360_clean_on_exit
+SELECT DECODE('&&oci360_clean_on_exit.',NULL,DECODE('&&oci360_load_mode.','OFF','OFF','ON'),'&&oci360_clean_on_exit.') oci360_clean_on_exit FROM DUAL;
+COL oci360_clean_on_exit clear
 @@&&fc_validate_variable. oci360_clean_on_exit NOT_NULL
 @@&&fc_validate_variable. oci360_clean_on_exit ON_OFF
 
