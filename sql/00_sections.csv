@@ -2,12 +2,11 @@
 -- Use "," as field separator
 -- Format: Section ID [1a - 9z], File Sufix Name, Section Description, Skip Variables (If last field is empty or its variables return NULL, sql WILL be executed)
 --
-1a,infrastructure.sql,'OCI Infrastructure'
-1b,tenancy.sql,'Tenancy Information'
-1c,instances.sql,'Compute Instances'
-1d,compmgt.sql,'Compute Management'
-1e,images.sql,'Compute Images'
-1f,pics.sql,'Partner Image Catalog (PIC)'
+1a,tenancy.sql,'Tenancy Information'
+1b,instances.sql,'Compute Instances'
+1c,compmgt.sql,'Compute Management'
+1d,images.sql,'Compute Images'
+1e,pics.sql,'Partner Image Catalog (PIC)'
 --
 2a,volumes.sql,'Volumes'
 2b,backups.sql,'Volumes Backups'
