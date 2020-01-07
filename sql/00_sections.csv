@@ -1,0 +1,40 @@
+-- Add or remove new Sections in this file. No need to update anywhere else.
+-- Use "," as field separator
+-- Format: Section ID [1a - 9z], File Sufix Name, Section Description, Skip Variables (If last field is empty or its variables return NULL, sql WILL be executed)
+--
+1a,tenancy.sql,'Tenancy Information'
+1b,instances.sql,'Compute Instances'
+1c,compmgt.sql,'Compute Management'
+1d,images.sql,'Compute Images'
+1e,pics.sql,'Partner Image Catalog (PIC)'
+--
+2a,volumes.sql,'Volumes'
+2b,backups.sql,'Volumes Backups'
+2c,bvolumes.sql,'Boot-Volumes'
+2d,bvbackups.sql,'Boot-Volumes Backups'
+2e,filestorage.sql,'File Storage'
+2f,objstorage.sql,'Object Storage'
+--
+3a,vcns_main.sql,'Virtual Cloud Network'
+3b,seclists_main.sql,'Network Analysis'
+3c,networks.sql,'More Network Info'
+3d,cross_conn.sql,'Cross Connections'
+--
+4a,lb.sql,'Load Balance'
+4b,dns.sql,'DNS Zones'
+4c,email.sql,'Email Delivery'
+--
+5a,iam.sql,'Identity and Access Management'
+5b,kms.sql,'Key Management Service'
+--
+6a,databases.sql,'Database Services'
+6b,exadatas.sql,'Database Estimations',&&skip_billing_sql.
+6c,autonomous.sql,'Autonomous Services'
+--
+7a,json_metadata.sql,'Metadata',&&skip_json_section.
+--
+8a,restype.sql,'Cloud Resource-type List'
+8b,misc.sql,'Miscellaneous'
+--
+-- Note: You can optionally have sections 0a_pre.sql and 0b_post.sql (not defined on this csv).
+-- They are not mandatory and they instruct moat to run only once a initial sql before all of them (0a) or after all of them (0b).

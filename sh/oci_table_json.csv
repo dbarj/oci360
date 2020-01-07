@@ -1,0 +1,119 @@
+oci_bv_backup.json,OCI360_BACKUPS,Volume Backups
+oci_bv_boot-volume-backup.json,OCI360_BV_BACKUPS,Boot-Volume Backups
+oci_bv_boot-volume-kms-key.json,OCI360_BV_KEYS,Boot-Volume Keys
+oci_bv_boot-volume.json,OCI360_BVOLUMES,Boot-Volumes
+oci_bv_volume-backup-policy-assignment.json,OCI360_BKP_POLICY_ASSIGN,Backup Policies Assignments
+oci_bv_volume-backup-policy.json,OCI360_BKP_POLICY,Backup Policies
+oci_bv_volume-group-backup.json,OCI360_VOLGROUP_BKP,Volume Groups Backups
+oci_bv_volume-group.json,OCI360_VOLGROUP,Volume Groups
+oci_bv_volume-kms-key.json,OCI360_VOL_KEYS,Volume Keys
+oci_bv_volume.json,OCI360_VOLUMES,Volumes
+oci_compute-management_instance-configuration.json,OCI360_INST_CONFIG,Instance Configuration
+oci_compute-management_instance-configuration_list.json,OCI360_INST_CONFIG_LIST,Instance Configuration List
+oci_compute-management_instance-pool.json,OCI360_INST_POOLS,Instance Pools
+oci_compute-management_instance-pool_list-instances.json,OCI360_INST_POOLS_INSTS,Instance Pools Members
+oci_compute-management_instance-pool_list.json,OCI360_INST_POOLS_LIST,Instance Pools List
+oci_compute_boot-volume-attachment.json,OCI360_BV_ATTACHS,Boot-Volume Attachments
+oci_compute_console-history.json,OCI360_CONSOLE_HIST,Console History
+oci_compute_image.json,OCI360_IMAGES,Compute Images
+oci_compute_instance-console-connection.json,OCI360_CONSOLE_CONNS,Compute Console Connections
+oci_compute_instance.json,OCI360_INSTANCES,Compute Instances
+oci_compute_pic_agreements.json,OCI360_PIC_AGREES,Partner Image Agreements
+oci_compute_pic_listing.json,OCI360_PIC_LISTING,Partner Image Listing
+oci_compute_pic_subscription.json,OCI360_PIC_SUBS,Partner Image Subscription
+oci_compute_pic_version.json,OCI360_PIC_VERSIONS,Partner Image Version
+oci_compute_shape.json,OCI360_SHAPES,Shapes
+oci_compute_vnic-attachment.json,OCI360_VNIC_ATTACHS,VNIC Attachments
+oci_compute_volume-attachment.json,OCI360_VOL_ATTACHS,Volume Attachments
+oci_db_autonomous-data-warehouse-backup.json,OCI360_AUTONOMOUS_DW_BKP,Autonomous Datawarehouse Backups
+oci_db_autonomous-data-warehouse.json,OCI360_AUTONOMOUS_DW,Autonomous Datawarehouses
+oci_db_autonomous-database-backup.json,OCI360_AUTONOMOUS_DB_BKP,Autonomous Database Backups
+oci_db_autonomous-database.json,OCI360_AUTONOMOUS_DB,Autonomous Databases
+oci_db_backup.json,OCI360_DB_BACKUPS,Database Backups
+oci_db_data-guard-association.json,OCI360_DATAGUARD_ASSOC,Database Dataguard Associations
+oci_db_database.json,OCI360_DATABASES,Databases
+oci_db_external-backup-job.json,OCI360_DB_BACKUP_JOBS,Database Backup Jobs
+oci_db_node.json,OCI360_DB_NODES,Database Nodes
+oci_db_patch-history_by-database.json,OCI360_DB_PATCH_BYDB_HIST,Patches by Database History
+oci_db_patch-history_by-db-system.json,OCI360_DB_PATCH_BYDS_HIST,Patches by System History
+oci_db_patch_by-database.json,OCI360_DB_PATCH_BYDB,Patches by Database
+oci_db_patch_by-db-system.json,OCI360_DB_PATCH_BYDS,Patches by System
+oci_db_system-shape.json,OCI360_DB_SYSTEM_SHAPES,Database System Shapes
+oci_db_system.json,OCI360_DB_SYSTEMS,Database Systems
+oci_db_version.json,OCI360_DB_VERSIONS,Database Versions
+oci_db_exadata-infrastructure.json,OCI360_DB_EXAINFRA,Exadata Infrastructure
+oci_dns_zone.json,OCI360_DNS_ZONES,DNS Zones
+oci_email_sender.json,OCI360_EMAIL_SENDERS,Email Approved senders
+oci_email_suppression.json,OCI360_EMAIL_SUPPR,Email Suppression
+oci_fs_export-set.json,OCI360_FS_EXPORT_SETS,File system Export Set
+oci_fs_export.json,OCI360_FS_EXPORTS,File system Export
+oci_fs_file-system.json,OCI360_FILE_SYSTEMS,NFS File system
+oci_fs_mount-target.json,OCI360_MOUNT_TARGETS,Mount Targets
+oci_fs_snapshot.json,OCI360_SNAPSHOTS,Snapshots
+oci_iam_auth-token.json,OCI360_AUTH_TOKEN,Authorized Tokens
+oci_iam_availability-domain.json,OCI360_ADS,ADs
+oci_iam_compartment.json,OCI360_COMPARTMENTS,Compartments
+oci_iam_customer-secret-key.json,OCI360_CUSTOMER_KEY,Customer Secret Keys
+oci_iam_dynamic-group.json,OCI360_DYN_GROUPS,Dynamic Groups
+oci_iam_fault-domain.json,OCI360_FAULT_DOMAINS,Fault Domains
+oci_iam_group.json,OCI360_GROUPS,Groups
+oci_iam_policy.json,OCI360_POLICIES,Policies
+oci_iam_region-subscription.json,OCI360_REGIONS_SUBS,Region Subscriptions
+oci_iam_region.json,OCI360_REGIONS,Regions
+oci_iam_smtp-credential.json,OCI360_SMTP_CREDENTIALS,SMTP Credentials
+oci_iam_tag-namespace.json,OCI360_TAG_NAMESPACES,Tag Namespaces
+oci_iam_tag.json,OCI360_TAGS,Tags
+oci_iam_user.json,OCI360_USERS,Users
+oci_iam_work-request.json,OCI360_IAM_WORKREQS,Work Requests
+oci_kms_management_key-version.json,OCI360_KEY_VERSIONS,Key Version
+oci_kms_management_key.json,OCI360_KEYS,Keys
+oci_kms_management_vault.json,OCI360_VAULTS,Vaults
+oci_lb_backend.json,OCI360_LB_BACKENDS,Backends
+oci_lb_backend-health.json,OCI360_LB_BACKENDS_HEALTH,Backends Health
+oci_lb_backend-set.json,OCI360_LB_BACKENDSETS,Backend-Sets
+oci_lb_backend-set-health.json,OCI360_LB_BACKENDSETS_HEALTH,Backend-Sets Health
+oci_lb_certificate.json,OCI360_LB_CERTIFICATES,Certificates
+oci_lb_health-checker.json,OCI360_LB_HEALTHCHECKS,Health Checks
+oci_lb_hostname.json,OCI360_LB_HOSTNAMES,Hostnames
+oci_lb_load-balancer-health.json,OCI360_LB_LOADBALANCERS_HEALTH,Load Balancers Health
+oci_lb_load-balancer.json,OCI360_LB_LOADBALANCERS,Load Balancers
+oci_lb_path-route-set.json,OCI360_LB_PATHROUTES,Path Routes
+oci_lb_policy.json,OCI360_LB_POLICIES,Policies
+oci_lb_protocol.json,OCI360_LB_PROTOCOLS,Protocols
+oci_lb_shape.json,OCI360_LB_SHAPES,Shapes
+oci_lb_work-request.json,OCI360_LB_WORKREQS,Work Requests
+oci_network_cpe.json,OCI360_CPE,CPEs
+oci_network_cross-connect-group.json,OCI360_CROSSCONN_GRP,Cross-connection Groups
+oci_network_cross-connect-location.json,OCI360_CROSSCONN_LOC,Cross-connection Locations
+oci_network_cross-connect-port-speed-shape.json,OCI360_CROSSCONN_PORT,Cross-connection Ports
+oci_network_cross-connect-status.json,OCI360_CROSSCONN_STATUS,Cross-connection Status
+oci_network_cross-connect.json,OCI360_CROSSCONN,Cross-connections
+oci_network_dhcp-options.json,OCI360_DHCP_OPTIONS,DHCP Options
+oci_network_drg-attachment.json,OCI360_DRG_ATTACHS,DRG Attachments
+oci_network_drg.json,OCI360_DRGS,DRGs
+oci_network_fast-connect-provider-service.json,OCI360_FC_PROV_SRVCS,Fast-Connect Service
+oci_network_internet-gateway.json,OCI360_INTERNET_GW,Internet Gateway
+oci_network_ip-sec-connection.json,OCI360_IPSEC_CONNS,IPSec Connections
+oci_network_local-peering-gateway.json,OCI360_LOCAL_PEERING,Local Peering
+oci_network_nat-gateway.json,OCI360_NAT_GATEWAYS,Nat Gateways
+oci_network_private-ip.json,OCI360_PRIVATEIPS,Private IPs
+oci_network_public-ip.json,OCI360_PUBLICIPS,Public IPs
+oci_network_remote-peering-connection.json,OCI360_REMOTE_PEERING,Remote Peering
+oci_network_route-table.json,OCI360_ROUTE_TABLES,Route Tables
+oci_network_security-list.json,OCI360_SECLISTS,Security Lists
+oci_network_service-gateway.json,OCI360_NETSERVICE_GW,Network Service Gateways
+oci_network_service.json,OCI360_NETSERVICES,Network Services
+oci_network_subnet.json,OCI360_SUBNETS,Subnets
+oci_network_vcn.json,OCI360_VCNS,VCNs
+oci_network_virtual-circuit-public-prefix.json,OCI360_VIRT_CIRC_PUBPREF,Virtual Circuits Pub-Prefix
+oci_network_virtual-circuit.json,OCI360_VIRT_CIRC,Virtual Circuits
+oci_network_vnic.json,OCI360_VNICS,VNICs
+oci_os_bucket.json,OCI360_BUCKETS,Buckets
+oci_os_multipart.json,OCI360_MULTIPARTS,Multiparts
+oci_os_ns-metadata.json,OCI360_NAMESERVER_META,Nameserver Metadata
+oci_os_ns.json,OCI360_NAMESERVER,Nameserver
+oci_os_object-lifecycle-policy.json,OCI360_OBJECT_POLICIES,Lifecycle Policy Rules
+oci_os_object.json,OCI360_OBJECTS,Objects
+oci_os_preauth-request.json,OCI360_PREAUTH_REQUESTS,Pre-authenticated Requests
+oci_os_work-request.json,OCI360_OS_WORKREQS,Work Requests
+oci_search_resource-type.json,OCI360_RESTYPES,Resource-Types
