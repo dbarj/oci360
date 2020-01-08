@@ -5,13 +5,16 @@ DEF oci360_webvowl_zip   = '&&moat369_sw_base./&&moat369_sw_misc_fdr./webvowl_1.
 DEF oci360_webvowl_fdr  = 'webvowl'
 DEF oci360_webvowl_data = 'data'
 
-@@&&fc_def_output_file. oci360_webvowl_json      'foaf.json'
+@@&&fc_def_output_file. oci360_webvowl_json      'oci360.json'
 @@&&fc_def_output_file. oci360_webvowl_qry       'webvowl_qry.sql'
 @@&&fc_def_output_file. oci360_webvowl_fdr_path  '&&oci360_webvowl_fdr.'
 @@&&fc_def_output_file. oci360_webvowl_data_path '&&oci360_webvowl_data.'
 
 HOS mkdir &&oci360_webvowl_fdr_path.
 HOS unzip -d &&oci360_webvowl_fdr_path. &&oci360_webvowl_zip. >> &&moat369_log3.
+
+HOS &&cmd_awk. '{sub(/foaf/,"oci360")}1' &&oci360_webvowl_fdr_path./js/webvowl.app.js > &&oci360_webvowl_fdr_path./js/webvowl.app.js.new
+HOS mv &&oci360_webvowl_fdr_path./js/webvowl.app.js.new &&oci360_webvowl_fdr_path./js/webvowl.app.js
 
 HOS cd &&oci360_webvowl_fdr_path./../; zip -rm &&moat369_zip_filename. &&oci360_webvowl_fdr./css/        >> &&moat369_log3.
 HOS cd &&oci360_webvowl_fdr_path./../; zip -rm &&moat369_zip_filename. &&oci360_webvowl_fdr./js/         >> &&moat369_log3.
@@ -26,14 +29,14 @@ BEGIN
 t_ids AS (
 SELECT /*+ materialize */ id,
        to_char(rank() over (order by id asc)) owl_id
-FROM  (select id from OCI360_INSTANCES union all
-       select distinct id from OCI360_SUBNETS union all
-       select distinct 'z_link_' || id from OCI360_SUBNETS union all
-       select id from OCI360_VCNS union all
-       select id from OCI360_PRIVATEIPS union all
-       select id from OCI360_REMOTE_PEERING union all
-       select id from OCI360_LOCAL_PEERING union all
-       select id from OCI360_PUBLICIPS union all
+FROM  (select id from OCI360_INSTANCES union
+       select distinct id from OCI360_SUBNETS union
+       select distinct 'z_link_' || id from OCI360_SUBNETS union
+       select id from OCI360_VCNS union
+       select id from OCI360_PRIVATEIPS union
+       select id from OCI360_REMOTE_PEERING union
+       select id from OCI360_LOCAL_PEERING union
+       select id from OCI360_PUBLICIPS union
        select 'z_link_' || id from OCI360_PUBLICIPS)),
 t_insts_subs AS (
 SELECT t4.id,
@@ -201,11 +204,11 @@ SELECT json_object(
   'id' VALUE owl_id,
   'type' VALUE owl_type) || decode(rownum,count(1) over (),'',',') text
 FROM   (select owl_id, owl_type from t_insts inner join t_ids using (id)
-        union all
+        union
         select owl_id, owl_type from t_subs inner join t_ids using (id)
-        union all
+        union
         select owl_id, owl_type from t_vcns inner join t_ids using (id)
-        union all
+        union
         select owl_id, owl_type from t_pubips inner join t_ids using (id))
 ]';
 END;
@@ -253,11 +256,11 @@ SELECT json_object(
   'id'          VALUE owl_id
   ABSENT ON NULL) || decode(rownum,count(1) over (),'',',') text
 FROM   (select id, display_name, owl_id from t_insts inner join t_ids using (id)
-        union all
+        union
         select id, display_name, owl_id from t_subs inner join t_ids using (id)
-        union all
+        union
         select id, display_name, owl_id from t_vcns inner join t_ids using (id)
-        union all
+        union
         select id, display_name, owl_id from t_pubips inner join t_ids using (id))
 ]';
 END;
@@ -284,10 +287,10 @@ BEGIN
 SELECT json_object(
   'id' VALUE owl_id,
   'type' VALUE owl_type) || decode(rownum,count(1) over (),'',',') text
-FROM   (select owl_id, owl_type from t_insts_subs    inner join t_ids using (id) union all
-        select owl_id, owl_type from t_subs_vcns     inner join t_ids using (id) union all
-        select owl_id, owl_type from t_vcns_vcns_rmt inner join t_ids using (id) union all
-        select owl_id, owl_type from t_vcns_vcns_loc inner join t_ids using (id) union all
+FROM   (select owl_id, owl_type from t_insts_subs    inner join t_ids using (id) union
+        select owl_id, owl_type from t_subs_vcns     inner join t_ids using (id) union
+        select owl_id, owl_type from t_vcns_vcns_rmt inner join t_ids using (id) union
+        select owl_id, owl_type from t_vcns_vcns_loc inner join t_ids using (id) union
         select owl_id, owl_type from t_insts_pubips  inner join t_ids using (id))
 ]';
 END;
@@ -331,7 +334,7 @@ FROM   t_insts_subs t1,
 WHERE  t1.id = t2.id
 AND    t1.subnet_id = torig.id
 AND    t1.instance_id = tdest.id
-union all
+union
 SELECT null id, t2.owl_id, torig.owl_id owl_domain, tdest.owl_id owl_range, t1.display_name owl_label, null owl_inverse_id
 FROM   t_subs_vcns t1,
        t_ids t2,
@@ -340,7 +343,7 @@ FROM   t_subs_vcns t1,
 WHERE  t1.id = t2.id
 AND    t1.vcn_id = torig.id
 AND    t1.subnet_id = tdest.id
-union all
+union
 SELECT t2.id, t2.owl_id, torig.owl_id owl_domain, tdest.owl_id owl_range, t1.display_name owl_label, t4.owl_id owl_inverse_id
 FROM   t_vcns_vcns_rmt t1,
        t_ids t2,
@@ -354,7 +357,7 @@ AND    t1.vcn_2_id = tdest.id
 AND    t1.vcn_1_id = t3.vcn_2_id (+)
 AND    t1.vcn_2_id = t3.vcn_1_id (+)
 AND    t3.id = t4.id (+)
-union all
+union
 SELECT t2.id, t2.owl_id, torig.owl_id owl_domain, tdest.owl_id owl_range, t1.display_name owl_label, t4.owl_id owl_inverse_id
 FROM   t_vcns_vcns_loc t1,
        t_ids t2,
@@ -368,7 +371,7 @@ AND    t1.vcn_2_id = tdest.id
 AND    t1.vcn_1_id = t3.vcn_2_id (+)
 AND    t1.vcn_2_id = t3.vcn_1_id (+)
 AND    t3.id = t4.id (+)
-union all
+union
 SELECT null id, t2.owl_id, torig.owl_id owl_domain, tdest.owl_id owl_range, t1.display_name owl_label, null owl_inverse_id
 FROM   t_insts_pubips t1,
        t_ids t2,

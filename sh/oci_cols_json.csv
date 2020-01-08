@@ -83,3 +83,6 @@ oci_bv_backup.json,$.data."unique-size-in-mbs",number,UNIQUE_SIZE_IN_MBS
 oci_bv_backup.json,$.data."volume-id",string,VOLUME_ID
 oci_bv_backup.json,$.data.id,string,ID
 oci_bv_backup.json,$.data.type,string,TYPE
+oci_network_drg-attachment.json,$.data."drg-id",string,DRG_ID
+oci_network_drg-attachment.json,$.data."vcn-id",string,VCN_ID
+oci_network_drg-attachment.json,$.data."lifecycle-state",string,LIFECYCLE_STATE
