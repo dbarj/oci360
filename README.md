@@ -21,24 +21,21 @@ The overall execution can be divided in 3 steps:
 
 #### Exporter Phase
 
-![Exporter](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/Exporter.png)
+First, the tool will connect to OCI through the delivered command line interface (OCI-CLI) and get tenancy metadata in JSON format.
 
-In this step, the tool:
-- Connects to OCI through the delivered command line interface (CLI) and gets tenancy metadata in JSON format.
+![Exporter](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/Exporter.png)
 
 #### Converter Phase
 
-![Converter](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/Converter.png)
+Later, the tool will collect the JSON files output by the extractor and load the data to an Oracle Database for analysis and reporting.
 
-In this step, the tool:
-- Collects the JSON files output by the extractor and loads the data to an Oracle Database for analysis and reporting.
+![Converter](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/Converter.png)
 
 #### Reporter Phase
 
-![Reporter](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/Reporter.png)
+Finally, the tool will pull the data from the Oracle database to generate tables and charts that are then output in HTML format for consumption.
 
-In this step, the tool:
-- Pulls data from the Oracle database to generate tables and charts that are then output in HTML format for consumption.
+![Reporter](https://raw.githubusercontent.com/dbarj/repo_pics/master/oci360/Reporter.png)
 
 ## Execution Steps
 
