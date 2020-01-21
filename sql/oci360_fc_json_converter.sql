@@ -135,7 +135,7 @@ COMMIT;
 
 -- Rename Columns
 DECLARE
-  V_NEW_COLNAME VARCHAR2(100);
+  V_NEW_COLNAME VARCHAR2(1000);
   V_COL_TYPE NUMBER(2);
 BEGIN
   -- Type 'object' and 'array' are renamed after cause they will probably not appear in final view and could be renamed before a important type.
