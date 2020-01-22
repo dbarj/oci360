@@ -11,7 +11,7 @@ GET &&moat369_query.
 SPO &&one_spool_fullpath_filename. APP
 -- body
 SET HEA ON
-SET MARK HTML ON TABLE 'id="maintable"' SPOOL OFF
+SET MARK HTML ON TABLE 'id="maintable" class="sortable"' SPOOL OFF
 /
 SET MARK HTML OFF
 SPO OFF
@@ -22,6 +22,7 @@ SELECT prev_sql_id moat369_prev_sql_id, TO_CHAR(prev_child_number) moat369_prev_
 @@&&fc_check_last_sql_status.
 
 @@&&fc_add_tablefilter. &&one_spool_fullpath_filename.
+@@&&fc_add_sorttable.   &&one_spool_fullpath_filename.
 
 SPO &&one_spool_fullpath_filename. APP
 -- footer

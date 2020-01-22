@@ -6,8 +6,8 @@ SET FEED OFF
 SET ECHO OFF
 SET TIM OFF
 SET TIMI OFF
-DEF moat369_fw_vYYNN = 'v1904'
-DEF moat369_fw_vrsn  = '&&moat369_fw_vYYNN. (2019-08-04)'
+DEF moat369_fw_vYYNN = 'v2001'
+DEF moat369_fw_vrsn  = '&&moat369_fw_vYYNN. (2020-01-09)'
 
 -- Define all functions and files:
 @@moat369_fc_define_files.sql
@@ -164,6 +164,7 @@ select case WHEN '&&moat369_conf_encrypt_html.'   = 'ON' OR '&&moat369_conf_comp
 COL fc_convert_txt_to_html clear
 --
 @@&&fc_set_value_var_decode. 'fc_add_tablefilter' '&&moat369_conf_tablefilter.' 'Y' '&&fc_add_tablefilter.' '&&fc_skip_script.&&fc_add_tablefilter.'
+@@&&fc_set_value_var_decode. 'fc_add_sorttable'   '&&moat369_conf_tablefilter.' 'N' '&&fc_add_sorttable.'   '&&fc_skip_script.&&fc_add_sorttable.'
 
 @@&&fc_def_empty_var. moat369_pre_enc_pub_file
 @@&&fc_set_value_var_nvl. 'moat369_enc_pub_file' '&&moat369_pre_enc_pub_file.' '&&moat369_sw_base./&&moat369_sw_misc_fdr./&&moat369_sw_cert_file.'
@@ -691,5 +692,7 @@ HOS zip -mj &&moat369_zip_filename. &&moat369_sw_output_fdr./LICENSE-3RD-PARTY.t
 
 HOS cp &&moat369_fdr_js./style.css  &&moat369_sw_output_fdr./&&moat369_style_css. >> &&moat369_log3.
 HOS zip -mj &&moat369_zip_filename. &&moat369_sw_output_fdr./&&moat369_style_css. >> &&moat369_log3.
+
+HOS if [ '&&moat369_conf_tablefilter.' == 'N' ]; then zip -j &&moat369_zip_filename. &&moat369_fdr_js./sorttable.js >> &&moat369_log3.; fi
 
 --WHENEVER SQLERROR CONTINUE;
