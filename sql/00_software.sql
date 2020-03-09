@@ -19,10 +19,10 @@ DEF moat369_sw_logo_title_6 = ""
 DEF moat369_sw_logo_title_7 = ""
 DEF moat369_sw_logo_title_8 = ""
 
-DEF moat369_sw_vYYNN = 'v2002'
-DEF moat369_sw_vrsn  = '&&moat369_sw_vYYNN. (2020-01-13)'
+DEF moat369_sw_vYYNN = 'v20.03'
+DEF moat369_sw_vrsn  = '&&moat369_sw_vYYNN. (2020-03-06)'
 
-DEF moat369_sw_copyright = 'oci360 (c) 2019, All rights reserved.'
+DEF moat369_sw_copyright = 'oci360 (c) 2020, All rights reserved.'
 DEF moat369_sw_author    = 'rodrigo.jorge'
 DEF moat369_sw_email     = '@rodrigojorgedba'
 

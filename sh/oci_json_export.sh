@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 1.21
+# Version 1.22
 #************************************************************************
 set -e
 
@@ -117,6 +117,10 @@ then
   echoError "- ALL         - Execute json export for ALL possible options and compress output in a zip file."
   echoError "- ALL_REGIONS - Same as ALL, but run for all tenancy's subscribed regions."
   echoError "$(funcPrintRange "$v_opt_list")"
+  echoError ""
+  echoError "PS: it is possible to export the following variables to add/remove options when ALL/ALL_REGIONS are used."
+  echoError "OCI_JSON_INCLUDE - Comma separated list of items to include."
+  echoError "OCI_JSON_EXCLUDE - Comma separated list of items to exclude."
   exit 1
 fi
 
@@ -752,6 +756,8 @@ function main ()
     do
        c_name=$(cut -d ',' -f 1 <<< "$c_line")
        c_file=$(cut -d ',' -f 2 <<< "$c_line")
+       [ -n "${OCI_JSON_INCLUDE}" ] && [[ ",${OCI_JSON_INCLUDE}," != *",${c_name},"* ]] && continue
+       [ -n "${OCI_JSON_EXCLUDE}" ] && [[ ",${OCI_JSON_EXCLUDE}," = *",${c_name},"* ]] && continue
        runAndZip $c_name $c_file
     done 3< <(echo "$v_func_list")
     v_ret=0
