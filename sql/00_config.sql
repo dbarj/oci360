@@ -28,10 +28,11 @@ DEF moat369_conf_encrypt_output = 'OFF';
 DEF moat369_conf_encrypt_html   = 'OFF';
 DEF moat369_conf_compress_html  = 'OFF';
 
--- Defines OCI360 execution mode. Options are (FULL or REPORT_ONLY)
+-- Defines OCI360 execution mode. Options are (FULL, REPORT_ONLY or LOAD_ONLY)
 -- FULL        = Call OCI-CLI exporter (generates json) and generate oci360 report. -> NOT IMPLEMENTED YET
 -- REPORT_ONLY = Generate oci360 report only. Must have ZIP file with all jsons inside execution folder.
-DEF oci360_exec_mode = 'REPORT_ONLY';
+-- LOAD_ONLY   = Generate oci360 database tables only. Must have ZIP file with all jsons inside execution folder. No output ZIP will be generated.
+-- DEF oci360_exec_mode = 'REPORT_ONLY';
 
 -- Defines OCI360 converter mode. Options are (ON_DEMAND, PRE_LOAD or OFF)
 -- PRE_LOAD  = Convert all jsons inside tables in the beggining. (Recommended and default if omitted)

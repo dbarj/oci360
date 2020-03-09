@@ -8,6 +8,7 @@
 1d,compmgt.sql,'Compute Management'
 1e,images.sql,'Compute Images'
 1f,pics.sql,'Partner Image Catalog (PIC)'
+1g,changes.sql,'Changes since last execution'
 --
 2a,volumes.sql,'Volumes'
 2b,backups.sql,'Volumes Backups'

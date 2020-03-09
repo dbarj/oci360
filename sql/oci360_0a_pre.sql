@@ -38,9 +38,10 @@ COL oci360_load_mode clear
 -- Check oci360_clean_on_exit variable
 -- Default value: OFF if oci360_load_mode is OFF, otherwise ON
 @@&&fc_def_empty_var. oci360_clean_on_exit
-COL oci360_clean_on_exit NEW_V oci360_clean_on_exit
-SELECT DECODE('&&oci360_clean_on_exit.',NULL,DECODE('&&oci360_load_mode.','OFF','OFF','ON'),'&&oci360_clean_on_exit.') oci360_clean_on_exit FROM DUAL;
-COL oci360_clean_on_exit clear
+-- COL oci360_clean_on_exit NEW_V oci360_clean_on_exit
+-- SELECT DECODE('&&oci360_clean_on_exit.',NULL,DECODE('&&oci360_load_mode.','OFF','OFF','ON'),'&&oci360_clean_on_exit.') oci360_clean_on_exit FROM DUAL;
+-- COL oci360_clean_on_exit clear
+@@&&fc_set_value_var_nvl. 'oci360_clean_on_exit' '&&oci360_clean_on_exit.' 'OFF'
 @@&&fc_validate_variable. oci360_clean_on_exit NOT_NULL
 @@&&fc_validate_variable. oci360_clean_on_exit ON_OFF
 
@@ -50,6 +51,10 @@ COL oci360_clean_on_exit clear
 @@&&fc_validate_variable. oci360_skip_billing NOT_NULL
 @@&&fc_validate_variable. oci360_skip_billing Y_N
 
+-- Check oci360_tables_override variable. This variable will replace oci360_tables default value.
+@@&&fc_def_empty_var. oci360_tables_override
+@@&&fc_set_value_var_nvl. 'oci360_tables' '&&oci360_tables_override.' '&&oci360_tables.'
+
 SET TERM ON
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 
@@ -58,8 +63,8 @@ DECLARE
   V_VAR         VARCHAR2(30)  := 'oci360_exec_mode';
   V_VAR_CONTENT VARCHAR2(500) := '&&oci360_exec_mode.';
 BEGIN
-  IF V_VAR_CONTENT NOT IN ('FULL','REPORT_ONLY') THEN
-    RAISE_APPLICATION_ERROR(-20000, 'Invalid value for ' || V_VAR || ': "' || V_VAR_CONTENT || '" in 00_config.sql. Valid values are "FULL" or "REPORT_ONLY".');
+  IF V_VAR_CONTENT NOT IN ('FULL','REPORT_ONLY','LOAD_ONLY') THEN
+    RAISE_APPLICATION_ERROR(-20000, 'Invalid value for ' || V_VAR || ': "' || V_VAR_CONTENT || '" in 00_config.sql. Valid values are "FULL", "REPORT_ONLY" or "LOAD_ONLY".');
   END IF;
 END;
 /
@@ -71,6 +76,17 @@ DECLARE
 BEGIN
   IF V_VAR_CONTENT NOT IN ('PRE_LOAD','ON_DEMAND', 'OFF') THEN
     RAISE_APPLICATION_ERROR(-20000, 'Invalid value for ' || V_VAR || ': "' || V_VAR_CONTENT || '" in 00_config.sql. Valid values are "PRE_LOAD", "ON_DEMAND" or "OFF".');
+  END IF;
+END;
+/
+
+-- Check oci360_exec_mode variable
+DECLARE
+  V_VAR         VARCHAR2(30)  := 'oci360_exec_mode';
+  V_VAR_CONTENT VARCHAR2(500) := '&&oci360_exec_mode.';
+BEGIN
+  IF '&&oci360_exec_mode.' = 'LOAD_ONLY' and '&&oci360_load_mode.' in ('OFF','ON_DEMAND') THEN
+    RAISE_APPLICATION_ERROR(-20000, 'Invalid combination. When oci360_exec_mode is "LOAD_ONLY", oci360_load_mode must be set as "PRE_LOAD". Found: "&&oci360_load_mode."');
   END IF;
 END;
 /
@@ -160,5 +176,19 @@ COL skip_billing_sql clear
 COL skip_json_section NEW_V skip_json_section
 SELECT DECODE('&&oci360_load_mode.','OFF','&&fc_skip_script.','') skip_json_section FROM DUAL;
 COL skip_json_section clear
+
+-- Skip all sections if exec_mode is LOAD_ONLY.
+
+BEGIN
+  IF '&&oci360_exec_mode.' = 'LOAD_ONLY' THEN
+    :moat369_sec_from := '9z';
+    :moat369_sec_to := '9z';
+  END IF;
+END;
+/
+
+@@&&fc_def_empty_var. oci360_skip_reexec_secvar
+@@&&fc_set_value_var_decode. 'oci360_skip_reexec_secvar' '&&oci360_exec_mode.' 'LOAD_ONLY' '' '&&fc_skip_script.'
+@@&&oci360_skip_reexec_secvar.&&fc_section_variables.
 
 ----------------------------
