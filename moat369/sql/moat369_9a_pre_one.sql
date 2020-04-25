@@ -49,6 +49,13 @@ BEGIN
 END;
 /
 
+-- Workarounds required for sql-formatter.js limitations (enabled when sql_format='Y')
+BEGIN
+  -- Change Oracle double slash comments to comment blocks
+  :sql_text_display := REGEXP_REPLACE(:sql_text_display, '--(.+?)'||CHR(10),'/* \1 */'||CHR(10));
+END;
+/
+
 PRINT sql_text_display
 
 -- Remove spaces before or after

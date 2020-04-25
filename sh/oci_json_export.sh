@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 1.22
+# Version 1.23
 #************************************************************************
 set -e
 
@@ -284,7 +284,7 @@ function jsonVNICs ()
 {
   set -e # Exit if error in any call.
   local l_vnics v_vnic v_out v_fout
-  ## Get also Images used By Instaces.
+  ## Can't use jsonGenericMaster to avoid duplicates
   v_fout=""
   l_vnics=$(Net-PrivateIPs | ${v_jq} -r '.data[]."vnic-id"' | sort -u)
   for v_vnic in $l_vnics
@@ -532,6 +532,7 @@ function jsonConcat ()
 # DON'T REMOVE/CHANGE THOSE COMMENTS. THEY ARE USED TO GENERATE DYNAMIC FUNCTIONS
 
 # BEGIN DYNFUNC
+# Budget-Data,oci_budget_data.json,jsonAllCompart,"budgets budget list --all"
 # BV-BVBackups,oci_bv_boot-volume-backup.json,jsonAllCompart,"bv boot-volume-backup list --all"
 # BV-BVKey,oci_bv_boot-volume-kms-key.json,jsonBVolsKeys
 # BV-BVolumes,oci_bv_boot-volume.json,jsonAllAD,"bv boot-volume list --all"
@@ -581,6 +582,7 @@ function jsonConcat ()
 # Email-Supps,oci_email_suppression.json,jsonGenericMaster,"email suppression list --all" "IAM-Comparts" "compartment-id:compartment-id" "jsonSimple"
 # FS-ExpSets,oci_fs_export-set.json,jsonAllAD,"fs export-set list --all"
 # FS-Exports,oci_fs_export.json,jsonAllCompartAddTag,"fs export list --all"
+# FS-ExpDetails,oci_fs_export_details.json,jsonGenericMaster,"fs export get" "FS-Exports" "id:export-id" "jsonSimple"
 # FS-FileSystems,oci_fs_file-system.json,jsonAllAD,"fs file-system list --all"
 # FS-MountTargets,oci_fs_mount-target.json,jsonAllAD,"fs mount-target list --all"
 # FS-Snapshots,oci_fs_snapshot.json,jsonGenericMaster,"fs snapshot list --all" "FS-FileSystems" "id:file-system-id" "jsonSimple"
@@ -598,6 +600,7 @@ function jsonConcat ()
 # IAM-Tag,oci_iam_tag.json,jsonGenericMaster,"iam tag list --all" "IAM-TagNS" "id:tag-namespace-id" "jsonSimple"
 # IAM-TagNS,oci_iam_tag-namespace.json,jsonAllCompart,"iam tag-namespace list --all"
 # IAM-Users,oci_iam_user.json,jsonSimple,"iam user list --all"
+# IAM-UserGroups,oci_iam_user_groups.json,jsonGenericMasterAdd,"iam user list-groups --all" "IAM-Users" "id:user-id:user-id" "jsonSimple"
 # IAM-WorkReqs,oci_iam_work-request.json,jsonAllCompart,"iam work-request list --all"
 # Kms-KeyVersions,oci_kms_management_key-version.json,jsonGenericMaster,"kms management key-version list --all" "Kms-Keys" "id:key-id" "jsonSimple"
 # Kms-Keys,oci_kms_management_key.json,jsonAllCompart,"kms management key list --all"
@@ -647,6 +650,7 @@ function jsonConcat ()
 # Net-VirtCircPubPref,oci_network_virtual-circuit-public-prefix.json,jsonGenericMaster,"network virtual-circuit-public-prefix list" "Net-VirtCirc" "id:virtual-circuit-id" "jsonSimple"
 # Net-Vnics,oci_network_vnic.json,jsonVNICs
 # OS-Buckets,oci_os_bucket.json,jsonAllCompart,"os bucket list --all"
+# OS-BucketsDetails,oci_os_bucket_details.json,jsonGenericMaster,"os bucket get" "OS-Buckets" "name:bucket-name" "jsonSimple"
 # OS-Multipart,oci_os_multipart.json,jsonGenericMasterAdd,"os multipart list --all" "OS-Buckets" "name:bucket-name:bucket-name" "jsonSimple"
 # OS-Nameserver,oci_os_ns.json,jsonSimple,"os ns get"
 # OS-NameserverMeta,oci_os_ns-metadata.json,jsonSimple,"os ns get-metadata"
