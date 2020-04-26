@@ -83,6 +83,10 @@ oci_lb_policy.json,OCI360_LB_POLICIES,Policies
 oci_lb_protocol.json,OCI360_LB_PROTOCOLS,Protocols
 oci_lb_shape.json,OCI360_LB_SHAPES,Shapes
 oci_lb_work-request.json,OCI360_LB_WORKREQS,Work Requests
+oci_limits_service.json,OCI360_LIMITS_SERVICE,Limits Service
+oci_limits_quota.json,OCI360_LIMITS_QUOTA,Limits Quota
+oci_limits_value.json,OCI360_LIMITS_VALUE,Limits Value
+oci_limits_res-avail.json,OCI360_LIMITS_RES_AVAIL,Limits Resource Availability
 oci_network_cpe.json,OCI360_CPE,CPEs
 oci_network_cross-connect-group.json,OCI360_CROSSCONN_GRP,Cross-connection Groups
 oci_network_cross-connect-location.json,OCI360_CROSSCONN_LOC,Cross-connection Locations

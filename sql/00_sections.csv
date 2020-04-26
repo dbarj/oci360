@@ -25,6 +25,8 @@
 4a,lb.sql,'Load Balance'
 4b,dns.sql,'DNS Zones'
 4c,email.sql,'Email Delivery'
+4d,limits.sql,'Limits'
+
 --
 5a,iam.sql,'Identity and Access Management'
 5b,kms.sql,'Key Management Service'
