@@ -234,7 +234,7 @@ GROUP BY jt.DISPLAY_NAME,
          jt.ID
 HAVING  max(to_timestamp_tz(tbkp.time_created,'&&oci360_tzcolformat.')) <= to_date('&&moat369_date_to.','YYYY-MM-DD') - 30
 OR      max(to_timestamp_tz(tbkp.time_created,'&&oci360_tzcolformat.')) is null
-ORDER  BY COMPARTMENT_NAME, LATEST_FULL DESC NULLS LAST
+ORDER  BY COMPARTMENT_NAME, LATEST_BACKUP DESC NULLS LAST
 }';
 END;
 /
