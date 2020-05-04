@@ -80,8 +80,7 @@ WITH t1 as (select /*+ materialize */ compartment_id,count(*) total_comp from OC
      tot as (select sum(total_comp) total_global from t1)
 SELECT t2.name || ' - ' || total_comp name,
        total_comp total,
-       trim(to_char(round(total_comp/decode(total_global,0,1,total_global),4)*100,'990D99')) percent,
-       NULL dummy_01
+       trim(to_char(round(total_comp/decode(total_global,0,1,total_global),4)*100,'990D99')) percent
 FROM   t1, t2, tot
 WHERE  t1.compartment_id=t2.id
 }';
@@ -100,8 +99,7 @@ BEGIN
 WITH tot as (SELECT count(*) total_global FROM OCI360_INSTANCES)
 SELECT t1.shape || ' - ' || count(*) shape,
        count(*) total,
-       trim(to_char(round(count(*)/decode(total_global,0,1,total_global),4)*100,'990D99')) percent,
-       NULL dummy_01
+       trim(to_char(round(count(*)/decode(total_global,0,1,total_global),4)*100,'990D99')) percent
 FROM   OCI360_INSTANCES t1, tot
 GROUP BY t1.shape,total_global
 }';

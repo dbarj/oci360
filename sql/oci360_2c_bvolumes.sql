@@ -20,6 +20,7 @@ SELECT tb.DISPLAY_NAME BOOT_VOLUME_NAME,
        tb.IS_HYDRATED,
        tb.SIZE_IN_GBS,
        tb.SIZE_IN_MBS,
+       tb.VPUS_PER_GB,
        tb.TIME_CREATED,
        tcomp.NAME COMPARTMENT_NAME,
        tb."SOURCE_DETAILS$ID",
@@ -59,11 +60,9 @@ SELECT ID,
        IS_HYDRATED,
        SIZE_IN_GBS,
        SIZE_IN_MBS,
+       VPUS_PER_GB,
        DISPLAY_NAME,
        TIME_CREATED,
-       FREEFORM_TAGS$OWNER,
-       FREEFORM_TAGS$PROJECT,
-       FREEFORM_TAGS$PURPOSE,
        COMPARTMENT_ID,
        SOURCE_DETAILS$ID,
        SOURCE_DETAILS$TYPE,
@@ -101,6 +100,7 @@ BEGIN
 SELECT tb.DISPLAY_NAME BOOT_VOLUME_NAME,
        tb.IS_HYDRATED,
        tb.SIZE_IN_GBS,
+       tb.VPUS_PER_GB,
        tb.TIME_CREATED,
        tcomp.NAME COMPARTMENT_NAME,
        tb.LIFECYCLE_STATE,
@@ -121,7 +121,7 @@ END;
 
 -----------------------------------------
 
-DEF title = 'Boot-Volumes without full backup in last 30 days'
+DEF title = 'Boot-Volumes without backup in last 30 days'
 DEF main_table = 'OCI360_VOLGROUP_BKP'
 
 BEGIN
@@ -129,13 +129,14 @@ BEGIN
 SELECT tb.DISPLAY_NAME BOOT_VOLUME_NAME,
        tb.IS_HYDRATED,
        tb.SIZE_IN_GBS,
+       tb.VPUS_PER_GB,
        tb.TIME_CREATED,
        tcomp.NAME COMPARTMENT_NAME,
        tb.LIFECYCLE_STATE,
        tb.VOLUME_GROUP_ID,
        tb.AVAILABILITY_DOMAIN,
        tbkppol.POLICY_NAME,
-       max(to_timestamp_tz(tbkp.time_created,'&&oci360_tzcolformat.')) LATEST_FULL,
+       max(to_timestamp_tz(tbkp.time_created,'&&oci360_tzcolformat.')) LATEST_BACKUP,
        tb.ID
 FROM   OCI360_BVOLUMES tb,
        OCI360_COMPARTMENTS tcomp,
@@ -147,10 +148,10 @@ AND    tb.ID = tbkppolassign.ASSET_ID (+)
 AND    tbkppolassign.POLICY_ID = tbkppol.ID (+)
 AND    tb.ID = tbkp.boot_volume_id (+)
 AND    tbkp.LIFECYCLE_STATE (+) = 'AVAILABLE'
-AND    tbkp.TYPE (+) = 'FULL'
 GROUP BY tb.DISPLAY_NAME,
          tb.IS_HYDRATED,
          tb.SIZE_IN_GBS,
+         tb.VPUS_PER_GB,
          tb.TIME_CREATED,
          tcomp.NAME,
          tb.LIFECYCLE_STATE,
@@ -160,7 +161,7 @@ GROUP BY tb.DISPLAY_NAME,
          tb.ID
 HAVING  max(to_timestamp_tz(tbkp.time_created,'&&oci360_tzcolformat.')) <= to_date('&&moat369_date_to.','YYYY-MM-DD') - 30
 OR      max(to_timestamp_tz(tbkp.time_created,'&&oci360_tzcolformat.')) is null
-ORDER  BY COMPARTMENT_NAME, LATEST_FULL DESC NULLS LAST
+ORDER  BY COMPARTMENT_NAME, LATEST_BACKUP DESC NULLS LAST
 }';
 END;
 /
@@ -176,6 +177,7 @@ BEGIN
 SELECT tb.DISPLAY_NAME BOOT_VOLUME_NAME,
        tb.IS_HYDRATED,
        tb.SIZE_IN_GBS,
+       tb.VPUS_PER_GB,
        tb.TIME_CREATED,
        tcomp.NAME COMPARTMENT_NAME,
        tb.LIFECYCLE_STATE,
@@ -203,6 +205,7 @@ AND    tbkp2.TYPE (+) = 'INCREMENTAL'
 GROUP BY tb.DISPLAY_NAME,
          tb.IS_HYDRATED,
          tb.SIZE_IN_GBS,
+         tb.VPUS_PER_GB,
          tb.TIME_CREATED,
          tcomp.NAME,
          tb.LIFECYCLE_STATE,
@@ -226,6 +229,7 @@ BEGIN
 SELECT jt.DISPLAY_NAME,
        jt.IS_HYDRATED,
        jt.SIZE_IN_GBS,
+       jt.VPUS_PER_GB,
        jt.TIME_CREATED,
        tcomp.NAME COMPARTMENT_NAME,
        jt.LIFECYCLE_STATE,
@@ -257,6 +261,7 @@ AND    tbkp2.TYPE (+) = 'INCREMENTAL'
 GROUP BY jt.DISPLAY_NAME,
          jt.IS_HYDRATED,
          jt.SIZE_IN_GBS,
+         jt.VPUS_PER_GB,
          jt.TIME_CREATED,
          tcomp.NAME,
          jt.LIFECYCLE_STATE,

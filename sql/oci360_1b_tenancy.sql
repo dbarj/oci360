@@ -43,7 +43,7 @@ BEGIN
   :sql_text := q'{
 SELECT t1.region_name, t2.latitude, t2.longitude
 FROM   OCI360_REGIONS_SUBS t1,
-       OCI360_LOCATION t2
+       "&&oci360_obj_location." t2
 where  t1.region_key=t2.name
 }';
 END;

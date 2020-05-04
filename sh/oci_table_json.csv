@@ -46,7 +46,7 @@ oci_dns_zone.json,OCI360_DNS_ZONES,DNS Zones
 oci_email_sender.json,OCI360_EMAIL_SENDERS,Email Approved senders
 oci_email_suppression.json,OCI360_EMAIL_SUPPR,Email Suppression
 oci_fs_export-set.json,OCI360_FS_EXPORT_SETS,File system Export Set
-oci_fs_export.json,OCI360_FS_EXPORTS,File system Export
+oci_fs_export_details.json,OCI360_FS_EXPORTS,File system Export
 oci_fs_file-system.json,OCI360_FILE_SYSTEMS,NFS File system
 oci_fs_mount-target.json,OCI360_MOUNT_TARGETS,Mount Targets
 oci_fs_snapshot.json,OCI360_SNAPSHOTS,Snapshots
@@ -64,6 +64,7 @@ oci_iam_smtp-credential.json,OCI360_SMTP_CREDENTIALS,SMTP Credentials
 oci_iam_tag-namespace.json,OCI360_TAG_NAMESPACES,Tag Namespaces
 oci_iam_tag.json,OCI360_TAGS,Tags
 oci_iam_user.json,OCI360_USERS,Users
+oci_iam_user_groups.json,OCI360_USER_GROUPS,User Groups
 oci_iam_work-request.json,OCI360_IAM_WORKREQS,Work Requests
 oci_kms_management_key-version.json,OCI360_KEY_VERSIONS,Key Version
 oci_kms_management_key.json,OCI360_KEYS,Keys
@@ -82,6 +83,10 @@ oci_lb_policy.json,OCI360_LB_POLICIES,Policies
 oci_lb_protocol.json,OCI360_LB_PROTOCOLS,Protocols
 oci_lb_shape.json,OCI360_LB_SHAPES,Shapes
 oci_lb_work-request.json,OCI360_LB_WORKREQS,Work Requests
+oci_limits_service.json,OCI360_LIMITS_SERVICE,Limits Service
+oci_limits_quota.json,OCI360_LIMITS_QUOTA,Limits Quota
+oci_limits_value.json,OCI360_LIMITS_VALUE,Limits Value
+oci_limits_res-avail.json,OCI360_LIMITS_RES_AVAIL,Limits Resource Availability
 oci_network_cpe.json,OCI360_CPE,CPEs
 oci_network_cross-connect-group.json,OCI360_CROSSCONN_GRP,Cross-connection Groups
 oci_network_cross-connect-location.json,OCI360_CROSSCONN_LOC,Cross-connection Locations
@@ -108,7 +113,7 @@ oci_network_vcn.json,OCI360_VCNS,VCNs
 oci_network_virtual-circuit-public-prefix.json,OCI360_VIRT_CIRC_PUBPREF,Virtual Circuits Pub-Prefix
 oci_network_virtual-circuit.json,OCI360_VIRT_CIRC,Virtual Circuits
 oci_network_vnic.json,OCI360_VNICS,VNICs
-oci_os_bucket.json,OCI360_BUCKETS,Buckets
+oci_os_bucket_details.json,OCI360_BUCKETS,Buckets
 oci_os_multipart.json,OCI360_MULTIPARTS,Multiparts
 oci_os_ns-metadata.json,OCI360_NAMESERVER_META,Nameserver Metadata
 oci_os_ns.json,OCI360_NAMESERVER,Nameserver

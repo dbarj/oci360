@@ -6,8 +6,8 @@ SET FEED OFF
 SET ECHO OFF
 SET TIM OFF
 SET TIMI OFF
-DEF moat369_fw_vYYNN = 'v2001'
-DEF moat369_fw_vrsn  = '&&moat369_fw_vYYNN. (2020-01-09)'
+DEF moat369_fw_vYYNN = 'v2002'
+DEF moat369_fw_vrsn  = '&&moat369_fw_vYYNN. (2020-02-27)'
 
 -- Define all functions and files:
 @@moat369_fc_define_files.sql

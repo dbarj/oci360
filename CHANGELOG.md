@@ -1,5 +1,11 @@
 ## Versions ##
 
+* 20.04 (2020-05-04)
+  - New "Limits" section.
+  - New queries and improved some outputs.
+  - oci_json_export.sh with new items.
+  - Minor bugfix.
+
 * 20.03 (2020-03-06)
   - New version model.
   - New 'Changes since last execution' section.

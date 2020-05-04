@@ -2,6 +2,7 @@
 -- Tables Used in this Section
 -----------------------------------------
 @@&&fc_json_loader. 'OCI360_USERS'
+@@&&fc_json_loader. 'OCI360_USER_GROUPS'
 @@&&fc_json_loader. 'OCI360_GROUPS'
 @@&&fc_json_loader. 'OCI360_DYN_GROUPS'
 @@&&fc_json_loader. 'OCI360_POLICIES'
@@ -21,6 +22,20 @@ BEGIN
   :sql_text := q'{
 SELECT t1.*
 FROM   OCI360_USERS t1
+}';
+END;
+/
+@@&&9a_pre_one.
+
+-----------------------------------------
+
+DEF title = 'User Groups'
+DEF main_table = 'OCI360_USER_GROUPS'
+
+BEGIN
+  :sql_text := q'{
+SELECT t1.*
+FROM   OCI360_USER_GROUPS t1
 }';
 END;
 /
