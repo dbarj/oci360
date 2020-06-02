@@ -1,3 +1,4 @@
+oci_audit_event.json,OCI360_AUDIT_EVENTS,Audit Events
 oci_bv_backup.json,OCI360_BACKUPS,Volume Backups
 oci_bv_boot-volume-backup.json,OCI360_BV_BACKUPS,Boot-Volume Backups
 oci_bv_boot-volume-kms-key.json,OCI360_BV_KEYS,Boot-Volume Keys

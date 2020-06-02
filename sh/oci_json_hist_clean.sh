@@ -25,7 +25,7 @@
 #************************************************************************
 set -eo pipefail
 
-if [ -z "${BASH_VERSION}" ]
+if [ -z "${BASH_VERSION}" -o "${BASH}" = "/bin/sh" ]
 then
   >&2 echo "Script must be executed in BASH shell."
   exit 1
