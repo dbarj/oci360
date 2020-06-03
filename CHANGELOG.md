@@ -1,5 +1,11 @@
 ## Versions ##
 
+* 20.05 (2020-06-03)
+  - Now OCI360 can also run in ADB.
+  - New "Audit" section.
+  - New "Usage" section.
+  - oci_json_export.sh with new items.
+
 * 20.04 (2020-05-04)
   - New "Limits" section.
   - New queries and improved some outputs.
