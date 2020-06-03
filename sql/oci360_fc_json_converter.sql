@@ -10,8 +10,8 @@ DEF oci360_temp_clob  = "&&oci360_temp_obj_prefix._CLOB"
 DEF oci360_temp_check = "&&oci360_temp_obj_prefix._CHECK"
 DEF oci360_temp_view  = "&&oci360_temp_obj_prefix._VIEW"
 DEF oci360_temp_index = "&&oci360_temp_obj_prefix._INDEX"
-DEF oci360_temp_exttab = 'OCI360_EXTTAB'
-DEF oci360_temp_extout = 'file.txt'
+-- DEF oci360_temp_exttab = 'OCI360_EXTTAB'
+-- DEF oci360_temp_extout = 'file.txt'
 
 -- Creating Table Message
 SET TERM ON
@@ -34,49 +34,49 @@ SET ECHO ON TIMING ON
 -- DBMS_JSON can't run for another user. Go back to Current User:
 ALTER SESSION SET CURRENT_SCHEMA=&&oci360_user_session.;
 
-DECLARE 
-  FHANDLE  UTL_FILE.FILE_TYPE;
-BEGIN
-  FHANDLE := UTL_FILE.FOPEN('&&oci360_obj_dir.', '&&oci360_temp_extout.', 'w');
-  UTL_FILE.PUT(FHANDLE, '&&oci360_in_source_file.');
-  UTL_FILE.FCLOSE(FHANDLE);
-EXCEPTION
-  WHEN OTHERS THEN
-    DBMS_OUTPUT.PUT_LINE('EXCEPTION: SQLCODE=' || SQLCODE || '  SQLERRM=' || SQLERRM);
-    RAISE;
-END;
-/
-
--- Drop External Table
-BEGIN EXECUTE IMMEDIATE 'DROP TABLE &&oci360_user_curschema.."&&oci360_temp_exttab." PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
-/
-
--- Create External Table with CLOB contents
-CREATE TABLE &&oci360_user_curschema.."&&oci360_temp_exttab."
-(
-  json_document CLOB
-)
-ORGANIZATION EXTERNAL
-(  DEFAULT DIRECTORY "&&oci360_obj_dir."
-   ACCESS PARAMETERS
-     (records delimited BY newline
-      nologfile nobadfile nodiscardfile
-      fields
-          terminated BY ','
-          optionally enclosed BY '"'
-          notrim
-          missing field VALUES are NULL
-          (
-            json_filename CHAR(100)
-          )
-          COLUMN TRANSFORMS (json_document FROM LOBFILE (json_filename) FROM ("&&oci360_obj_dir.") CLOB)
-    )
-   LOCATION ('&&oci360_temp_extout.')
-)
-REJECT LIMIT 0
-NOPARALLEL
-NOMONITORING
-;
+-- DECLARE 
+--   FHANDLE  UTL_FILE.FILE_TYPE;
+-- BEGIN
+--   FHANDLE := UTL_FILE.FOPEN('&&oci360_obj_dir.', '&&oci360_temp_extout.', 'w');
+--   UTL_FILE.PUT(FHANDLE, '&&oci360_in_source_file.');
+--   UTL_FILE.FCLOSE(FHANDLE);
+-- EXCEPTION
+--   WHEN OTHERS THEN
+--     DBMS_OUTPUT.PUT_LINE('EXCEPTION: SQLCODE=' || SQLCODE || '  SQLERRM=' || SQLERRM);
+--     RAISE;
+-- END;
+-- /
+-- 
+-- -- Drop External Table
+-- BEGIN EXECUTE IMMEDIATE 'DROP TABLE &&oci360_user_curschema.."&&oci360_temp_exttab." PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
+-- /
+-- 
+-- -- Create External Table with CLOB contents
+-- CREATE TABLE &&oci360_user_curschema.."&&oci360_temp_exttab."
+-- (
+--   json_document CLOB
+-- )
+-- ORGANIZATION EXTERNAL
+-- (  DEFAULT DIRECTORY "&&oci360_obj_dir."
+--    ACCESS PARAMETERS
+--      (records delimited BY newline
+--       nologfile nobadfile nodiscardfile
+--       fields
+--           terminated BY ','
+--           optionally enclosed BY '"'
+--           notrim
+--           missing field VALUES are NULL
+--           (
+--             json_filename CHAR(100)
+--           )
+--           COLUMN TRANSFORMS (json_document FROM LOBFILE (json_filename) FROM ("&&oci360_obj_dir.") CLOB)
+--     )
+--    LOCATION ('&&oci360_temp_extout.')
+-- )
+-- REJECT LIMIT 0
+-- NOPARALLEL
+-- NOMONITORING
+-- ;
 
 -- Drop table
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE "&&oci360_temp_table." PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -87,14 +87,71 @@ CREATE TABLE "&&oci360_temp_table." (
   "&&oci360_temp_clob." CLOB,
   CONSTRAINT "&&oci360_temp_check." CHECK ("&&oci360_temp_clob." IS JSON)
 )
-NOCOMPRESS NOPARALLEL NOMONITORING;
+COMPRESS NOMONITORING
+LOB("&&oci360_temp_clob.") STORE AS SECUREFILE (COMPRESS HIGH)
+&&oci360_loc_code. TABLESPACE &&oci360_temp_tablespace.
+;
 
-INSERT /*+ APPEND */ INTO "&&oci360_temp_table."
-SELECT json_document
-FROM   &&oci360_user_curschema.."&&oci360_temp_exttab.";
--- WHERE  json_filename = '&&oci360_in_source_file.';
+DECLARE
+  l_bfile              BFILE;
+  l_blob               BLOB;
+  l_uncompressed_blob  BLOB;
 
-COMMIT;
+  l_dest_offset INTEGER := 1;
+  l_src_offset  INTEGER := 1;
+BEGIN
+  dbms_lob.createtemporary(lob_loc => l_blob, cache => true, dur => dbms_lob.call);
+
+&&oci360_loc_code. l_bfile := BFILENAME('&&oci360_obj_dir.', '&&oci360_in_source_file.');
+&&oci360_loc_code. DBMS_LOB.fileopen(l_bfile, DBMS_LOB.file_readonly);
+
+&&oci360_loc_code. DBMS_LOB.loadfromfile(l_blob, l_bfile, DBMS_LOB.getlength(l_bfile));
+
+  -- DBMS_LOB.loadblobfromfile (
+  --   dest_lob    => l_blob,
+  --   src_bfile   => l_bfile,
+  --   amount      => DBMS_LOB.lobmaxsize,
+  --   dest_offset => l_dest_offset,
+  --   src_offset  => l_src_offset);
+
+&&oci360_loc_code. DBMS_LOB.fileclose(l_bfile);
+
+&&oci360_adb_code.  l_blob := DBMS_CLOUD.GET_OBJECT(
+&&oci360_adb_code.       credential_name => '&&oci360_adb_cred.',
+&&oci360_adb_code.       object_uri => '&&oci360_adb_uri.&&oci360_in_source_file.');
+
+  -- FUNCTION GET_OBJECT RETURNS BLOB
+  -- Argument Name			Type			In/Out Default?
+  -- ------------------------------ ----------------------- ------ --------
+  -- CREDENTIAL_NAME		VARCHAR2		IN     DEFAULT
+  -- OBJECT_URI			VARCHAR2		IN
+  -- STARTOFFSET			NUMBER			IN     DEFAULT
+  -- ENDOFFSET			NUMBER			IN     DEFAULT
+  -- COMPRESSION			VARCHAR2		IN     DEFAULT
+
+  IF SUBSTR('&&oci360_in_source_file.',-3,3) = '.gz'
+  THEN
+    -- Uncompress the data.
+    l_uncompressed_blob := UTL_COMPRESS.lz_uncompress (src => l_blob);
+    -- Display lengths.
+    DBMS_OUTPUT.put_line('Compressed Length  : ' || LENGTH(l_blob));
+    DBMS_OUTPUT.put_line('Uncompressed Length: ' || LENGTH(l_uncompressed_blob));
+  ELSE
+    DBMS_OUTPUT.put_line('Original Length  : ' || LENGTH(l_blob));
+    l_uncompressed_blob := l_blob;
+  END IF;
+
+  INSERT INTO "&&oci360_temp_table." ("&&oci360_temp_clob.")
+  SELECT to_clob(l_uncompressed_blob, 871, 'text/json') FROM dual;
+
+  COMMIT;
+
+  -- Free temporary BLOBs.             
+  DBMS_LOB.FREETEMPORARY(l_blob);
+  DBMS_LOB.FREETEMPORARY(l_uncompressed_blob);
+
+END;
+/
 
 -- Drop index
 BEGIN EXECUTE IMMEDIATE 'DROP INDEX "&&oci360_temp_index."'; EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -237,7 +294,7 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE "&&oci360_in_target_table." PURGE'; EXCEPTIO
 /
 
 CREATE TABLE "&&oci360_in_target_table."
-COMPRESS NOPARALLEL NOMONITORING
+&&oci360_tab_compression. NOMONITORING
 AS
 SELECT *
 FROM   &&oci360_user_session.."&&oci360_temp_view.";
@@ -254,7 +311,7 @@ BEGIN
                    t1.new_col_name,
                    (select table_name
                     from   all_tables
-                    where  owner = SYS_CONTEXT('userenv','current_schema')
+                    where  owner = '&&oci360_user_curschema.'
                     and    table_name = '&&oci360_in_target_table.') table_name,
                    rank() over (partition by t1.source order by t1.jpath) ord_cols,
                    count(1) over (partition by t1.source) tot_cols
@@ -348,13 +405,13 @@ END;
 
 -- Clean
 
-EXEC UTL_FILE.FREMOVE ('&&oci360_obj_dir.', '&&oci360_temp_extout.');
+-- EXEC UTL_FILE.FREMOVE ('&&oci360_obj_dir.', '&&oci360_temp_extout.');
 
 BEGIN EXECUTE IMMEDIATE 'DROP VIEW &&oci360_user_session.."&&oci360_temp_view."'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
 DROP TABLE &&oci360_user_session.."&&oci360_temp_table." PURGE;
 
-DROP TABLE &&oci360_user_curschema.."&&oci360_temp_exttab." PURGE;
+-- DROP TABLE &&oci360_user_curschema.."&&oci360_temp_exttab." PURGE;
 
 -- Close SPOOL to log file
 SPO OFF;
@@ -368,7 +425,7 @@ UNDEF oci360_temp_clob
 UNDEF oci360_temp_check
 UNDEF oci360_temp_view
 UNDEF oci360_temp_index
-UNDEF oci360_temp_exttab
+-- UNDEF oci360_temp_exttab
 
 UNDEF oci360_in_source_file
 UNDEF oci360_in_target_table

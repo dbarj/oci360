@@ -27,15 +27,17 @@
 4c,email.sql,'Email Delivery'
 4d,limits.sql,'Limits'
 
+4g,usage.sql,'Reports Usage',&&skip_section_repusage.
 --
 5a,iam.sql,'Identity and Access Management'
 5b,kms.sql,'Key Management Service'
+5c,audit.sql,'Audit',&&skip_section_audit.
 --
 6a,databases.sql,'Database Services'
 6b,exadatas.sql,'Database Estimations',&&skip_billing_sql.
 6c,autonomous.sql,'Autonomous Services'
 --
-7a,json_metadata.sql,'Metadata',&&skip_json_section.
+7a,json_metadata.sql,'Metadata',&&skip_section_json.&&oci360_loc_skip.
 --
 8a,restype.sql,'Cloud Resource-type List'
 8b,misc.sql,'Miscellaneous'

@@ -21,13 +21,19 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 1.24
+# Version 2.01
 #************************************************************************
-set -e
+set -eo pipefail
 
 # Define paths for oci-cli and jq or put them on $PATH. Don't use relative PATHs in the variables below.
 v_oci="oci"
 v_jq="jq"
+
+if [ -z "${BASH_VERSION}" -o "${BASH}" = "/bin/sh" ]
+then
+  >&2 echo "Script must be executed in BASH shell."
+  exit 1
+fi
 
 # Add any desired oci argument exporting OCI_CLI_ARGS. Keep default to avoid oci_cli_rc usage.
 [ -n "${OCI_CLI_ARGS}" ] && v_oci_args="${OCI_CLI_ARGS}"
@@ -38,20 +44,21 @@ v_min_ocicli="2.9.11"
 
 # Timeout for OCI-CLI calls
 v_oci_timeout=600 # Seconds
+v_oci_parallel=10 # Default parallel if can't find # of cores or if OCI_JSON_PARALLEL is unset.
 
 [[ "${TMPDIR}" == "" ]] && TMPDIR='/tmp/'
 # Temporary Folder. Used to stage some repetitive jsons and save time. Empty to disable.
 v_tmpfldr="$(mktemp -d -u -p ${TMPDIR}/.oci 2>&- || mktemp -d -u)"
 
-# If DEBUG variable is undefined, change to 0.
-[[ "${DEBUG}" == "" ]] && DEBUG=0
-[ ! -z "${DEBUG##*[!0-9]*}" ] || DEBUG=0
+# If DEBUG variable is undefined, change to 1.
+[[ "${DEBUG}" == "" ]] && DEBUG=1
+[ ! -z "${DEBUG##*[!0-9]*}" ] || DEBUG=1
 
-if [ -z "${BASH_VERSION}" ]
-then
-  >&2 echo "Script must be executed in BASH shell."
-  exit 1
-fi
+# DEBUG - Will create a oci_json_export.log file with DEBUG info.
+#  1 = Executed commands.
+#  2 = + Commands Queue + Stop
+#  9 = + Parallel Wait
+# 10 = + Folder Lock/Unlock
 
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM
 
@@ -62,10 +69,17 @@ function echoError ()
 
 function echoDebug ()
 {
+  local v_msg="$1"
   local v_debug_lvl="$2"
   local v_filename="${v_this_script%.*}.log"
   [ -z "${v_debug_lvl}" ] && v_debug_lvl=1
-  [ $DEBUG -ge ${v_debug_lvl} ] && echo "$(date '+%Y%m%d%H%M%S'): $1" >> ${v_filename}
+  if [ $DEBUG -ge ${v_debug_lvl} ]
+  then
+    v_msg="$(date '+%Y%m%d%H%M%S'): $v_msg"
+    [ -n "${v_exec_id}" ] && v_msg="$v_msg (${v_exec_id})"
+    echo "$v_msg" >> "${v_filename}"
+    [ -f "../${v_filename}" ] && echo "$v_msg" >> "../${v_filename}"
+  fi
   return 0
 }
 
@@ -118,12 +132,17 @@ then
   echoError ""
   echoError "Valid <option> values are:"
   echoError "- ALL         - Execute json export for ALL possible options and compress output in a zip file."
-  echoError "- ALL_REGIONS - Same as ALL, but run for all tenancy's subscribed regions."
+  echoError "- ALL_REGIONS - Same as ALL, but also loop over for all tenancy's subscribed regions."
   echoError "$(funcPrintRange "$v_opt_list")"
   echoError ""
   echoError "PS: it is possible to export the following variables to add/remove options when ALL/ALL_REGIONS are used."
-  echoError "OCI_JSON_INCLUDE - Comma separated list of items to include."
-  echoError "OCI_JSON_EXCLUDE - Comma separated list of items to exclude."
+  echoError "OCI_JSON_INCLUDE  - Comma separated list of items to include."
+  echoError "OCI_JSON_EXCLUDE  - Comma separated list of items to exclude."
+  echoError ""
+  echoError "OCI_JSON_PARALLEL - Parallel executions of oci-cli."
+  echoError ""
+  echoError "OCI_CLI_ARGS      - All parameters provided will be appended to oci-cli call."
+  echoError "                    Eg: export OCI_CLI_ARGS='--profile ACME'"
   exit 1
 fi
 
@@ -171,6 +190,16 @@ then
   exit 1
 fi
 
+# Compute parallel
+v_cpu_count=$(python -c 'import multiprocessing as mp; print(mp.cpu_count())' 2>&-) || true
+[ ! -z "${v_cpu_count##*[!0-9]*}" ] && v_oci_parallel_target=${v_cpu_count} || v_oci_parallel_target=${v_oci_parallel}
+[ ! -z "${OCI_JSON_PARALLEL##*[!0-9]*}" ] && v_oci_parallel_target=${OCI_JSON_PARALLEL}
+v_oci_parallel=${v_oci_parallel_target}
+
+# Global parallel temporary file
+v_tmpfldr_root="${v_tmpfldr}"
+v_parallel_file="${v_tmpfldr_root}/oci_parallel.txt"
+
 ## Test if temp folder is writable
 if [ -n "${v_tmpfldr}" ]
 then
@@ -185,8 +214,15 @@ then
   echoError "Temporary folder \"${v_tmpfldr}\" is NOT WRITABLE. Execution will take much longer."
   echoError "Press CTRL+C in next 10 seconds if you want to exit and fix this."
   sleep 10
+  # Unset variables if no temporary folder
   v_tmpfldr=""
+  v_oci_parallel=1
+  v_parallel_file=""
+  v_tmpfldr_root=""
 fi
+
+echoDebug "Temporary folder is: ${v_tmpfldr}"
+echoDebug "OCI Parallel is: ${v_oci_parallel}"
 
 if ! $(which timeout >&- 2>&-)
 then
@@ -197,11 +233,28 @@ fi
 ############### CUSTOM FUNCTIONS ###############
 ################################################
 
+function jsonCompartmentsAccessible ()
+{
+  # Will only return compartments which the connect user has any inspect privilege.
+  set -e # Exit if error in any call.
+  local v_fout v_tenancy_entry
+  v_fout=$(jsonSimple "iam compartment list --all --compartment-id-in-subtree true --access-level ACCESSIBLE")
+  ## Remove DELETED compartments to avoid query errors
+  if [ -n "$v_fout" ]
+  then
+    v_tenancy_entry=$(IAM-Comparts | ${v_jq} -rc '.data[] | select(."id" | startswith("ocid1.tenancy.oc1."))')
+    ## Add root:
+    v_fout=$(${v_jq} '.data += ['${v_tenancy_entry}']' <<< "$v_fout")
+    echo "${v_fout}"
+  fi
+}
+
 function jsonCompartments ()
 {
+  # Will return all compartments in the tenancy.
   set -e # Exit if error in any call.
   local v_fout v_tenancy_id
-  v_fout=$(jsonSimple "iam compartment list --all --compartment-id-in-subtree true")
+  v_fout=$(jsonSimple "iam compartment list --all --compartment-id-in-subtree true --access-level ANY")
   ## Remove DELETED compartments to avoid query errors
   if [ -n "$v_fout" ]
   then
@@ -322,17 +375,10 @@ function jsonBVolsKeys ()
 ## jsonAllVCN           -> Run parameter for all vcn-ids and container-ids.
 ## jsonConcat           -> Concatenate 2 Jsons data vectors parameters into 1.
 
-function jsonSimple ()
+function genRandom ()
 {
-  # Call oci-cli with all provided args in $1.
-  set -e # Exit if error in any call.
-  [ "$#" -eq 1 -a "$1" != "" ] || { echoError "${FUNCNAME[0]} needs 1 parameter"; return 1; }
-  local v_arg1 v_out
-  v_arg1="$1"
-  echoDebug "${v_oci} ${v_arg1}"
-  v_out=$(timeout ${v_oci_timeout} ${v_oci} ${v_arg1})
-  #v_out=$(${v_oci} ${v_arg1})
-  [ -z "$v_out" ] || echo "${v_out}"
+  # I use a function instead of simply giving $RANDOM as BASH 3 on MacOS is returning the same value for multiple calls of subfunc.
+  echo $RANDOM
 }
 
 function jsonSimple ()
@@ -342,27 +388,43 @@ function jsonSimple ()
   [ "$#" -eq 1 -a "$1" != "" ] || { echoError "${FUNCNAME[0]} needs 1 parameter"; return 1; }
   local v_arg1 v_next_page v_fout v_out v_ret
   v_arg1="$1"
-  echoDebug "${v_oci} ${v_arg1}"
-  v_fout=$(eval "timeout ${v_oci_timeout} ${v_oci} ${v_arg1}") && v_ret=$? || v_ret=$?
-  if [ $v_ret -ne 0 ]
-  then
+
+  v_exec_id=$(genRandom) # For Debugging
+
+  function err ()
+  {
     echoError "## Command Failed:"
     echoError "${v_oci} ${v_arg1}"
     echoError "########"
-  elif [ -n "$v_fout" ]
+    return 1
+  }
+
+  set +e
+  v_fout=$(callOCI "${v_arg1}")
+  v_ret=$?
+  set -e
+  [ $v_ret -ne 0 ] && err
+
+  if [ -n "$v_fout" ]
   then
     v_next_page=$(${v_jq} -rc '."opc-next-page"' <<< "${v_fout}")
-    [ "${v_next_page}" == "null" ] || v_fout=$(${v_jq} '.data | {data : .}' <<< "$v_fout") # Remove Next-Page Tag if it has one.
+    [ "${v_next_page}" = "null" ] || v_fout=$(${v_jq} '.data | {data : .}' <<< "$v_fout") # Remove Next-Page Tag if it has one.
     while [ -n "${v_next_page}" -a "${v_next_page}" != "null" ]
     do
-      echoDebug "${v_oci} ${v_arg1} --page ${v_next_page}"
-      v_out=$(eval "${v_oci} ${v_arg1} --page ${v_next_page}")
+      set +e
+      v_out=$(callOCI "${v_arg1} --page ${v_next_page}")
+      v_ret=$?
+      set -e
+      [ $v_ret -ne 0 ] && err
+
       v_next_page=$(${v_jq} -rc '."opc-next-page"' <<< "${v_out}")
       [ -z "$v_out" -o "${v_next_page}" == "null" ] || v_out=$(${v_jq} '.data | {data : .}' <<< "$v_out") # Remove Next-Page Tag if it has one.
       v_fout=$(jsonConcat "$v_fout" "$v_out")
+
     done
     echo "${v_fout}"
   fi
+  return $v_ret
 }
 
 function jsonRootCompart ()
@@ -371,7 +433,7 @@ function jsonRootCompart ()
   set -e # Exit if error in any call.
   [ "$#" -eq 1 -a "$1" != "" ] || { echoError "${FUNCNAME[0]} needs 1 parameter"; return 1; }
   local v_tenancy_id
-  v_tenancy_id=$(IAM-Comparts | ${v_jq} -r '.data[]."id" | select(startswith("ocid1.tenancy.oc1."))')
+  v_tenancy_id=$(IAM-CompartsAccessible | ${v_jq} -r '.data[]."id" | select(startswith("ocid1.tenancy.oc1."))')
   jsonSimple "$1 --compartment-id ${v_tenancy_id}"
 }
 
@@ -380,7 +442,7 @@ function jsonAllCompart ()
   # Call oci-cli for all existent compartments.
   set -e # Exit if error in any call.
   [ "$#" -eq 1 -a "$1" != "" ] || { echoError "${FUNCNAME[0]} needs 1 parameter"; return 1; }
-  jsonGenericMaster "$1" "IAM-Comparts" "id:compartment-id" "jsonSimple"
+  jsonGenericMaster "$1" "IAM-CompartsAccessible" "id:compartment-id" "jsonSimple"
 }
 
 function jsonAllCompartAddTag ()
@@ -388,7 +450,7 @@ function jsonAllCompartAddTag ()
   # Call oci-cli for all existent compartments. In the end, add compartment-id tag to json output.
   set -e # Exit if error in any call.
   [ "$#" -eq 1 -a "$1" != "" ] || { echoError "${FUNCNAME[0]} needs 1 parameter"; return 1; }
-  jsonGenericMasterAdd "$1" "IAM-Comparts" "id:compartment-id:compartment-id" "jsonSimple"
+  jsonGenericMasterAdd "$1" "IAM-CompartsAccessible" "id:compartment-id:compartment-id" "jsonSimple"
 }
 
 function jsonAllAD ()
@@ -407,106 +469,156 @@ function jsonAllVCN ()
   jsonGenericMaster "$1" "Net-VCNs" "id:vcn-id" "jsonAllCompart"
 }
 
+function jsonGenericMasterAdd ()
+{
+  jsonGenericMaster "$@" 1
+}
+
 function jsonGenericMaster ()
 {
   set -e # Exit if error in any call.
-  [ "$#" -eq 4 ] || { echoError "${FUNCNAME[0]} needs 4 parameters"; return 1; }
-  local v_arg1 v_arg2 v_arg3 v_arg4 v_out v_fout l_itens v_item v_arg_vect v_param_vect v_tags v_maps v_params v_i
+  [ "$#" -eq 4 -o "$#" -eq 5 ] || { echoError "${FUNCNAME[0]} needs 4 or 5 parameters"; return 1; }
+  local v_arg1 v_arg2 v_arg3 v_arg4
+  local v_out v_fout l_itens v_item
+  local v_arg_vect v_param_vect v_newit_vect 
+  local v_tags v_maps v_params v_newits
+  local v_i v_chk
+  local v_sub_pids_list v_sub_files_list v_sub_newits_list v_file_out
+  local v_procs_tot v_procs_sub v_procs_counter
+
+  v_exec_id=$(genRandom) # For Debugging
+
   v_arg1="$1" # Main oci call
   v_arg2="$2" # Subfunction 1 - FuncName
-  v_arg3="$3" # Subfunction 1 - Vector (Tag1 to get, Param1, Tag2 to get, Param2, ...)
+  v_arg3="$3" # Subfunction 1 - Vector
   v_arg4="$4" # Subfunction 2 - FuncName
+  v_arg5="$5" # 0 = Normal mode | 1 = Tag mode
 
-  v_param_vect=() # Vector to hold v_arg3 odd entries.
-  v_arg_vect=(${v_arg3//:/ })
+  echoDebug "Hello." 3
 
-  for v_i in "${!v_arg_vect[@]}"
-  do
-    [ $((v_i%2)) -eq 0 ] && v_tags="${v_tags}.\"${v_arg_vect[v_i]}\","
-    [ $((v_i%2)) -ne 0 ] && v_param_vect+=(${v_arg_vect[v_i]})
-  done
-  v_tags=$(sed 's/,$//' <<< "$v_tags")
-  v_maps=$(sed 's/^.//; s/,./,/g' <<< "$v_tags")
-  # l_itens=$(${v_arg2} | ${v_jq} -r '.data[] | '$v_tags' ')
-  echoDebug "${v_arg2} | ${v_jq} -r '{data} | .data |= map({$v_maps}) | .data | unique | .[] | $v_tags '" 2
-  l_itens=$(${v_arg2} | ${v_jq} -r '{data} | .data |= map({'$v_maps'}) | .data | unique | .[] | '$v_tags' ')
-  v_i=0
+  [ -z "$v_arg5" ] && v_arg5=0
+  [ $v_arg5 -eq 1 ] && v_tag_mode=true || v_tag_mode=false
 
-  for v_item in $l_itens
-  do
-    # Dont add item if value is null.
-    if [ "$v_item" != "null" ]
+  echoDebug "Tag mode: $v_tag_mode." 3
+
+  function concat_out_fout ()
+  {
+    if $v_tag_mode
     then
-      v_params="${v_params}--${v_param_vect[v_i]} $v_item "
-    else
-      echoDebug "Removing null \"${v_param_vect[v_i]}\"." 2
-    fi
-    v_i=$((v_i+1))
-    if [ $v_i -eq ${#v_param_vect[@]} ]
-    then
-      v_params=$(sed 's/ $//' <<< "$v_params")
-      v_out=$(${v_arg4} "${v_arg1} ${v_params}")
-      v_fout=$(jsonConcat "$v_fout" "$v_out")
-      v_i=0
-      v_params=""
-    fi
-  done
-  [ -z "$v_fout" ] || echo "${v_fout}"
-}
-
-function jsonGenericMasterAdd ()
-{
-  set -e # Exit if error in any call.
-  [ "$#" -eq 4 ] || { echoError "${FUNCNAME[0]} needs 4 parameters"; return 1; }
-  local v_arg1 v_arg2 v_arg3 v_arg4 v_out v_fout l_itens v_item v_arg_vect v_param_vect v_tags v_maps v_params v_i v_chk v_newit_vect v_newits 
-  v_arg1="$1" # Main oci call
-  v_arg2="$2" # Subfunction 1 - FuncName
-  v_arg3="$3" # Subfunction 1 - Vector (Tag1 to get, Param1, New Tag Name 1, Tag2 to get, Param2, New Tag Name 2, ...)
-  v_arg4="$4" # Subfunction 2 - FuncName
-
-  v_param_vect=() # Vector to hold v_arg3 every 1/3 entry.
-  v_newit_vect=() # Vector to hold v_arg3 every 3/3 entry.
-  v_arg_vect=(${v_arg3//:/ })
-
-  for v_i in "${!v_arg_vect[@]}"
-  do
-    [ $((v_i%3)) -eq 0 ] && v_tags="${v_tags}.\"${v_arg_vect[v_i]}\","
-    [ $((v_i%3)) -eq 1 ] && v_param_vect+=(${v_arg_vect[v_i]})
-    [ $((v_i%3)) -eq 2 ] && v_newit_vect+=(${v_arg_vect[v_i]})
-  done
-
-  v_tags=$(sed 's/,$//' <<< "$v_tags")
-  v_maps=$(sed 's/^.//; s/,./,/g' <<< "$v_tags")
-  # l_itens=$(${v_arg2} | ${v_jq} -r '.data[] | '$v_tags' ')
-  echoDebug "${v_arg2} | ${v_jq} -r '{data} | .data |= map({$v_maps}) | .data | unique | .[] | $v_tags '" 2
-  l_itens=$(${v_arg2} | ${v_jq} -r '{data} | .data |= map({'$v_maps'}) | .data | unique | .[] | '$v_tags' ')
-  v_i=0
-
-  for v_item in $l_itens
-  do
-    # Dont add item if value is null.
-    if [ "$v_item" != "null" ]
-    then
-      v_params="${v_params}--${v_param_vect[v_i]} $v_item "
-      v_newits="${v_newits}\"${v_newit_vect[v_i]}\":\"$v_item\","
-    else
-      echoDebug "Removing null \"${v_param_vect[v_i]}\"." 2
-    fi
-    v_i=$((v_i+1))
-    if [ $v_i -eq ${#v_param_vect[@]} ]
-    then
-      v_params=$(sed 's/ $//' <<< "$v_params")
-      v_newits=$(sed 's/,$//' <<< "$v_newits")
-      v_out=$(${v_arg4} "${v_arg1} ${v_params}")
       v_chk=$(${v_jq} '.data // empty' <<< "$v_out" | jq -r 'if type=="array" then "yes" else "no" end')
       [ "$v_chk" == "no" ] && v_out=$(${v_jq} '.data += {'${v_newits}'}' <<< "$v_out")
       [ "$v_chk" == "yes" ] && v_out=$(${v_jq} '.data[] += {'${v_newits}'}' <<< "$v_out")
-      [ -z "$v_chk" ] || v_fout=$(jsonConcat "$v_fout" "$v_out")
+      echoDebug "Check result: $v_chk." 3
+    fi
+    if ! $v_tag_mode || [ -n "$v_chk" ]
+    then
+      # I'm ignoring merge failures to not let the code stop here.
+      set +e
+      v_fout=$(jsonConcat "$v_fout" "$v_out")
+      set -e
+    fi
+  }
+  
+  v_param_vect=() # Vector to hold v_arg3 every tag entries.
+  v_newit_vect=() # Vector to hold v_arg3 every new_tag entries.
+  v_arg_vect=(${v_arg3//:/ })
+
+  if $v_tag_mode
+  then
+    # (Tag1 to get, Param1, Insert Tag Name 1, Tag2 to get, Param2, Insert Tag Name 2, ...)
+    for v_i in "${!v_arg_vect[@]}"
+    do
+      [ $((v_i%3)) -eq 0 ] && v_tags="${v_tags}.\"${v_arg_vect[v_i]}\","
+      [ $((v_i%3)) -eq 1 ] && v_param_vect+=(${v_arg_vect[v_i]})
+      [ $((v_i%3)) -eq 2 ] && v_newit_vect+=(${v_arg_vect[v_i]})
+    done
+  else
+    # (Tag1 to get, Param1, Tag2 to get, Param2, ...)
+    for v_i in "${!v_arg_vect[@]}"
+    do
+      [ $((v_i%2)) -eq 0 ] && v_tags="${v_tags}.\"${v_arg_vect[v_i]}\","
+      [ $((v_i%2)) -ne 0 ] && v_param_vect+=(${v_arg_vect[v_i]})
+    done
+  fi
+
+  v_tags=$(sed 's/,$//' <<< "$v_tags")
+  v_maps=$(sed 's/^.//; s/,./,/g' <<< "$v_tags")
+  # l_itens=$(${v_arg2} | ${v_jq} -r '.data[] | '$v_tags' ')
+  echoDebug "${v_arg2} | ${v_jq} -r '{data} | .data |= map({$v_maps}) | .data | unique | .[] | $v_tags '" 2
+  l_itens=$(${v_arg2} | ${v_jq} -r '{data} | .data |= map({'$v_maps'}) | .data | unique | .[] | '$v_tags' ')
+  v_i=0
+
+  v_procs_counter=1
+  v_procs_tot=$(($(wc -l <<< "$l_itens")/${#v_param_vect[@]}))
+  echoDebug "Subcalls Total: ${v_procs_tot} - ${v_arg4} \"${v_arg1}\"" 2
+
+  v_sub_pids_list=()
+  v_sub_files_list=()
+  v_sub_newits_list=()
+  for v_item in $l_itens
+  do
+    # Dont add item if value is null.
+    if [ "$v_item" != "null" ]
+    then
+      v_params="${v_params}--${v_param_vect[v_i]} $v_item "
+      $v_tag_mode && v_newits="${v_newits}\"${v_newit_vect[v_i]}\":\"$v_item\","
+    else
+      echoDebug "Removing null \"${v_param_vect[v_i]}\"." 2
+    fi
+    v_i=$((v_i+1))
+    if [ $v_i -eq ${#v_param_vect[@]} ]
+    then
+      v_params=$(sed 's/ $//' <<< "$v_params")
+      $v_tag_mode && v_newits=$(sed 's/,$//' <<< "$v_newits")
+      if [ $v_oci_parallel -gt 1 ]
+      then
+        echoDebug "Background: ${v_arg4} \"${v_arg1} ${v_params}\"" 3
+        v_file_out="${v_tmpfldr}/$(uuidgen)"
+        ${v_arg4} "${v_arg1} ${v_params}" > "${v_file_out}.out" 2> "${v_file_out}.err" &
+        v_sub_pids_list+=($!)
+        v_sub_files_list+=("${v_file_out}")
+        $v_tag_mode && v_sub_newits_list+=(${v_newits})
+        while :
+        do
+          v_procs_sub=$(jobs -p | wc -l)
+          [ $v_procs_sub -lt $v_oci_parallel ] && break || echoDebug "Current child jobs: $v_procs_sub. Waiting slot." 3
+          sleep 2
+        done
+        echoDebug "Subcalls Left: $((${v_procs_tot}-${v_procs_counter})) - ${v_arg4} \"${v_arg1}\"" 3
+      else
+        set +e
+        v_out=$(${v_arg4} "${v_arg1} ${v_params}")
+        v_ret=$?
+        set -e
+        [ $v_ret -ne 0 ] && echoDebug "Failed: ${v_arg4} \"${v_arg1} ${v_params}\"" 3
+        concat_out_fout
+      fi
       v_i=0
       v_params=""
-      v_newits=""
+      $v_tag_mode && v_newits=""
     fi
+    v_procs_counter=$((v_procs_counter+1))
   done
+
+  # If parallel mode is on, concatenate generated files as executions finishes
+  if [ $v_oci_parallel -gt 1 ]
+  then
+    for v_i in "${!v_sub_pids_list[@]}"
+    do
+      set +e
+      wait ${v_sub_pids_list[$v_i]}
+      v_ret=$?
+      set -e
+      [ $v_ret -ne 0 ] && echoDebug "Failed background process: ${v_sub_pids_list[$v_i]}" 3
+      v_out=$(cat "${v_sub_files_list[$v_i]}.out")
+      $v_tag_mode && v_newits="${v_sub_newits_list[$v_i]}"
+      echoDebug "Merging File: $(($v_i+1)) of $v_procs_tot" 3
+      concat_out_fout
+      [ -r "${v_sub_files_list[$v_i]}.err" ] && cat "${v_sub_files_list[$v_i]}.err" >&2
+      rm -f "${v_sub_files_list[$v_i]}.out" "${v_sub_files_list[$v_i]}.err"
+    done
+  fi
+  echoDebug "Bye." 3
   [ -z "$v_fout" ] || echo "${v_fout}"
 }
 
@@ -523,14 +635,89 @@ function jsonConcat ()
   [ -z "${v_arg1}" -a -z "${v_arg2}" ] && return 0
   ## Check if has ".data"
   v_chk_json=$(${v_jq} -c 'has("data")' <<< "${v_arg1}")
-  [ "${v_chk_json}" == "false" ] && return 1
+  [ "${v_chk_json}" == "false" ] && { echoError "${FUNCNAME[0]} given input has no data property."; return 1; }
   v_chk_json=$(${v_jq} -c 'has("data")' <<< "${v_arg2}")
-  [ "${v_chk_json}" == "false" ] && return 1
+  [ "${v_chk_json}" == "false" ] && { echoError "${FUNCNAME[0]} given input has no data property."; return 1; }
   v_chk_json=$(${v_jq} -r '.data | if type=="array" then "yes" else "no" end' <<< "$v_arg1")
   [ "${v_chk_json}" == "no" ] && v_arg1=$(${v_jq} '.data | {"data":[.]}' <<< "$v_arg1")
   v_chk_json=$(${v_jq} -r '.data | if type=="array" then "yes" else "no" end' <<< "$v_arg2")
   [ "${v_chk_json}" == "no" ] && v_arg2=$(${v_jq} '.data | {"data":[.]}' <<< "$v_arg2")
   ${v_jq} 'reduce inputs as $i (.; .data += $i.data)' <(echo "$v_arg1") <(echo "$v_arg2")
+  return 0
+}
+
+function callOCI ()
+{
+  ##########
+  # This function will siply call the OCI cli final command "arg1" and apply any JQ filter to it "arg2"
+  ##########
+
+  set +x # Debug can never be enabled here, or stderr will be a mess. It must be disabled even before calling this func to avoid this set +x to be printed.
+  set -eo pipefail # Exit if error in any call.
+  local v_arg1 v_ret
+  [ "$#" -ne 1 -o "$1" = "" ] && { echoError "${FUNCNAME[0]} needs 1 parameters. Given: $#"; return 1; }
+  v_arg1="$1"
+  # echoDebug "${v_oci} ${v_arg1}"
+  echoDebug "Waiting: \"${v_oci} ${v_arg1}\"" 2
+  oci_parallel_wait
+  echoDebug "Starting: \"${v_oci} ${v_arg1}\""
+  set +e
+  eval "timeout ${v_oci_timeout} ${v_oci} ${v_arg1}"
+  v_ret=$?
+  set -e
+  echoDebug "Finished: \"${v_oci} ${v_arg1}\"" 2
+  oci_parallel_release
+  return $v_ret
+}
+
+function oci_parallel_wait ()
+{
+  ##########
+  # This function will check if it there is any slot to execute the OCI command. If it has, will increase the counter in 1 and continue.
+  # Otherwise, it will wait for the slot.
+  ##########
+  [ -z "${v_tmpfldr}" -o $v_oci_parallel -le 1 ] && return 0
+
+  local wait_time=3
+  local v_parallel_count
+
+  echoDebug "OCI Parallel - Getting slot.." 9
+  while true
+  do
+    create_lock_or_wait parallel_file "${v_tmpfldr_root}"
+    v_parallel_count=$(cat "${v_parallel_file}" 2>&-) || v_parallel_count=0
+    if [ $v_parallel_count -lt $v_oci_parallel ]
+    then
+      v_parallel_count=$((v_parallel_count+1))
+      echo "${v_parallel_count}" > "${v_parallel_file}"
+      echoDebug "OCI Parallel - Counter Increased. Current: $v_parallel_count/$v_oci_parallel" 9
+      remove_lock parallel_file "${v_tmpfldr_root}"
+      break
+    fi
+    remove_lock parallel_file "${v_tmpfldr_root}"
+    sleep $wait_time
+    echoDebug "OCI Parallel - Waiting. Current: $v_parallel_count/$v_oci_parallel" 9
+  done
+  echoDebug "OCI Parallel - Check Passed." 9
+  return 0
+}
+
+function oci_parallel_release ()
+{
+  ##########
+  # This function will decrease the counter OCI parallel counter in 1 and continue.
+  ##########
+  [ -z "${v_tmpfldr}" -o $v_oci_parallel -le 1 ] && return 0
+
+  local v_parallel_count
+
+  echoDebug "OCI Parallel - Releasing slot.." 9
+  create_lock_or_wait parallel_file "${v_tmpfldr_root}"
+  v_parallel_count=$(cat "${v_parallel_file}") || v_parallel_count=0
+  v_parallel_count=$((v_parallel_count-1))
+  echo "${v_parallel_count}" > "${v_parallel_file}"
+  echoDebug "OCI Parallel - Counter Descreased. Current: $v_parallel_count/$v_oci_parallel" 9
+  remove_lock parallel_file "${v_tmpfldr_root}"
   return 0
 }
 
@@ -597,7 +784,7 @@ function jsonConcat ()
 # DB-ExaInfra,oci_db_exadata-infrastructure.json,jsonAllCompart,"db exadata-infrastructure list --all"
 # DNS-Zones,oci_dns_zone.json,jsonAllCompart,"dns zone list --all"
 # Email-Senders,oci_email_sender.json,jsonAllCompart,"email sender list --all"
-# Email-Supps,oci_email_suppression.json,jsonGenericMaster,"email suppression list --all" "IAM-Comparts" "compartment-id:compartment-id" "jsonSimple"
+# Email-Supps,oci_email_suppression.json,jsonRootCompart,"email suppression list --all"
 # FS-ExpSets,oci_fs_export-set.json,jsonAllAD,"fs export-set list --all"
 # FS-Exports,oci_fs_export.json,jsonAllCompartAddTag,"fs export list --all"
 # FS-ExpDetails,oci_fs_export_details.json,jsonGenericMaster,"fs export get" "FS-Exports" "id:export-id" "jsonSimple"
@@ -608,6 +795,7 @@ function jsonConcat ()
 # IAM-AuthTokens,oci_iam_auth-token.json,jsonGenericMaster,"iam auth-token list" "IAM-Users" "id:user-id" "jsonSimple"
 # IAM-AuthPolicies,oci_iam_auth-policies.json,jsonRootCompart,"iam authentication-policy get"
 # IAM-Comparts,oci_iam_compartment.json,jsonCompartments
+# IAM-CompartsAccessible,oci_iam_compartment_accessible.json,jsonCompartmentsAccessible
 # IAM-CustSecretKeys,oci_iam_customer-secret-key.json,jsonGenericMaster,"iam customer-secret-key list" "IAM-Users" "id:user-id" "jsonSimple"
 # IAM-DynGroups,oci_iam_dynamic-group.json,jsonSimple,"iam dynamic-group list --all"
 # IAM-FaultDomains,oci_iam_fault-domain.json,jsonAllAD,"iam fault-domain list"
@@ -734,17 +922,30 @@ function stopIfProcessed ()
   fi
 }
 
+function convertsecs()
+{
+ ((h=${1}/3600))
+ ((m=(${1}%3600)/60))
+ ((s=${1}%60))
+ printf "%02d:%02d:%02d\n" $h $m $s
+}
+
 function runAndZip ()
 {
   [ "$#" -eq 2 -a "$1" != "" -a "$2" != "" ] || { echoError "${FUNCNAME[0]} needs 2 parameters"; return 1; }
-  local v_arg1 v_arg2 v_ret
+  local v_arg1 v_arg2 v_ret v_time_begin v_time_end
   v_arg1="$1"
   v_arg2="$2"
-  [ -z "${v_region}" ] && echo "Processing \"${v_arg2}\"." || echo "Processing \"${v_arg2}\" in ${v_region}."
+  [ -z "${v_region}" ] && echo -n "Processing \"${v_arg2}\"."
+  [ -n "${v_region}" ] && echo "Processing \"${v_arg2}\" in ${v_region}."
+  v_time_begin=$SECONDS
   set +e
   (${v_arg1} > "${v_arg2}" 2> "${v_arg2}.err")
   v_ret=$?
   set -e
+  v_time_end=$SECONDS
+  [ -z "${v_region}" ] && echo " Elapsed time: $(convertsecs $((v_time_end-v_time_begin)))."
+  [ -n "${v_region}" ] && echo "Finished \"${v_arg2}\" in ${v_region}. Elapsed time: $(convertsecs $((v_time_end-v_time_begin)))."
   if [ $v_ret -eq 0 ]
   then
     if [ -s "${v_arg2}.err" ]
@@ -768,9 +969,46 @@ function runAndZip ()
   fi
 }
 
+function create_lock_or_wait ()
+{
+  [ -z "$1" -o -z "${v_tmpfldr}" ] && return 0
+  local v_lock_name="$1"
+  local v_dest_folder="$2"
+  local wait_time=1
+  local v_ret
+  [ -z "${v_dest_folder}" ] && v_dest_folder="${v_tmpfldr}"
+  [ -z "${v_dest_folder}" ] && v_msg="${v_lock_name}" || v_msg="${v_lock_name} (ROOT)"
+  echoDebug "${v_msg} - Locking.." 10
+  while true
+  do
+    mkdir "${v_dest_folder}/.${v_lock_name}.lock.d" 2>&- && v_ret=$? || v_ret=$?
+    [ $v_ret -eq 0 ] && break
+    sleep $wait_time
+    echoDebug "${v_msg} - Waiting.." 10
+  done
+  echoDebug "${v_msg} - Locked" 10
+  return 0
+}
+
+function remove_lock ()
+{
+  [ -z "$1" -o -z "${v_tmpfldr}" ] && return 0
+  local v_lock_name="$1"
+  local v_dest_folder="$2"
+  [ -z "${v_dest_folder}" ] && v_dest_folder="${v_tmpfldr}"
+  [ -z "${v_dest_folder}" ] && v_msg="${v_lock_name}" || v_msg="${v_lock_name} (ROOT)"
+  echoDebug "${v_msg} - Unlocking.." 10
+  rmdir "${v_dest_folder}/.${v_lock_name}.lock.d"
+  echoDebug "${v_msg} - Unlocked" 10
+  return 0
+}
+
 function cleanTmpFiles ()
 {
   [ -n "${v_tmpfldr}" ] && rm -f "${v_tmpfldr}"/.*.json 2>&- || true
+  [ -n "${v_tmpfldr}" ] && rm -f "${v_tmpfldr}"/*.json.out 2>&- || true
+  [ -n "${v_tmpfldr}" ] && rm -f "${v_tmpfldr}"/*.json.err 2>&- || true
+  [ -f "${v_parallel_file}" ] && rm -f "${v_parallel_file}" 2>&- || true
   return 0
 }
 
@@ -780,7 +1018,10 @@ function main ()
   local c_line c_name c_file
   if [ "${v_param1}" != "ALL" -a "${v_param1}" != "ALL_REGIONS" ]
   then
-    ${v_param1} && v_ret=$? || v_ret=$?
+    set +e
+    ${v_param1}
+    v_ret=$?
+    set -e
   else
     [ -n "$v_outfile" ] || v_outfile="${v_this_script%.*}_$(date '+%Y%m%d%H%M%S').zip"
     while read -u 3 -r c_line || [ -n "$c_line" ]
@@ -802,35 +1043,48 @@ if [ "${v_param1}" == "ALL_REGIONS" ]
 then
   l_regions=$(IAM-RegionSub | ${v_jq} -r '.data[]."region-name"')
   v_oci_orig="$v_oci"
-  v_tmpfldr_base="${v_tmpfldr}"
   v_outfile_pref="${v_this_script%.*}_$(date '+%Y%m%d%H%M%S')"
-  for v_region in $l_regions
-  do
-    echo "Starting region ${v_region}."
-    v_oci="${v_oci_orig} --region ${v_region}"
-    v_outfile="${v_outfile_pref}_${v_region}.zip"
-    [ -n "${v_tmpfldr_base}" ] && { v_tmpfldr="${v_tmpfldr_base}/${v_region}"; mkdir "${v_tmpfldr}"; }
-    mkdir ${v_region} 2>&- || true
-    cd ${v_region}
-    main &
-    v_pids+=(${v_region}::$!)
-    cd ..
-  done
-  for v_reg_ind in "${v_pids[@]}"
-  do
-      v_region="${v_reg_ind%%::*}"
-      wait ${v_reg_ind##*::}
-      mv ${v_region}/* ./
-      rmdir ${v_region}
-      [ -n "${v_tmpfldr_base}" ] && { v_tmpfldr="${v_tmpfldr_base}/${v_region}"; cleanTmpFiles; rmdir "${v_tmpfldr}"; }
-  done
-  v_tmpfldr="${v_tmpfldr_base}"
+  if [ $(echo "$l_regions" | wc -l) -gt 1 ]
+  then
+    for v_region in $l_regions
+    do
+      echo "Starting region \"${v_region}\"."
+      v_oci="${v_oci_orig} --region ${v_region}"
+      v_outfile="${v_outfile_pref}_${v_region}.zip"
+      [ -n "${v_tmpfldr_root}" ] && { v_tmpfldr="${v_tmpfldr_root}/${v_region}"; mkdir "${v_tmpfldr}"; }
+      mkdir ${v_region} 2>&- || true
+      cd ${v_region}
+      main &
+      v_pids+=(${v_region}::$!)
+      cd ..
+    done
+    for v_reg_ind in "${v_pids[@]}"
+    do
+        v_region="${v_reg_ind%%::*}"
+        wait ${v_reg_ind##*::}
+        [ -z "${v_region}" ] && echoError "v_region is empty." && continue
+        mv ${v_region}/* ./
+        rmdir ${v_region}
+        [ -n "${v_tmpfldr_root}" ] && { v_tmpfldr="${v_tmpfldr_root}/${v_region}"; cleanTmpFiles; rmdir "${v_tmpfldr}"; }
+    done
+    v_tmpfldr="${v_tmpfldr_root}"
+  elif [ $(echo "$l_regions" | wc -l) -eq 1 -a -n "$l_regions" ]
+  then
+    echo "Running in a single subscribed region \"$l_regions\"."
+    v_oci="${v_oci_orig} --region ${l_regions}"
+    v_outfile="${v_outfile_pref}_${l_regions}.zip"
+    main
+  else
+    echoError "Problem detecting subscribed regions. Output: $l_regions."
+  fi
 else
   main
 fi
 cleanTmpFiles
 echoDebug "END"
 
+[ -f "${v_this_script%.*}.log" -a "${v_param1}" == "ALL_REGIONS" ] && { mv "${v_this_script%.*}.log" "${v_this_script%.*}.full.log"; ${v_zip} -qm "$v_outfile" "${v_this_script%.*}.full.log"; }
+[ -f "${v_this_script%.*}.log" -a -f "$v_outfile" ] && ${v_zip} -qm "$v_outfile" "${v_this_script%.*}.log"
 [ -n "${v_tmpfldr}" ] && rmdir "${v_tmpfldr}" 2>&- || true
 
 exit ${v_ret}

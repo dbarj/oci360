@@ -1,9 +1,3 @@
------------
--- IF FULL ( NOT IMPLEMENTED )
--- HOS cd &&moat369_sw_output_fdr.;. &&oci360_collector.; ALL &&moat369_date_from. &&moat369_date_to.
--- HOS cd &&moat369_sw_output_fdr.; ls -1 oci_json_export_* | xargs unzip
-
--- IF REPORT ONLY
 @@&&fc_def_output_file. step_json_file_name   'step_json_file_name.txt'
 @@&&fc_def_output_file. step_json_file_driver 'step_json_file_driver.sql'
 
@@ -11,8 +5,8 @@
 
 HOS ls -1 &&moat369_sw_output_fdr./oci_json_export_*.zip 2>&- > &&step_json_file_name.
 HOS printf "HOS rm -f &&step_json_file_driver." > &&step_json_file_driver.
-HOS if [ $(cat &&step_json_file_name. | wc -l) -eq 0 ]; then printf "PRO REPORT_ONLY mode choosen but no zip file found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_json_file_name. &&step_json_file_driver.\nEXIT SQL.SQLCODE" > &&step_json_file_driver.; fi
-HOS if [ $(cat &&step_json_file_name. | wc -l) -ge 2 ]; then printf "PRO REPORT_ONLY mode choosen but more than ONE zip file like oci_json_export_*.zip found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_json_file_name. &&step_json_file_driver.\nEXIT SQL.SQLCODE" > &&step_json_file_driver.; fi
+HOS if [ $(cat &&step_json_file_name. | wc -l) -eq 0 ]; then printf "PRO No zip file found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_json_file_name. &&step_json_file_driver.\nEXIT SQL.SQLCODE" > &&step_json_file_driver.; fi
+HOS if [ $(cat &&step_json_file_name. | wc -l) -ge 2 ]; then printf "PRO More than ONE zip file like oci_json_export_*.zip found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_json_file_name. &&step_json_file_driver.\nEXIT SQL.SQLCODE" > &&step_json_file_driver.; fi
 
 SET TERM ON
 

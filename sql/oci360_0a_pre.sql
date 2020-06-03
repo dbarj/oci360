@@ -45,6 +45,11 @@ COL oci360_load_mode clear
 @@&&fc_validate_variable. oci360_clean_on_exit NOT_NULL
 @@&&fc_validate_variable. oci360_clean_on_exit ON_OFF
 
+-- Define ADB variables
+@@&&fc_def_empty_var. oci360_adb_cred
+@@&&fc_def_empty_var. oci360_adb_uri
+
+
 -- Check oci360_skip_billing variable
 @@&&fc_def_empty_var. oci360_skip_billing
 @@&&fc_set_value_var_nvl. 'oci360_skip_billing' '&&oci360_skip_billing.' 'N'
@@ -87,6 +92,15 @@ DECLARE
 BEGIN
   IF '&&oci360_exec_mode.' = 'LOAD_ONLY' and '&&oci360_load_mode.' in ('OFF','ON_DEMAND') THEN
     RAISE_APPLICATION_ERROR(-20000, 'Invalid combination. When oci360_exec_mode is "LOAD_ONLY", oci360_load_mode must be set as "PRE_LOAD". Found: "&&oci360_load_mode."');
+  END IF;
+END;
+/
+
+-- Check oci360_exec_mode variable
+BEGIN
+  IF ('&&oci360_adb_cred.' IS NULL and '&&oci360_adb_uri.' IS NOT NULL) OR
+     ('&&oci360_adb_cred.' IS NOT NULL and '&&oci360_adb_uri.' IS NULL) THEN
+    RAISE_APPLICATION_ERROR(-20000, 'Invalid combination. When using Autonomous DB mode, both oci360_adb_cred and oci360_adb_uri must be defined."');
   END IF;
 END;
 /
@@ -139,45 +153,212 @@ BEGIN
 END;
 /
 
+-- Check UTL_COMPRESS permission
+DECLARE
+  V_RESULT      NUMBER;
+BEGIN
+  select count(*) into V_RESULT from all_procedures where owner='SYS' and object_name='UTL_COMPRESS';
+  IF V_RESULT = 0 THEN
+    RAISE_APPLICATION_ERROR(-20000, 'SYS.UTL_COMPRESS package is not visible by current user. Check if you have execute permissions.');
+  END IF;
+END;
+/
+
 WHENEVER SQLERROR CONTINUE
 @@&&fc_set_term_off.
 
+----------------------------------------
+-- Define Local or ADB skip variables
+----------------------------------------
 
-@@&&moat369_sw_folder./oci360_fc_json_extractor.sql
+COL oci360_loc_skip NEW_V oci360_loc_skip
+COL oci360_loc_code NEW_V oci360_loc_code
+COL oci360_adb_skip NEW_V oci360_adb_skip
+COL oci360_adb_code NEW_V oci360_adb_code
+SELECT DECODE('&&oci360_adb_cred.','','','&&fc_skip_script.') oci360_loc_skip,
+       DECODE('&&oci360_adb_cred.','','&&fc_skip_script.','') oci360_adb_skip,
+       DECODE('&&oci360_adb_cred.','','','--') oci360_loc_code,
+       DECODE('&&oci360_adb_cred.','','--','') oci360_adb_code
+FROM DUAL;
+COL oci360_loc_skip clear
+COL oci360_loc_code clear
+COL oci360_adb_skip clear
+COL oci360_adb_code clear
+
+@@&&oci360_adb_skip.&&moat369_sw_folder./oci360_fc_validate_adb.sql
+
+-- Print execution mode
+
+@@&&fc_def_output_file. oci360_step_file 'oci360_step_file.sql'
+@@&&fc_spool_start.
+SPO &&oci360_step_file.
+PRO SET TERM ON
+PRO &&oci360_adb_code.PRO OCI360 running for Autonomous Database mode
+PRO &&oci360_loc_code.PRO OCI360 running for Local Database mode
+PRO @@&&fc_set_term_off.
+SPO OFF
+@@&&fc_spool_end.
+@@&&oci360_step_file.
+HOS rm -f "&&oci360_step_file."
+UNDEF oci360_step_file
+
+----------------------------------------
+-- Load JSON list in oci360_json_files
+----------------------------------------
+
+@@&&fc_def_empty_var. oci360_json_zip
+@@&&oci360_loc_skip.&&moat369_sw_folder./oci360_fc_json_extractor.sql
 
 @@&&fc_def_output_file. oci360_json_files 'oci_json_export_list.txt'
 @@&&fc_clean_file_name. oci360_json_files oci360_json_files_nopath "PATH"
 
-HOS unzip -Z -1 &&oci360_json_zip. | &&cmd_grep. -E '.json$' > &&oci360_json_files.
+-- If Local
+@@&&fc_def_output_file. oci360_step_file 'oci360_step_zip_file.sql'
+@@&&fc_spool_start.
+SPO &&oci360_step_file.
+PRO HOS unzip -Z -1 &&oci360_json_zip. | &&cmd_grep. -E '.json$' > &&oci360_json_files.
+SPO OFF
+@@&&fc_spool_end.
+@@&&oci360_loc_skip.&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
 
-@@&&fc_def_output_file. oci360_jsoncol_file 'oci360_jsoncol_file.csv'
-@@&&fc_clean_file_name. oci360_jsoncol_file oci360_jsoncol_file_nopath "PATH"
-HOS cp -a &&oci360_columns. &&oci360_jsoncol_file.
+-- If ADB
+@@&&fc_def_output_file. oci360_step_file 'oci360_step_zip_file.sql'
+@@&&fc_spool_start.
+SPO &&oci360_step_file.
+PRO @@&&fc_spool_start.
+PRO SPO &&oci360_json_files.
+PRO SELECT object_name from 
+PRO table(DBMS_CLOUD.LIST_OBJECTS (
+PRO        credential_name      => '&&oci360_adb_cred.',
+PRO        location_uri         => '&&oci360_adb_uri.'))
+PRO WHERE REGEXP_LIKE(object_name,'.json$') OR REGEXP_LIKE(object_name,'.json.gz$')
+PRO ;;
+PRO SPO OFF
+PRO @@&&fc_spool_end.
+SPO OFF
+@@&&fc_spool_end.
+@@&&oci360_adb_skip.&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
 
-@@&&fc_def_output_file. oci360_jsontab_file 'oci360_jsontab_file.csv'
-@@&&fc_clean_file_name. oci360_jsontab_file oci360_jsontab_file_nopath "PATH"
-HOS cp -a &&oci360_tables. &&oci360_jsontab_file.
+----------------------------------------
+-- Load CSV list in oci360_csv_files
+----------------------------------------
 
----- Create external table objects to query CSV files better
+@@&&fc_def_empty_var. oci360_csv_files
+@@&&moat369_sw_folder./oci360_fc_csv_usage_extractor.sql
+
+@@&&fc_def_output_file. oci360_csv_files 'oci_csv_export_list.txt'
+@@&&fc_clean_file_name. oci360_csv_files oci360_csv_files_nopath "PATH"
+
+-- If Local
+@@&&fc_def_output_file. oci360_step_file 'oci360_step_csv_file.sql'
+@@&&fc_spool_start.
+SPO &&oci360_step_file.
+PRO HOS unzip -Z -1 &&oci360_csv_report_zip. | &&cmd_grep. -E '.csv.gz$' > &&oci360_csv_files.
+SPO OFF
+@@&&fc_spool_end.
+@@&&oci360_loc_skip.&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
+
+-- If ADB
+@@&&fc_def_output_file. oci360_step_file 'oci360_step_csv_file.sql'
+@@&&fc_spool_start.
+SPO &&oci360_step_file.
+PRO @@&&fc_spool_start.
+PRO SPO &&oci360_csv_files.
+PRO SELECT object_name from 
+PRO table(DBMS_CLOUD.LIST_OBJECTS (
+PRO        credential_name      => '&&oci360_adb_cred.',
+PRO        location_uri         => '&&oci360_adb_uri.'))
+PRO WHERE REGEXP_LIKE(object_name,'.csv$') OR REGEXP_LIKE(object_name,'.csv.gz$')
+PRO ;;
+PRO SPO OFF
+PRO @@&&fc_spool_end.
+SPO OFF
+@@&&fc_spool_end.
+@@&&oci360_adb_skip.&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
+
+----------------------------------------
+-- Compression Flag
+----------------------------------------
+
+@@&&fc_set_value_var_nvl2. 'oci360_tab_compression' '&&oci360_adb_skip.' 'COMPRESS' 'COMPRESS FOR QUERY HIGH'
+
+----------------------------------------
+
+-- The load of those tables inside the database is no longer using External Directories.
+
+-- @@&&fc_def_output_file. oci360_jsoncol_file 'oci360_jsoncol_file.csv'
+-- @@&&fc_clean_file_name. oci360_jsoncol_file oci360_jsoncol_file_nopath "PATH"
+-- HOS cp -a &&oci360_columns. &&oci360_jsoncol_file.
+
+-- @@&&fc_def_output_file. oci360_jsontab_file 'oci360_jsontab_file.csv'
+-- @@&&fc_clean_file_name. oci360_jsontab_file oci360_jsontab_file_nopath "PATH"
+-- HOS cp -a &&oci360_tables. &&oci360_jsontab_file.
+
+----------------------------------------
+-- Load ALL OCI360 tool tables
+----------------------------------------
+
 @@&&moat369_sw_folder./oci360_fc_exttables_create.sql
 
----- Skip Billing section if there is no info loaded
--- TODO
----- Skip Audit section if there is no info loaded
--- TODO
----- Skip Monitoring section if there is no info loaded
--- TODO
+----------------------------------------
 
 --
 COL skip_billing_sql NEW_V skip_billing_sql
 SELECT DECODE('&&oci360_skip_billing.','N','','&&fc_skip_script.') skip_billing_sql FROM DUAL;
 COL skip_billing_sql clear
 --
-COL skip_json_section NEW_V skip_json_section
-SELECT DECODE('&&oci360_load_mode.','OFF','&&fc_skip_script.','') skip_json_section FROM DUAL;
-COL skip_json_section clear
+COL skip_section_json NEW_V skip_section_json
+SELECT DECODE('&&oci360_load_mode.','OFF','&&fc_skip_script.','') skip_section_json FROM DUAL;
+COL skip_section_json clear
 
+--
+COL skip_section_repusage NEW_V skip_section_repusage
+SELECT DECODE(count(*),0,'&&fc_skip_script.','') skip_section_repusage
+FROM   ALL_TABLES
+WHERE  owner = SYS_CONTEXT('userenv','current_schema')
+and    table_name = 'OCI360_REPORTS_USAGE';
+COL skip_section_repusage clear
+--
+COL skip_section_repcost NEW_V skip_section_repcost
+SELECT DECODE(count(*),0,'&&fc_skip_script.','') skip_section_repcost
+FROM   ALL_TABLES
+WHERE  owner = SYS_CONTEXT('userenv','current_schema')
+and    table_name = 'OCI360_REPORTS_COST';
+COL skip_section_repcost clear
+--
+COL skip_section_monit NEW_V skip_section_monit
+SELECT DECODE(count(*),0,'&&fc_skip_script.','') skip_section_monit
+FROM   ALL_TABLES
+WHERE  owner = SYS_CONTEXT('userenv','current_schema')
+and    table_name = 'OCI360_MONIT_METRIC_LIST';
+COL skip_section_monit clear
+--
+COL skip_section_audit NEW_V skip_section_audit
+SELECT DECODE(count(*),0,'&&fc_skip_script.','') skip_section_audit
+FROM   ALL_TABLES
+WHERE  owner = SYS_CONTEXT('userenv','current_schema')
+and    table_name = 'OCI360_AUDIT_EVENTS';
+COL skip_section_audit clear
+--
+COL skip_section_billing NEW_V skip_section_billing
+SELECT DECODE(count(*),0,'&&fc_skip_script.','') skip_section_billing
+FROM   ALL_TABLES
+WHERE  owner = SYS_CONTEXT('userenv','current_schema')
+and    table_name = 'OCI360_SERV_ENTITLEMENTS';
+COL skip_section_billing clear
+--
+
+----------------------------------------
 -- Skip all sections if exec_mode is LOAD_ONLY.
+----------------------------------------
 
 BEGIN
   IF '&&oci360_exec_mode.' = 'LOAD_ONLY' THEN

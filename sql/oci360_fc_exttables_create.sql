@@ -1,5 +1,4 @@
 DEF oci360_obj_dir       = 'OCI360_DIR'
--- DEF oci360_obj_exttab    = 'OCI360_EXTTAB'  - Moved to json_converter
 DEF oci360_obj_jsoncols  = 'OCI360_JSONCOLS'
 DEF oci360_obj_jsontabs  = 'OCI360_JSONTABS'
 DEF oci360_obj_metadata  = 'OCI360_METADATA'
@@ -10,6 +9,7 @@ DEF oci360_obj_shape     = 'OCI360_SHAPE_SPECS'
 @@&&fc_def_empty_var.     oci360_pre_obj_schema
 @@&&fc_set_value_var_nvl. 'oci360_obj_schema' '&&oci360_pre_obj_schema.' 'SYSTEM'
 
+-- Only when running as SYS, the code will change the current schema to another user defined by oci360_pre_obj_schema (SYSTEM user if null)
 DECLARE
  v_session_user   VARCHAR2(30);
  v_current_schema VARCHAR2(30);
@@ -25,15 +25,23 @@ BEGIN
 END;
 /
 
-COL oci360_user_curschema NEW_V oci360_user_curschema nopri
-COL oci360_user_session   NEW_V oci360_user_session   nopri
+COL oci360_user_curschema  NEW_V oci360_user_curschema  nopri
+COL oci360_user_session    NEW_V oci360_user_session    nopri
+COL oci360_temp_tablespace NEW_V oci360_temp_tablespace nopri
 
 select sys_context('userenv','current_schema') oci360_user_curschema,
        sys_context('userenv','session_user')   oci360_user_session
 from dual;
 
-COL oci360_user_curschema CLEAR
-COL oci360_user_session   CLEAR
+-- Temporary tablespace to load JSON files when running as SYS
+select decode(SEGMENT_SPACE_MANAGEMENT,'MANUAL','SYSAUX',DEFAULT_TABLESPACE) oci360_temp_tablespace 
+from user_users, user_tablespaces
+where DEFAULT_TABLESPACE = TABLESPACE_NAME;
+
+COL oci360_user_curschema  CLEAR
+COL oci360_user_session    CLEAR
+COL oci360_temp_tablespace CLEAR
+
 
 DEF oci360_obj_dir = '&&oci360_obj_dir._&&oci360_user_curschema.'
 DEF oci360_obj_dir_del = 'Y'
@@ -41,102 +49,22 @@ DEF oci360_obj_dir_del = 'Y'
 SET TERM ON SERVEROUT ON
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 
-DECLARE
-  FHANDLE    SYS.UTL_FILE.FILE_TYPE;
-  INSUFFICIENT_PRIVS EXCEPTION;
-  PRAGMA EXCEPTION_INIT(INSUFFICIENT_PRIVS, -1031);
-  V_FOUND     NUMBER := 0;
-  V_FILE      VARCHAR2(30) := 'test.txt';
-  V_CONTENT   VARCHAR2(30) := 'test content';
-  V_READ      VARCHAR2(30);
-  V_DIRECTORY VARCHAR2(30);
+-- Check if session user is either SYS or is the same as current schema.
 BEGIN
-  DBMS_OUTPUT.ENABLE();
-  DBMS_OUTPUT.PUT_LINE('Trying to create directory  "&&oci360_obj_dir." on ''&&moat369_sw_output_fdr_fpath.''.');
-  BEGIN
-    EXECUTE IMMEDIATE 'CREATE OR REPLACE DIRECTORY "&&oci360_obj_dir." AS ''&&moat369_sw_output_fdr_fpath.''';
-    DBMS_OUTPUT.PUT_LINE('Directory created and will be dropped on the end of OCI360 execution.');
-    RETURN;
-  EXCEPTION
-    WHEN INSUFFICIENT_PRIVS THEN
-      DBMS_OUTPUT.PUT_LINE('User has no privilege to create directory. Checking existing directories on output path..');
-    WHEN OTHERS THEN
-      DBMS_OUTPUT.PUT_LINE('EXCEPTION: SQLCODE=' || SQLCODE || '  SQLERRM=' || SQLERRM);
-  END;
-  FOR DIR IN (select directory_name
-              from   all_directories
-              where  regexp_replace(directory_path || '/','[/]+','/') = regexp_replace('&&moat369_sw_output_fdr_fpath.' || '/','[/]+','/')
-             ) LOOP
-    V_DIRECTORY := DIR.DIRECTORY_NAME;
-    DBMS_OUTPUT.PUT_LINE('Found "' || V_DIRECTORY || '". Checking read/write permissions..');
-    BEGIN
-      FHANDLE := SYS.UTL_FILE.FOPEN(V_DIRECTORY, V_FILE, 'w');
-      SYS.UTL_FILE.PUT(FHANDLE, V_CONTENT);
-      SYS.UTL_FILE.FCLOSE(FHANDLE);
-      FHANDLE := SYS.UTL_FILE.FOPEN(V_DIRECTORY, V_FILE, 'r');
-      SYS.UTL_FILE.GET_LINE(FHANDLE,V_READ);
-      SYS.UTL_FILE.FREMOVE(V_DIRECTORY, V_FILE);
-      IF V_CONTENT = V_READ THEN
-        DBMS_OUTPUT.PUT_LINE('Directory "' || V_DIRECTORY || '" will be used.');
-        V_FOUND := 1;
-        EXIT;
-      END IF;
-    EXCEPTION
-      WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('EXCEPTION: SQLCODE=' || SQLCODE || '  SQLERRM=' || SQLERRM);
-    END;
-  END LOOP;
-  IF V_FOUND = 0 THEN
-   RAISE_APPLICATION_ERROR(-20000, 'You have no permissions to create directory or use any on "&&moat369_sw_output_fdr_fpath." path.' || CHR(10) ||
-   'Please either grant CREATE ANY DIRECTORY to "&&oci360_user_session." or create one as DBA and give READ/WRITE permissions to "&&oci360_user_session.".');
+  IF '&&oci360_user_curschema.' != '&&oci360_user_session.' AND '&&oci360_user_session.'!='SYS' THEN
+    RAISE_APPLICATION_ERROR(-20000, 'To use oci360_pre_obj_schema, you must be connected as SYS.');
   END IF;
-  FHANDLE := SYS.UTL_FILE.FOPEN(V_DIRECTORY, 'directory.sql', 'w');
-  SYS.UTL_FILE.PUT_LINE(FHANDLE, 'DEF oci360_obj_dir = '''|| V_DIRECTORY ||'''');
-  SYS.UTL_FILE.PUT_LINE(FHANDLE, 'DEF oci360_obj_dir_del = ''N''');
-  SYS.UTL_FILE.FCLOSE(FHANDLE);
 END;
 /
 
 WHENEVER SQLERROR CONTINUE
 @@&&fc_set_term_off.
 
--- Check table in json zip
-@@&&fc_def_output_file. oci360_change_obj_dir 'oci360_change_obj_dir.sql'
-HOS touch &&oci360_change_obj_dir.
-HOS if [ -f "&&moat369_sw_output_fdr./directory.sql" ]; then echo "@&&moat369_sw_output_fdr./directory.sql"; fi >> &&oci360_change_obj_dir.
-HOS if [ -f "&&moat369_sw_output_fdr./directory.sql" ]; then echo "! rm -f &&moat369_sw_output_fdr./directory.sql"; fi >> &&oci360_change_obj_dir.
-@&&oci360_change_obj_dir.
-HOS rm -f &&oci360_change_obj_dir.
+@@&&oci360_loc_skip.&&moat369_sw_folder./oci360_fc_directory.sql
 
--- BEGIN EXECUTE IMMEDIATE 'DROP TABLE "&&oci360_obj_exttab." PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
--- /
--- 
--- CREATE TABLE "&&oci360_obj_exttab."
--- (
---   json_filename varchar2(100),
---   json_document CLOB
--- )
--- ORGANIZATION EXTERNAL
--- (  DEFAULT DIRECTORY "&&oci360_obj_dir."
---    ACCESS PARAMETERS
---      (records delimited BY newline
---       nologfile nobadfile nodiscardfile
---       fields
---           terminated BY ','
---           optionally enclosed BY '"'
---           notrim
---           missing field VALUES are NULL
---           (
---             json_filename CHAR(100)
---           )
---           COLUMN TRANSFORMS (json_document FROM LOBFILE (json_filename) FROM ("&&oci360_obj_dir.") CLOB)
---     )
---    LOCATION ('&&oci360_json_files_nopath.')
--- )
--- REJECT LIMIT 0
--- NOPARALLEL
--- NOMONITORING
--- ;
+------------------------------------------
+-- "&&oci360_obj_jsoncols."
+------------------------------------------
 
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE "&&oci360_obj_jsoncols." PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
@@ -146,78 +74,59 @@ CREATE TABLE "&&oci360_obj_jsoncols."
   source       VARCHAR2(100),
   jpath        VARCHAR2(200),
   type         VARCHAR2(10),
-  new_col_name VARCHAR2(100)
+  new_col_name VARCHAR2(100),
+  CONSTRAINT "&&oci360_obj_jsoncols._PK" PRIMARY KEY (source,jpath),
+  CONSTRAINT "&&oci360_obj_jsoncols._UK" UNIQUE (source,new_col_name)
 )
-ORGANIZATION EXTERNAL
-(  DEFAULT DIRECTORY "&&oci360_obj_dir."
-   ACCESS PARAMETERS 
-     (records delimited BY newline
-      nologfile nobadfile nodiscardfile
-      fields
-          terminated BY ','
-          optionally enclosed BY '"'
-          notrim
-          missing field VALUES are NULL
-    )
-   LOCATION ('&&oci360_jsoncol_file_nopath.')
-)
-REJECT LIMIT 0
-NOPARALLEL
-NOMONITORING
-;
+COMPRESS NOPARALLEL NOMONITORING;
 
-BEGIN EXECUTE IMMEDIATE 'DROP TABLE "&&oci360_obj_jsontabs._2" PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
-/
+@@&&fc_def_output_file. oci360_step_file 'oci360_load_jsoncols.sql'
+HOS cat &&oci360_columns. | sort -u | while read line || [ -n "$line" ]; do echo "INSERT INTO \"&&oci360_obj_jsoncols.\" VALUES ('$(&&cmd_awk. -F',' '{print $1}' <<< "$line")','$(&&cmd_awk. -F',' '{print $2}' <<< "$line")','$(&&cmd_awk. -F',' '{print $3}' <<< "$line")','$(&&cmd_awk. -F',' '{print $4}' <<< "$line")');"; done >> &&oci360_step_file.
+HOS echo 'COMMIT;' >> &&oci360_step_file.
+@&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
 
-CREATE TABLE "&&oci360_obj_jsontabs._2"
-(
-  source       VARCHAR2(100),
-  table_name   VARCHAR2(100),
-  description  VARCHAR2(100)
-)
-ORGANIZATION EXTERNAL
-(  DEFAULT DIRECTORY "&&oci360_obj_dir."
-   ACCESS PARAMETERS 
-     (records delimited BY newline
-      nologfile nobadfile nodiscardfile
-      fields
-          terminated BY ','
-          optionally enclosed BY '"'
-          notrim
-          missing field VALUES are NULL
-    )
-   LOCATION ('&&oci360_jsontab_file_nopath.')
-)
-REJECT LIMIT 0
-NOPARALLEL
-NOMONITORING
-;
+------------------------------------------
+-- "&&oci360_obj_jsontabs."
+------------------------------------------
 
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE "&&oci360_obj_jsontabs." PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
 
 CREATE TABLE "&&oci360_obj_jsontabs."
 (
-  source,
-  table_name,
-  description,
-  in_zip, -- Tables that are inside the exported JSON ZIP file
-  in_csv, -- Tables that are inside the oci_cols_json.csv
-  is_processed,
+  source       VARCHAR2(100 CHAR),
+  table_name   VARCHAR2(100 CHAR),
+  description  VARCHAR2(100 CHAR),
+  in_zip       NUMBER(1), -- Tables that are inside the exported ZIP file
+  in_csv       NUMBER(1), -- Tables that are inside the oci_cols_json.csv
+  is_processed NUMBER(1),
+  table_type   VARCHAR2(4 CHAR),
   CONSTRAINT "&&oci360_obj_jsontabs._PK" PRIMARY KEY (source),
-  CONSTRAINT "&&oci360_obj_jsontabs._UK" UNIQUE (table_name)
+  CONSTRAINT "&&oci360_obj_jsontabs._UK" UNIQUE (table_name),
+  CONSTRAINT "&&oci360_obj_jsontabs._CK1" CHECK (table_type in ('JSON','CSV')),
+  CONSTRAINT "&&oci360_obj_jsontabs._CK2" CHECK (in_zip in (0,1) and in_csv in (0,1) and is_processed in (0,1))
 )
-COMPRESS NOPARALLEL NOMONITORING
-AS SELECT source,
-          table_name,
-          description,
-          0,
-          0,
-          0
-FROM "&&oci360_obj_jsontabs._2";
+COMPRESS NOPARALLEL NOMONITORING;
 
-BEGIN EXECUTE IMMEDIATE 'DROP TABLE "&&oci360_obj_jsontabs._2" PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
-/
+@@&&fc_def_output_file. oci360_step_file 'oci360_load_jsontabs.sql'
+HOS cat &&oci360_tables. | sort -u | while read line || [ -n "$line" ]; do echo "INSERT INTO \"&&oci360_obj_jsontabs.\" VALUES ('$(&&cmd_awk. -F',' '{print $1}' <<< "$line")','$(&&cmd_awk. -F',' '{print $2}' <<< "$line")','$(&&cmd_awk. -F',' '{print $3}' <<< "$line")',0,0,0,'JSON');"; done >> &&oci360_step_file.
+HOS echo 'COMMIT;' >> &&oci360_step_file.
+@&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
+
+INSERT INTO "&&oci360_obj_jsontabs." (source,table_name,in_zip,in_csv,is_processed,table_type)
+VALUES ('reports_usage-', 'OCI360_REPORTS_USAGE',0,0,0,'CSV');
+
+-- Commented while not yet implemented.
+-- INSERT INTO "&&oci360_obj_jsontabs." (source,table_name,in_zip,in_csv,is_processed,table_type)
+-- VALUES ('reports_cost-', 'OCI360_REPORTS_COST',0,0,0,'CSV');
+
+COMMIT;
+
+------------------------------------------
 
 -- Don't drop metadata table if LOAD is disabled.
 BEGIN IF '&&oci360_load_mode.' != 'OFF' THEN EXECUTE IMMEDIATE 'DROP TABLE "&&oci360_obj_metadata." PURGE'; END IF; EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -291,21 +200,37 @@ COMPRESS NOPARALLEL NOMONITORING;
 @@&&moat369_sw_folder./oci360_fc_oci_costs.sql
 @@&&moat369_sw_folder./oci360_fc_oci_extra_tables.sql
 
+-- Check if json file is gzip and update file name
+@@&&fc_def_output_file. oci360_step_file 'oci360_check_json_zip.sql'
+HOS cat &&oci360_json_files. | while read line || [ -n "$line" ]; do echo "UPDATE \"&&oci360_obj_jsontabs.\" SET source = source || '.gz' WHERE source || '.gz'='$line';"; echo "UPDATE \"&&oci360_obj_jsoncols.\" SET source = source || '.gz' WHERE source || '.gz'='$line';"; done > &&oci360_step_file.
+HOS echo 'COMMIT;' >> &&oci360_step_file.
+@&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
+
 -- Check table in json zip
-@@&&fc_def_output_file. oci360_check_json_zip 'oci360_check_json_zip.sql'
-HOS cat &&oci360_json_files. | while read line || [ -n "$line" ]; do echo "UPDATE \"&&oci360_obj_jsontabs.\" SET in_zip=1 WHERE source='$line';"; done > &&oci360_check_json_zip.
-HOS echo 'COMMIT;' >> &&oci360_check_json_zip.
-@&&oci360_check_json_zip.
-@@&&fc_zip_driver_files. &&oci360_check_json_zip.
-UNDEF oci360_check_json_zip
+@@&&fc_def_output_file. oci360_step_file 'oci360_check_json_zip.sql'
+HOS cat &&oci360_json_files. | while read line || [ -n "$line" ]; do echo "UPDATE \"&&oci360_obj_jsontabs.\" SET in_zip=1 WHERE source='$line';"; done > &&oci360_step_file.
+HOS echo 'COMMIT;' >> &&oci360_step_file.
+@&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
 
 -- Check table in json csv
-@@&&fc_def_output_file. oci360_check_json_csv 'oci360_check_json_csv.sql'
-HOS cat &&oci360_jsoncol_file. | &&cmd_awk. -F',' '{print $1}' | sort -u | while read line || [ -n "$line" ]; do echo "UPDATE \"&&oci360_obj_jsontabs.\" SET in_csv=1 WHERE source='$line';"; done > &&oci360_check_json_csv.
-HOS echo 'COMMIT;' >> &&oci360_check_json_csv.
-@&&oci360_check_json_csv.
-@@&&fc_zip_driver_files. &&oci360_check_json_csv.
-UNDEF oci360_check_json_csv
+@@&&fc_def_output_file. oci360_step_file 'oci360_check_json_csv.sql'
+HOS cat &&oci360_columns. | &&cmd_awk. -F',' '{print $1}' | sort -u | while read line || [ -n "$line" ]; do echo "UPDATE \"&&oci360_obj_jsontabs.\" SET in_csv=1 WHERE source='$line';"; done > &&oci360_step_file.
+HOS echo 'COMMIT;' >> &&oci360_step_file.
+@&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
+
+-- Check table in csv zip - report tables
+@@&&fc_def_output_file. oci360_step_file 'oci360_check_csv_zip.sql'
+HOS cat &&oci360_csv_files. | &&cmd_grep. -o -E '^.*-' | sort -u | while read line || [ -n "$line" ]; do echo "UPDATE \"&&oci360_obj_jsontabs.\" SET in_zip=1 WHERE source='$line';"; done > &&oci360_step_file.
+HOS echo 'COMMIT;' >> &&oci360_step_file.
+@&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
 
 --------------------------------------------------
 -- Check if tables are pre-loaded or on-demand. --
@@ -313,10 +238,17 @@ UNDEF oci360_check_json_csv
 
 @@&&fc_def_output_file. step_json_full_loader 'step_json_full_loader.sql'
 
--- Load Json into tables
+-- Convert JSON and CSV into tables
 @@&&fc_spool_start.
 SPO &&step_json_full_loader.
-SELECT '@@&&fc_json_loader. ' || table_name FROM "&&oci360_obj_jsontabs." WHERE in_zip=1 or in_csv=1;
+SELECT '@@&&fc_json_loader. ' || table_name
+FROM "&&oci360_obj_jsontabs."
+WHERE (in_zip=1 or in_csv=1) and table_type='JSON'
+ORDER BY 1;
+SELECT '@@&&fc_json_loader. ' || table_name
+FROM "&&oci360_obj_jsontabs."
+WHERE in_zip=1 and table_type='CSV'
+ORDER BY 1;
 SPO OFF
 @@&&fc_spool_end.
 
@@ -328,11 +260,14 @@ COL skip_json_full_loader clear
 
 @@&&skip_json_full_loader.&&step_json_full_loader.
 
--- Disable fc_json_loader if did a full PRE_LOAD or if it is OFF
+-- Disable fc_json_loader / fc_csv_loader if did a full PRE_LOAD or if it is OFF
 COL fc_json_loader NEW_V fc_json_loader
-SELECT '&&fc_skip_script.' fc_json_loader
+COL fc_csv_loader  NEW_V fc_csv_loader
+SELECT '&&fc_skip_script.' fc_json_loader,
+       '&&fc_skip_script.' fc_csv_loader
 FROM DUAL WHERE '&&oci360_load_mode.' != 'ON_DEMAND';
 COL fc_json_loader clear
+COL fc_csv_loader  clear
 
 @@&&fc_zip_driver_files. &&step_json_full_loader.
 UNDEF step_json_full_loader skip_json_full_loader

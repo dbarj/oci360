@@ -1,10 +1,6 @@
--- DROP TABLE "&&oci360_obj_exttab." PURGE; - Moved to json_converter
--- DROP TABLE "&&oci360_obj_jsoncols." PURGE;
--- DROP TABLE "&&oci360_obj_jsontabs." PURGE;
-
 --
 BEGIN
-  IF '&&oci360_obj_dir_del.' = 'Y'
+  IF '&&oci360_obj_dir_del.' = 'Y' and '&&oci360_loc_skip.' is NULL
   THEN
     EXECUTE IMMEDIATE 'DROP DIRECTORY "&&oci360_obj_dir."';
   END IF;

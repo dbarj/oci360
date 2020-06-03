@@ -28,17 +28,17 @@ set -e
 # Define paths for oci-cli and jq or put them on $PATH. Don't use relative PATHs in the variables below.
 v_jq="jq"
 
+if [ -z "${BASH_VERSION}" -o "${BASH}" = "/bin/sh" ]
+then
+  >&2 echo "Script must be executed in BASH shell."
+  exit 1
+fi
+
 # If MERGE_UNIQUE variable is undefined, change to 1.
 # 0 = Output JSON will be simply merged.
 # 1 = Output JSON will be returned in sorted order, with duplicates removed.
 
 [[ "${MERGE_UNIQUE}" == "" ]] && MERGE_UNIQUE=1
-
-if [ -z "${BASH_VERSION}" ]
-then
-  >&2 echo "Script must be executed in BASH shell."
-  exit 1
-fi
 
 function echoError ()
 {

@@ -3,15 +3,27 @@
 ---- Clean external table objects
 @@&&moat369_sw_folder./oci360_fc_exttables_drop.sql
 --
-HOS zipinfo -1 &&oci360_json_zip. | xargs -i rm -f &&moat369_sw_output_fdr./{}
+
+-- If Local
+@@&&fc_def_output_file. oci360_step_file 'oci360_step_zip_file.sql'
+@@&&fc_spool_start.
+SPO &&oci360_step_file.
+PRO HOS cat "&&oci360_json_files." | xargs -i rm -f &&moat369_sw_output_fdr./{}
+SPO OFF
+@@&&fc_spool_end.
+@@&&oci360_loc_skip.&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
 --
+
 HOS zip -mj &&moat369_zip_filename. &&oci360_log. >> &&moat369_log3.
 UNDEF oci360_log
 
 --
-HOS rm -f &&oci360_json_files. 
-HOS rm -f &&oci360_jsoncol_file.
-HOS rm -f &&oci360_jsontab_file.
+@@&&fc_zip_driver_files. &&oci360_json_files. 
+@@&&fc_zip_driver_files. &&oci360_csv_files. 
+--HOS rm -f &&oci360_jsoncol_file.
+--HOS rm -f &&oci360_jsontab_file.
 
 -- Undef variables
 UNDEF oci360_collector
@@ -31,7 +43,11 @@ UNDEF oci360_skip_billing
 UNDEF oci360_json_zip
 UNDEF oci360_json_files
 UNDEF oci360_json_files_nopath
-UNDEF oci360_jsoncol_file
-UNDEF oci360_jsoncol_file_nopath
-UNDEF oci360_jsontab_file
-UNDEF oci360_jsontab_file_nopath
+UNDEF oci360_csv_report_zip
+UNDEF oci360_csv_files
+UNDEF oci360_csv_files_nopath
+
+-- UNDEF oci360_jsoncol_file
+-- UNDEF oci360_jsoncol_file_nopath
+-- UNDEF oci360_jsontab_file
+-- UNDEF oci360_jsontab_file_nopath
