@@ -1,5 +1,21 @@
 -----------------------------------------
 
+DEF title = 'Control - Failed Tables'
+DEF main_table = '&&oci360_obj_jsontabs.'
+
+BEGIN
+  :sql_text := q'{
+SELECT t1.*
+FROM   "&&oci360_obj_jsontabs." t1
+WHERE  is_processed=1 and is_created=0
+}';
+END;
+/
+DEF foot = 'If you see any lines here, check file "&&oci360_log_nopath." (last section of the tool) for ORA- errors.<br>';
+@@&&9a_pre_one.
+
+-----------------------------------------
+
 DEF title = 'Control - Json Tables'
 DEF main_table = '&&oci360_obj_jsontabs.'
 
@@ -70,6 +86,21 @@ FROM     user_segments
 WHERE    SEGMENT_NAME like 'OCI360\_%' ESCAPE '\'
 GROUP BY SEGMENT_NAME, SEGMENT_TYPE, TABLESPACE_NAME
 ORDER BY 4 DESC
+}';
+END;
+/
+@@&&9a_pre_one.
+
+-----------------------------------------
+
+DEF title = 'OCI360 Used Space'
+DEF main_table = 'user_segments'
+
+BEGIN
+  :sql_text := q'{
+SELECT   sum(bytes)/power(1024,2) "MBs"
+FROM     user_segments
+WHERE    SEGMENT_NAME like 'OCI360\_%' ESCAPE '\'
 }';
 END;
 /

@@ -11,6 +11,7 @@
 @@&&fc_json_loader. 'OCI360_VNIC_ATTACHS'
 @@&&fc_json_loader. 'OCI360_VNICS'
 @@&&fc_json_loader. 'OCI360_DRG_ATTACHS'
+@@&&fc_json_loader. 'OCI360_DB_NODES'
 -----------------------------------------
 
 DEF title = 'Infrastructure Visual Design'

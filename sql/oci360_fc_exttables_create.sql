@@ -99,30 +99,31 @@ CREATE TABLE "&&oci360_obj_jsontabs."
   source       VARCHAR2(100 CHAR),
   table_name   VARCHAR2(100 CHAR),
   description  VARCHAR2(100 CHAR),
-  in_zip       NUMBER(1), -- Tables that are inside the exported ZIP file
-  in_csv       NUMBER(1), -- Tables that are inside the oci_cols_json.csv
-  is_processed NUMBER(1),
+  in_zip       NUMBER(1) DEFAULT 0, -- Tables that are inside the exported ZIP file
+  in_col_csv   NUMBER(1) DEFAULT 0, -- Tables that are inside the oci_cols_json.csv
+  is_processed NUMBER(1) DEFAULT 0,
+  is_created   NUMBER(1) DEFAULT 0,
   table_type   VARCHAR2(4 CHAR),
   CONSTRAINT "&&oci360_obj_jsontabs._PK" PRIMARY KEY (source),
   CONSTRAINT "&&oci360_obj_jsontabs._UK" UNIQUE (table_name),
   CONSTRAINT "&&oci360_obj_jsontabs._CK1" CHECK (table_type in ('JSON','CSV')),
-  CONSTRAINT "&&oci360_obj_jsontabs._CK2" CHECK (in_zip in (0,1) and in_csv in (0,1) and is_processed in (0,1))
+  CONSTRAINT "&&oci360_obj_jsontabs._CK2" CHECK (in_zip in (0,1) and in_col_csv in (0,1) and is_processed in (0,1) and is_created in (0,1))
 )
 COMPRESS NOPARALLEL NOMONITORING;
 
 @@&&fc_def_output_file. oci360_step_file 'oci360_load_jsontabs.sql'
-HOS cat &&oci360_tables. | sort -u | while read line || [ -n "$line" ]; do echo "INSERT INTO \"&&oci360_obj_jsontabs.\" VALUES ('$(&&cmd_awk. -F',' '{print $1}' <<< "$line")','$(&&cmd_awk. -F',' '{print $2}' <<< "$line")','$(&&cmd_awk. -F',' '{print $3}' <<< "$line")',0,0,0,'JSON');"; done >> &&oci360_step_file.
+HOS cat &&oci360_tables. | sort -u | while read line || [ -n "$line" ]; do echo "INSERT INTO \"&&oci360_obj_jsontabs.\" (source,table_name,description,table_type) VALUES ('$(&&cmd_awk. -F',' '{print $1}' <<< "$line")','$(&&cmd_awk. -F',' '{print $2}' <<< "$line")','$(&&cmd_awk. -F',' '{print $3}' <<< "$line")','JSON');"; done >> &&oci360_step_file.
 HOS echo 'COMMIT;' >> &&oci360_step_file.
 @&&oci360_step_file.
 @@&&fc_zip_driver_files. &&oci360_step_file.
 UNDEF oci360_step_file
 
-INSERT INTO "&&oci360_obj_jsontabs." (source,table_name,in_zip,in_csv,is_processed,table_type)
-VALUES ('reports_usage-', 'OCI360_REPORTS_USAGE',0,0,0,'CSV');
+INSERT INTO "&&oci360_obj_jsontabs." (source,table_name,table_type)
+VALUES ('reports_usage-', 'OCI360_REPORTS_USAGE','CSV');
 
 -- Commented while not yet implemented.
--- INSERT INTO "&&oci360_obj_jsontabs." (source,table_name,in_zip,in_csv,is_processed,table_type)
--- VALUES ('reports_cost-', 'OCI360_REPORTS_COST',0,0,0,'CSV');
+-- INSERT INTO "&&oci360_obj_jsontabs." (source,table_name,table_type)
+-- VALUES ('reports_cost-', 'OCI360_REPORTS_COST','CSV');
 
 COMMIT;
 
@@ -218,7 +219,7 @@ UNDEF oci360_step_file
 
 -- Check table in json csv
 @@&&fc_def_output_file. oci360_step_file 'oci360_check_json_csv.sql'
-HOS cat &&oci360_columns. | &&cmd_awk. -F',' '{print $1}' | sort -u | while read line || [ -n "$line" ]; do echo "UPDATE \"&&oci360_obj_jsontabs.\" SET in_csv=1 WHERE source='$line';"; done > &&oci360_step_file.
+HOS cat &&oci360_columns. | &&cmd_awk. -F',' '{print $1}' | sort -u | while read line || [ -n "$line" ]; do echo "UPDATE \"&&oci360_obj_jsontabs.\" SET in_col_csv=1 WHERE source='$line';"; done > &&oci360_step_file.
 HOS echo 'COMMIT;' >> &&oci360_step_file.
 @&&oci360_step_file.
 @@&&fc_zip_driver_files. &&oci360_step_file.
@@ -243,7 +244,7 @@ UNDEF oci360_step_file
 SPO &&step_json_full_loader.
 SELECT '@@&&fc_json_loader. ' || table_name
 FROM "&&oci360_obj_jsontabs."
-WHERE (in_zip=1 or in_csv=1) and table_type='JSON'
+WHERE (in_zip=1 or in_col_csv=1) and table_type='JSON'
 ORDER BY 1;
 SELECT '@@&&fc_json_loader. ' || table_name
 FROM "&&oci360_obj_jsontabs."
