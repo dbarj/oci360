@@ -122,8 +122,8 @@ INSERT INTO "&&oci360_obj_jsontabs." (source,table_name,table_type)
 VALUES ('reports_usage-', 'OCI360_REPORTS_USAGE','CSV');
 
 -- Commented while not yet implemented.
--- INSERT INTO "&&oci360_obj_jsontabs." (source,table_name,table_type)
--- VALUES ('reports_cost-', 'OCI360_REPORTS_COST','CSV');
+INSERT INTO "&&oci360_obj_jsontabs." (source,table_name,table_type)
+VALUES ('reports_cost-', 'OCI360_REPORTS_COST','CSV');
 
 COMMIT;
 

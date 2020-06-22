@@ -121,7 +121,8 @@ WITH tvols  AS (select nvl(sum(SIZE_IN_GBS),0) tsize from OCI360_VOLUMES where l
      tdbs AS (select nvl(sum(DATA_STORAGE_SIZE_IN_GBS+RECO_STORAGE_SIZE_IN_GB),0) tsize from (select distinct id,DATA_STORAGE_SIZE_IN_GBS,RECO_STORAGE_SIZE_IN_GB,lifecycle_state from OCI360_DB_SYSTEMS) where lifecycle_state = 'AVAILABLE'),
      tbkps  AS (select nvl(sum(UNIQUE_SIZE_IN_GBS),0) tsize from OCI360_BACKUPS where lifecycle_state = 'AVAILABLE'),
      tbbkps AS (select nvl(sum(UNIQUE_SIZE_IN_GBS),0) tsize from OCI360_BV_BACKUPS where lifecycle_state = 'AVAILABLE'),
-     tbos   AS (select nvl(round(sum("SIZE")/power(1024,3)),0) tsize from OCI360_OBJECTS)
+     tbos   AS (select nvl(round(sum("SIZE")/power(1024,3)),0) tsize from OCI360_OBJECTS),
+     tbds   AS (SELECT nvl(sum(NODES$ATTACHED_BLOCK_VOLUMES$VOLUME_SIZE_IN_GBS),0) tsize FROM OCI360_BDS_INSTANCES)
 SELECT label, (tsize/SUM(tsize) over())*100 dummy_01, style dummy_02, mo
 FROM (
      SELECT 'Volume Size' label, tsize, '34CF27' style, tsize || ' GB' mo FROM tvols
@@ -133,6 +134,8 @@ FROM (
      SELECT 'Database Size', tnodes.tsize + tdbs.tsize, '1E96DD', (tnodes.tsize + tdbs.tsize) || ' GB' FROM tnodes,tdbs
      UNION ALL
      SELECT 'Object Storage Size', tsize, 'CFCF26', tsize || ' GB' FROM tbos
+     UNION ALL
+     SELECT 'Bigdata Size', tsize, 'ABABAB', tsize || ' GB' FROM tbds
      )
 }';
 END;

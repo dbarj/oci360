@@ -1,3 +1,4 @@
+oci_bds_instance_details.json,$.data.nodes."attached-block-volumes"."volume-size-in-gbs",number,NODES$ATTACHED_BLOCK_VOLUMES$VOLUME_SIZE_IN_GBS
 oci_bv_backup.json,$.data."compartment-id",string,COMPARTMENT_ID
 oci_bv_backup.json,$.data."display-name",string,DISPLAY_NAME
 oci_bv_backup.json,$.data."expiration-time",string,EXPIRATION_TIME

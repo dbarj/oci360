@@ -131,7 +131,7 @@ DEF foot = '* US$ costs are estimations for Month Flex, not considering machine 
 
 -----------------------------------------
 
-DEF title = 'Shapes per Compartment'
+DEF title = 'Shapes in Tenancy'
 DEF main_table = 'OCI360_SHAPES'
 
 BEGIN

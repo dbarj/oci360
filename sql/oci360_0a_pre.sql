@@ -355,6 +355,14 @@ WHERE  owner = SYS_CONTEXT('userenv','current_schema')
 and    table_name = 'OCI360_SERV_ENTITLEMENTS';
 COL skip_section_billing clear
 --
+COL skip_section_bigdata NEW_V skip_section_bigdata
+SELECT DECODE(count(*),0,'&&fc_skip_script.','') skip_section_bigdata
+FROM   ALL_TAB_COLUMNS
+WHERE  owner = SYS_CONTEXT('userenv','current_schema')
+and    table_name = 'OCI360_BDS_INSTANCES'
+AND    column_name = 'ID';
+COL skip_section_bigdata clear
+--
 
 ----------------------------------------
 -- Skip all sections if exec_mode is LOAD_ONLY.

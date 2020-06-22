@@ -66,7 +66,7 @@ DECLARE
   l_col_13 NUMBER;
   l_col_14 NUMBER;
   l_col_15 NUMBER;
-  l_line VARCHAR2(1000);
+  l_line VARCHAR2(32767);
   l_sql_text VARCHAR2(32767);
 BEGIN
   IF '&&one_spool_line_chart_file.' IS NULL THEN

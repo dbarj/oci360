@@ -1,8 +1,8 @@
 #!/bin/bash
 #************************************************************************
 #
-#   oci_json_hist_clean.sh - Clean HIST zip files used to store
-#   OCI JSON history.
+#   oci_zip_hist_clean.sh - Clean history zip files used to store
+#   OCI json/csv historical archives.
 #
 #   Copyright 2019  Rodrigo Jorge <http://www.dbarj.com.br/>
 #
@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: May/2019 by Rodrigo Jorge
-# Version 1.00
+# Version 1.01
 #************************************************************************
 set -eo pipefail
 
@@ -53,8 +53,8 @@ if [ "$#" -ne 3 -o "$1" == "" -o "$2" == "" -o "$3" == "" ]
 then
   echoError "Usage: ${v_this_script} <zip_file> <list_file> <retention>"
   echoError ""
-  echoError "<zip_file>  - Zip file containing historical JSONs."
-  echoError "<list_file> - Text file inside ZIP file that has all the JSON entries."
+  echoError "<zip_file>  - Zip file containing historical files (JSON or CSV)."
+  echoError "<list_file> - Text file inside ZIP file that has all the files entries."
   echoError "<retention> - Retention time in days to keep files."
   exit 1
 fi
@@ -188,6 +188,14 @@ then
         # echo "${c_date1} ${c_date2} - Removing ${c_file}"
         removeFromZip "${c_file}"
       fi
+    elif [ $(wc -l <<< "${c_dates}") -eq 1 ]
+    then
+      c_date_epoch=$(ConvYMDToEpoch "${c_dates}")
+      if [ $((v_now_epoch-c_date_epoch)) -ge $((3600*24*${v_retention})) ]
+      then
+        # echo "${c_dates} - Removing ${c_file}"
+        removeFromZip "${c_file}"
+      fi
     elif [ $(wc -l <<< "${c_dates}") -eq 0 ]
     then
       v_file_epoch=$(date -r "${c_file}" -u '+%s')
@@ -218,20 +226,20 @@ then
     c_cmd=$(cut -d '|' -f 1 <<< "$c_line")
     c_file=$(cut -d '|' -f 2 <<< "$c_line")
     [ ! -f "${c_file}" ] && continue
-    mv "${c_file}" outfdr/${v_seq}.json
-    echo "${c_cmd}|${v_seq}.json" >> outfdr/"${v_list}"
+    c_ext="${c_file#*.}"
+    [ -n "${c_ext}" ] && c_out="${v_seq}.${c_ext}" || c_out="${v_seq}"
+    mv "${c_file}" outfdr/${c_out}
+    echo "${c_cmd}|${c_out}" >> outfdr/"${v_list}"
     ((v_seq++))
     printpercentage
   done 3< "${v_list}"
 
   cd outfdr
-  zip -qmT -9 "${v_zip_new}" "${v_list}"
-  zip -qmT -9 "${v_zip_new}" *.json
+  zip -qmT -9 "${v_zip_new}" *
   cd ..
   rmdir outfdr
 else
-  zip -qmT -9 "${v_zip_new}" "${v_list}"
-  zip -qmT -9 "${v_zip_new}" *.json
+  zip -qmT -9 "${v_zip_new}" *
 fi
 
 cleanTmpFiles

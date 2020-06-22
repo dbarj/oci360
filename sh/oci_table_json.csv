@@ -1,4 +1,5 @@
 oci_audit_event.json,OCI360_AUDIT_EVENTS,Audit Events
+oci_bds_instance_details.json,OCI360_BDS_INSTANCES,Big Data Instances
 oci_bv_backup.json,OCI360_BACKUPS,Volume Backups
 oci_bv_boot-volume-backup.json,OCI360_BV_BACKUPS,Boot-Volume Backups
 oci_bv_boot-volume-kms-key.json,OCI360_BV_KEYS,Boot-Volume Keys
@@ -123,3 +124,16 @@ oci_os_object.json,OCI360_OBJECTS,Objects
 oci_os_preauth-request.json,OCI360_PREAUTH_REQUESTS,Pre-authenticated Requests
 oci_os_work-request.json,OCI360_OS_WORKREQS,Work Requests
 oci_search_resource-type.json,OCI360_RESTYPES,Resource-Types
+oci_cloud_serviceEntitlements.json,OCI360_SERV_ENTITLEMENTS,Service Entitlements
+oci_cloud_serviceResources.json,OCI360_SERV_RESOURCES,Service Resources
+oci_cloud_usage.json,OCI360_USAGE,Usage
+oci_cloud_usageCost.json,OCI360_USAGECOSTS,Usage Costs
+oci_cloud_usageCostTaggedDaily.json,OCI360_USAGECOSTS_TAGGED_DAILY,Usage Costs Tagged Daily
+oci_cloud_usageCostTaggedHourly.json,OCI360_USAGECOSTS_TAGGED_HOURLY,Usage Costs Tagged Hourly
+oci_cloud_usageTags.json,OCI360_USAGETAGS,Usage Tags
+oci_cloud_accountDetails.json,OCI360_ACCOUNTDETAILS,Account Details
+oci_cloud_checkQuota.json,OCI360_CHECKQUOTA,Check Quota
+oci_cloud_promotions.json,OCI360_PROMOTIONS,Promotions
+oci_cloud_cloudLimits.json,OCI360_CLOUDLIMITS,Cloud Limits
+oci_monit_metric_list.json,OCI360_MONIT_METRIC_LIST,Monitoring Metrics List
+oci_monit_metric_data_1h_max.json,OCI360_MONIT_METRIC_DATA_1HMAX,Monitoring Metrics Data 1h Max

@@ -21,17 +21,23 @@
 3b,seclists_main.sql,'Network Analysis'
 3c,networks.sql,'More Network Info'
 3d,cross_conn.sql,'Cross Connections'
+3e,bigdata.sql,'Big Data',&&skip_section_bigdata.
 --
 4a,lb.sql,'Load Balance'
 4b,dns.sql,'DNS Zones'
 4c,email.sql,'Email Delivery'
 4d,limits.sql,'Limits'
-
-4g,usage.sql,'Reports Usage',&&skip_section_repusage.
+4e,monit.sql,'Monitoring',&&skip_section_monit.
+4f,monitoring_details.sql,'Monitoring Data',&&skip_section_monit.
+4g,usage.sql,'Report Usage',&&skip_section_repusage.
+4h,cost.sql,'Cloud Costs',&&skip_section_repcost.&&skip_billing_sql.
+4i,cost_period_main.sql,'Cost Charts',&&skip_section_repcost.&&skip_billing_sql.
 --
 5a,iam.sql,'Identity and Access Management'
 5b,kms.sql,'Key Management Service'
 5c,audit.sql,'Audit',&&skip_section_audit.
+5d,billing.sql,'Cloud Billing',&&skip_billing_sql.&&skip_section_billing.
+5e,billing_period_main.sql,'Billing Period',&&skip_billing_sql.&&skip_section_billing.
 --
 6a,databases.sql,'Database Services'
 6b,exadatas.sql,'Database Estimations',&&skip_billing_sql.

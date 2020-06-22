@@ -629,10 +629,7 @@ DEF title = 'Other Objects - Hourly - Total Usage'
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE OCI360_REPORTS_USAGE_TEMP PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
 
-UNDEF oci360_usage_tzcolformat
-UNDEF oci360_usage_date_from
-UNDEF oci360_usage_date_to
-UNDEF oci360_usage_period
-UNDEF oci360_usage_between
+UNDEF oci360_usage_date_from oci360_usage_date_to oci360_usage_period
+UNDEF oci360_usage_tzcolformat oci360_usage_between
 
 -----------------------------------------
