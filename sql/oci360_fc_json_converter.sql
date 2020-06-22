@@ -21,7 +21,7 @@ PRO Creating table &&oci360_in_target_table.
 -- Start SPOOL to log file
 @@&&fc_spool_start.
 SET ECHO OFF FEED ON VER ON HEAD ON SERVEROUT ON
-SPO &&oci360_log. APP;
+SPO &&oci360_log_json. APP;
 
 PRO ----------------------------------------------------------------------------
 

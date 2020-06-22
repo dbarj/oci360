@@ -11,7 +11,8 @@ WHERE  is_processed=1 and is_created=0
 }';
 END;
 /
-DEF foot = 'If you see any lines here, check file "&&oci360_log_nopath." (last section of the tool) for ORA- errors.<br>';
+
+DEF foot = 'If you see any lines here, check file "&&oci360_log_json_nopath." (last section of the tool) for ORA- errors.<br>';
 @@&&9a_pre_one.
 
 -----------------------------------------
@@ -144,11 +145,19 @@ DEF skip_text_file = ''
 
 -----------------------------------------
 
-@@&&fc_clean_file_name. "oci360_log" "oci360_log_nopath" "PATH"
-DEF title = 'File: &&oci360_log_nopath.'
-UNDEF oci360_log_nopath
+DEF title = 'File: &&oci360_log_json_nopath.'
 
-DEF one_spool_text_file = '&&oci360_log.'
+DEF one_spool_text_file = '&&oci360_log_json.'
+DEF one_spool_text_file_rename = 'N'
+DEF skip_html = '--'
+DEF skip_text_file = ''
+@@&&9a_pre_one.
+
+-----------------------------------------
+
+DEF title = 'File: &&oci360_log_csv_nopath.'
+
+DEF one_spool_text_file = '&&oci360_log_csv.'
 DEF one_spool_text_file_rename = 'N'
 DEF skip_html = '--'
 DEF skip_text_file = ''
