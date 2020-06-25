@@ -36,8 +36,8 @@
 5a,iam.sql,'Identity and Access Management'
 5b,kms.sql,'Key Management Service'
 5c,audit.sql,'Audit',&&skip_section_audit.
-5d,billing.sql,'Cloud Billing',&&skip_billing_sql.&&skip_section_billing.
-5e,billing_period_main.sql,'Billing Period',&&skip_billing_sql.&&skip_section_billing.
+5d,billing.sql,'Portal Account Metering',&&skip_billing_sql.&&skip_section_billing.
+5e,billing_period_main.sql,'Portal Account Periods',&&skip_billing_sql.&&skip_section_billing.
 --
 6a,databases.sql,'Database Services'
 6b,exadatas.sql,'Database Estimations',&&skip_billing_sql.

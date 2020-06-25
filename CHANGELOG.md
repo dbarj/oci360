@@ -1,5 +1,11 @@
 ## Versions ##
 
+* 20.06 (2020-06-25)
+  - Infrastructure Visual Design now includes DB Systems.
+  - New BigData section.
+  - New Costs and Billing sections.
+  - More misc info for debugging.
+
 * 20.05 (2020-06-03)
   - Now OCI360 can also run in ADB.
   - New "Audit" section.

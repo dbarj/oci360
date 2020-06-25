@@ -62,7 +62,6 @@ DEF vaxis = 'Cost (&&oci360_usage_currency.)'
 EXEC :sql_text := REPLACE(:sql_text_backup, '@main_table@', q'[OCI360_REPORTS_COST]');
 EXEC :sql_text := REPLACE(:sql_text, '@filter_predicate@', q'[1 = 1]');
 DEF tit_01 = 'Total Cost per Hour'
-DEF tit_02 = 'Linear Regression Trend'
 DEF chartype = 'AreaChart'
 DEF skip_lch = ''
 @@&&9a_pre_one.
@@ -98,7 +97,6 @@ SELECT 'DEF title = ''Compartment: ' || COMP_NAME || '''' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["product/compartmentId" = ''' || COMP_ID || ''']'');' || CHR(10) ||
        'DEF tit_01 = ''Total Cost per Hour''' || CHR(10) ||
-       'DEF tit_02 = ''Linear Regression Trend''' || CHR(10) ||
        'DEF chartype = ''LineChart''' || CHR(10) ||
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
@@ -149,7 +147,6 @@ SELECT 'DEF title = ''Service: ' || SRV_NAME || '''' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["product/service" = ''' || SRV_NAME || ''']'');' || CHR(10) ||
        'DEF tit_01 = ''Total Cost per Hour''' || CHR(10) ||
-       'DEF tit_02 = ''Linear Regression Trend''' || CHR(10) ||
        'DEF chartype = ''LineChart''' || CHR(10) ||
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
@@ -200,7 +197,6 @@ SELECT 'DEF title = ''Product: ' || SKU_ID || ' - ' || SKU_DESC || '''' || CHR(1
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["cost/productSku" = ''' || SKU_ID || ''']'');' || CHR(10) ||
        'DEF tit_01 = ''Total Cost per Hour''' || CHR(10) ||
-       'DEF tit_02 = ''Linear Regression Trend''' || CHR(10) ||
        'DEF chartype = ''LineChart''' || CHR(10) ||
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
@@ -251,7 +247,6 @@ SELECT 'DEF title = ''Resource: ' || RES_ID || '''' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["product/resourceId" = ''' || RES_ID || ''']'');' || CHR(10) ||
        'DEF tit_01 = ''Total Cost per Hour''' || CHR(10) ||
-       'DEF tit_02 = ''Linear Regression Trend''' || CHR(10) ||
        'DEF chartype = ''LineChart''' || CHR(10) ||
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'

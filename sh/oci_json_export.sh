@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 2.02
+# Version 2.03
 #************************************************************************
 set -eo pipefail
 
@@ -53,6 +53,9 @@ v_tmpfldr="$(mktemp -d -u -p ${TMPDIR}/.oci 2>&- || mktemp -d -u)"
 # If DEBUG variable is undefined, change to 1.
 [[ "${DEBUG}" == "" ]] && DEBUG=1
 [ ! -z "${DEBUG##*[!0-9]*}" ] || DEBUG=1
+
+# If OCI_JSON_EXCLUDE is unset, by default will exclude the following items.
+[ -z "${OCI_JSON_EXCLUDE}" ] && OCI_JSON_EXCLUDE="OS-Objects"
 
 # DEBUG - Will create a oci_json_export.log file with DEBUG info.
 #  1 = Executed commands.
@@ -192,7 +195,7 @@ fi
 
 # Compute parallel
 v_cpu_count=$(python -c 'import multiprocessing as mp; print(mp.cpu_count())' 2>&-) || true
-[ ! -z "${v_cpu_count##*[!0-9]*}" ] && v_oci_parallel_target=${v_cpu_count} || v_oci_parallel_target=${v_oci_parallel}
+[ ! -z "${v_cpu_count##*[!0-9]*}" ] && v_oci_parallel_target=$((${v_cpu_count}*2)) || v_oci_parallel_target=${v_oci_parallel}
 [ ! -z "${OCI_JSON_PARALLEL##*[!0-9]*}" ] && v_oci_parallel_target=${OCI_JSON_PARALLEL}
 v_oci_parallel=${v_oci_parallel_target}
 
@@ -223,6 +226,8 @@ fi
 
 echoDebug "Temporary folder is: ${v_tmpfldr}"
 echoDebug "OCI Parallel is: ${v_oci_parallel}"
+echoDebug "OCI JSON Include is: ${OCI_JSON_INCLUDE}" 2
+echoDebug "OCI JSON Exclude is: ${OCI_JSON_EXCLUDE}" 2
 
 if ! $(which timeout >&- 2>&-)
 then
@@ -586,8 +591,8 @@ function jsonGenericMaster ()
       v_i=0
       v_params=""
       $v_tag_mode && v_newits=""
+      v_procs_counter=$((v_procs_counter+1))
     fi
-    v_procs_counter=$((v_procs_counter+1))
   done
 
   # If parallel mode is on, concatenate generated files as executions finishes
@@ -855,7 +860,7 @@ function oci_parallel_release ()
 # Net-VirtCircPubPref,oci_network_virtual-circuit-public-prefix.json,jsonGenericMaster,"network virtual-circuit-public-prefix list" "Net-VirtCirc" "id:virtual-circuit-id" "jsonSimple"
 # Net-Vnics,oci_network_vnic.json,jsonGenericMaster,"network vnic get" "Net-PrivateIPs" "vnic-id:vnic-id" "jsonSimple"
 # OS-Buckets,oci_os_bucket.json,jsonAllCompart,"os bucket list --all"
-# OS-BucketsDetails,oci_os_bucket_details.json,jsonGenericMaster,"os bucket get" "OS-Buckets" "name:bucket-name" "jsonSimple"
+# OS-BucketsDetails,oci_os_bucket_details.json,jsonGenericMaster,"os bucket get --fields approximateSize --fields approximateCount" "OS-Buckets" "name:bucket-name" "jsonSimple"
 # OS-Multipart,oci_os_multipart.json,jsonGenericMasterAdd,"os multipart list --all" "OS-Buckets" "name:bucket-name:bucket-name" "jsonSimple"
 # OS-Nameserver,oci_os_ns.json,jsonSimple,"os ns get"
 # OS-NameserverMeta,oci_os_ns-metadata.json,jsonSimple,"os ns get-metadata"
