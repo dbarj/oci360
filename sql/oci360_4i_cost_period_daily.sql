@@ -108,13 +108,14 @@ SELECT 'DEF title = ''Compartment: ' || COMP_NAME || '''' || CHR(10) ||
        'DEF main_table = ''OCI360_REPORTS_COST''' || CHR(10) ||
        'DEF vaxis = ''Cost (&&oci360_usage_currency.)''' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
-       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["product/compartmentId" = ''' || COMP_ID || ''']'');' || CHR(10) ||
+       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''[' || FILTER_CLAUSE || ']'');' || CHR(10) ||
        'DEF tit_01 = ''Total Cost per Day''' || CHR(10) ||
        'DEF tit_02 = ''Linear Regression Trend''' || CHR(10) ||
        'DEF chartype = ''LineChart''' || CHR(10) ||
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
-FROM   ( SELECT   "product/compartmentName" COMP_NAME, "product/compartmentId" COMP_ID
+FROM   ( SELECT   NVL("product/compartmentName",'NULL') COMP_NAME,
+                  '"product/compartmentId"' || NVL2("product/compartmentId", ' = ' || DBMS_ASSERT.ENQUOTE_LITERAL("product/compartmentId"),' IS NULL') FILTER_CLAUSE
          FROM     OCI360_REPORTS_COST t1
          GROUP BY "product/compartmentName", "product/compartmentId"
          HAVING SUM("cost/myCost") > 0
@@ -159,13 +160,14 @@ SELECT 'DEF title = ''Service: ' || SRV_NAME || '''' || CHR(10) ||
        'DEF main_table = ''OCI360_REPORTS_COST''' || CHR(10) ||
        'DEF vaxis = ''Cost (&&oci360_usage_currency.)''' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
-       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["product/service" = ''' || SRV_NAME || ''']'');' || CHR(10) ||
+       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''[' || FILTER_CLAUSE || ']'');' || CHR(10) ||
        'DEF tit_01 = ''Total Cost per Day''' || CHR(10) ||
        'DEF tit_02 = ''Linear Regression Trend''' || CHR(10) ||
        'DEF chartype = ''LineChart''' || CHR(10) ||
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
-FROM   ( SELECT   "product/service" SRV_NAME
+FROM   ( SELECT   NVL("product/service",'NULL') SRV_NAME,
+                  '"product/service"' || NVL2("product/service", ' = ' || DBMS_ASSERT.ENQUOTE_LITERAL("product/service"),' IS NULL') FILTER_CLAUSE
          FROM     OCI360_REPORTS_COST t1
          GROUP BY "product/service"
          HAVING SUM("cost/myCost") > 0
@@ -261,13 +263,14 @@ SELECT 'DEF title = ''Resource: ' || RES_ID || '''' || CHR(10) ||
        'DEF main_table = ''OCI360_REPORTS_COST''' || CHR(10) ||
        'DEF vaxis = ''Cost (&&oci360_usage_currency.)''' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
-       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["product/resourceId" = ''' || RES_ID || ''']'');' || CHR(10) ||
+       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''[' || FILTER_CLAUSE || ']'');' || CHR(10) ||
        'DEF tit_01 = ''Total Cost per Day''' || CHR(10) ||
        'DEF tit_02 = ''Linear Regression Trend''' || CHR(10) ||
        'DEF chartype = ''LineChart''' || CHR(10) ||
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
-FROM   ( SELECT t1."product/resourceId" RES_ID
+FROM   ( SELECT   NVL("product/resourceId",'NULL') RES_ID,
+                  '"product/resourceId"' || NVL2("product/resourceId", ' = ''' || DBMS_ASSERT.ENQUOTE_LITERAL("product/resourceId") || '''',' IS NULL') FILTER_CLAUSE
          FROM   OCI360_REPORTS_COST t1
          GROUP BY t1."product/resourceId"
          HAVING SUM(t1."cost/myCost") > 0

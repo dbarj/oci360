@@ -62,17 +62,24 @@ COL gc_flt_13 NEW_V gc_flt_13 NOPRI
 COL gc_flt_14 NEW_V gc_flt_14 NOPRI
 COL gc_flt_15 NEW_V gc_flt_15 NOPRI
 
+@@&&fc_def_empty_var. oci360_lin_prepare_wh
+
+col oci360_where_skip new_v oci360_where_skip NOPRI
+select nvl2(q'[&&oci360_lin_prepare_wh.]','','--') oci360_where_skip from dual;
+col oci360_where_skip clear
+
 WITH t1 AS (
   SELECT SUM("cost/myCost") COMPUTEDAMOUNT,
          &&oci360_lin_prepare_id. ITEM_ID,
          &&oci360_lin_prepare_ds. ITEM_DESC
   FROM   OCI360_REPORTS_COST
+&&oci360_where_skip.  WHERE  &&oci360_lin_prepare_wh.
   GROUP BY &&oci360_lin_prepare_id.
   HAVING SUM("cost/myCost") > 0
 ), t2 as (
   SELECT /*+ materialize */
          ITEM_ID,
-         ITEM_DESC,
+         NVL(ITEM_DESC,'NULL') ITEM_DESC,
          rank() over (order by t1.COMPUTEDAMOUNT desc, t1.ITEM_ID) ord
   FROM  t1
 )
@@ -150,6 +157,7 @@ WITH t1 AS (
          TO_TIMESTAMP("lineItem/intervalUsageEnd",'&&oci360_usage_tzcolformat.') ENDTIMEUTC,
          &&oci360_lin_prepare_id. ITEM_ID
   FROM   OCI360_REPORTS_COST
+&&oci360_where_skip.  WHERE  &&oci360_lin_prepare_wh.
   GROUP BY TO_TIMESTAMP("lineItem/intervalUsageEnd",'&&oci360_usage_tzcolformat.'), &&oci360_lin_prepare_id.
 ),
 trange as (
@@ -209,4 +217,4 @@ DEF tit_15 = '&&gc_lin_15.'
 UNDEF gc_lin_1 gc_lin_2 gc_lin_3 gc_lin_4 gc_lin_5 gc_lin_6 gc_lin_7 gc_lin_8 gc_lin_9 gc_lin_10 gc_lin_11 gc_lin_12 gc_lin_13 gc_lin_14 gc_lin_15
 UNDEF gc_flt_1 gc_flt_2 gc_flt_3 gc_flt_4 gc_flt_5 gc_flt_6 gc_flt_7 gc_flt_8 gc_flt_9 gc_flt_10 gc_flt_11 gc_flt_12 gc_flt_13 gc_flt_14 gc_flt_15
 
-UNDEF oci360_lin_prepare_id oci360_lin_prepare_ds
+UNDEF oci360_lin_prepare_id oci360_lin_prepare_ds oci360_lin_prepare_wh oci360_where_skip

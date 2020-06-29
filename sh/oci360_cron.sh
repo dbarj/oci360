@@ -2,13 +2,20 @@
 # ----------------------------------------------------------------------------
 # Written by Rodrigo Jorge <http://www.dbarj.com.br/>
 # Last updated on: Apr/2020 by Rodrigo Jorge
+# ----------------------------------------------------------------------------
+# This is a crontab script that will run the full OCI360 stack every X min.
+# For more information how to deploy this, check:
+# https://github.com/dbarj/oci360/wiki/Automate-OCI360-18c-XE
+# https://github.com/dbarj/oci360/wiki/Automate-OCI360-ADB
+# ----------------------------------------------------------------------------
 # v1.9
 # ----------------------------------------------------------------------------
+
 set -x
 . ~/.bash_profile
 set -eo pipefail
 
-## Change following variables if required.
+## Default values. If you want to change them, modify in your .cfg file.
 
 v_retention_period=60 # Number of days to keep past oci360 executions.
 v_billing_period=90   # Number of days to get billing data.
@@ -44,18 +51,17 @@ then
   v_dir_ociout=${v_dir_ociout}/${v_param1_lower}
   v_dir_ocilog=${v_dir_ocilog}/${v_param1_lower}
   v_schema_name=${v_param1_upper}
-  v_config_file=${v_param1_lower}.cfg # This file is optional for billing collector.
+  v_config_file=${v_param1_lower}.cfg
   export TMPDIR=${TMPDIR}/${v_param1_lower}
 else
   v_schema_name="OCI360"
-  v_config_file="oci360.cfg" # This file is optional for billing collector.
+  v_config_file="oci360.cfg"
 fi
 
 [ ! -d "${v_dir_ociout}" ]   && { echo "Folder \"${v_dir_ociout}\" is not created."; exit 1; }
 [ ! -d "${v_dir_ocilog}" ]   && { echo "Folder \"${v_dir_ocilog}\" is not created."; exit 1; }
 [ ! -d ${v_dir_www} ]        && { echo "Folder \"${v_dir_www}\" is not created."; exit 1; }
 [ ! -d ${v_dir_ociexp} ]     && { echo "Folder \"${v_dir_ociexp}\" is not created."; exit 1; }
-[ ! -f ${v_confdir}/${v_config_file} ] && { echo "File \"${v_confdir}/${v_config_file}\" is not created."; exit 1; }
 
 v_script_runtime=$(/bin/date '+%Y%m%d%H%M%S')
 echo "From that point, all the output will be redirected to \"${v_dir_ocilog}/run.${v_script_runtime}.log\"."
@@ -97,6 +103,11 @@ pid_check() {
 
 pid_check $$
 
+echoTime ()
+{
+  echo "$(date '+%Y%m%d_%H%M%S'): $1"
+}
+
 # Create TMPDIR
 [ ! -d ${TMPDIR} ] && mkdir ${TMPDIR}
 
@@ -130,7 +141,7 @@ v_dir_usage="${v_dir_ociexp}/exp_usage"
 # Tenancy Collector
 [ ! -d "${v_dir_exp}" ] && mkdir "${v_dir_exp}"
 cd "${v_dir_exp}"
-echo "Calling oci_json_export.sh."
+echoTime "Calling oci_json_export.sh."
 timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_export.sh ALL_REGIONS > ${v_dir_ocilog}/oci_json_export.log 2>&1 &
 v_pid_exp=$!
 
@@ -142,7 +153,7 @@ then
   [ ! -d "${v_dir_ociexp}/processed" ] && mkdir "${v_dir_ociexp}/processed"
   export HIST_ZIP_FILE="${v_dir_ociexp}/processed/billing_hist.zip"
   [ -d "${HIST_ZIP_FILE}.lock.d" ] && rmdir "${HIST_ZIP_FILE}.lock.d"
-  echo "Calling oci_json_billing.sh."
+  echoTime "Calling oci_json_billing.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_billing.sh ALL $(date -d "-${v_billing_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_json_billing.log 2>&1 &
   v_pid_bill=$!
 fi
@@ -155,7 +166,7 @@ then
   [ ! -d "${v_dir_ociexp}/processed" ] && mkdir "${v_dir_ociexp}/processed"
   export HIST_ZIP_FILE="${v_dir_ociexp}/processed/audit_hist.zip"
   [ -d "${HIST_ZIP_FILE}.lock.d" ] && rmdir "${HIST_ZIP_FILE}.lock.d"
-  echo "Calling oci_json_audit.sh."
+  echoTime "Calling oci_json_audit.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_audit.sh ALL_REGIONS $(date -d "-${v_audit_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_json_audit.log 2>&1 &
   v_pid_audit=$!
 fi
@@ -168,7 +179,7 @@ then
   [ ! -d "${v_dir_ociexp}/processed" ] && mkdir "${v_dir_ociexp}/processed"
   export HIST_ZIP_FILE="${v_dir_ociexp}/processed/monit_hist.zip"
   [ -d "${HIST_ZIP_FILE}.lock.d" ] && rmdir "${HIST_ZIP_FILE}.lock.d"
-  echo "Calling oci_json_monitoring.sh."
+  echoTime "Calling oci_json_monitoring.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_monitoring.sh ALL_REGIONS $(date -d "-${v_monit_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_json_monitoring.log 2>&1 &
   v_pid_monit=$!
 fi
@@ -180,7 +191,7 @@ then
   cd "${v_dir_usage}"
   [ ! -d "${v_dir_ociexp}/processed" ] && mkdir "${v_dir_ociexp}/processed"
   export HIST_ZIP_FILE="${v_dir_ociexp}/processed/usage_hist.zip"
-  echo "Calling oci_csv_usage.sh."
+  echoTime "Calling oci_csv_usage.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_csv_usage.sh -r $(date -d "-${v_usage_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_csv_usage.log 2>&1 &
   v_pid_usage=$!
 fi
@@ -192,17 +203,17 @@ fi
 cd ${v_dir_ociexp}
 
 # Tenancy Merger
-echo "Waiting for oci_json_export.sh to finish."
-echo "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_export.log"
+echoTime "Waiting for oci_json_export.sh to finish."
+echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_export.log"
 wait $v_pid_exp && v_ret=$? || v_ret=$?
 if [ $v_ret -ne 0 ]
 then
-  echo "oci_json_export.sh failed. Return: ${v_ret}. Code will stop here."
+  echoTime "oci_json_export.sh failed. Return: ${v_ret}. Code will stop here."
   cp -av "${v_dir_ocilog}/oci_json_export.log" "${v_dir_ocilog}/oci_json_export.${v_script_runtime}.log" || true
-  echo "Check logfile for more info: ${v_dir_ocilog}/oci_json_export.${v_script_runtime}.log"
+  echoTime "Check logfile for more info: ${v_dir_ocilog}/oci_json_export.${v_script_runtime}.log"
   exit 1
 fi
-echo "Merging oci_json_export.sh outputs."
+echoTime "Merging oci_json_export.sh outputs."
 mv "${v_dir_exp}"/oci_json_export_*.zip ${v_dir_ociexp}
 rmdir "${v_dir_exp}" || true
 v_exp_file=$(ls -t1 oci_json_export_*.zip | head -n 1 | sed 's/_[^_]*$//')
@@ -211,10 +222,10 @@ ${v_dir_oci360}/sh/oci_json_merger.sh "${v_exp_file}_*.zip" "${v_exp_file}.zip"
 # Billing Merger
 if [ -f ${v_confdir}/${v_config_file} -a ${v_billing_period} -gt 0 ]
 then
-  echo "Waiting for oci_json_billing.sh to finish."
-  echo "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_billing.log"
+  echoTime "Waiting for oci_json_billing.sh to finish."
+  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_billing.log"
   wait $v_pid_bill && v_ret=$? || v_ret=$?
-  echo "Merging oci_json_billing.sh outputs."
+  echoTime "Merging oci_json_billing.sh outputs."
   mv "${v_dir_bill}"/oci_json_billing_*.zip ${v_dir_ociexp} || true
   rmdir "${v_dir_bill}" || true
   if [ $v_ret -eq 0 ]
@@ -235,10 +246,10 @@ fi
 # Audit Merger
 if [ ${v_audit_period} -gt 0 ]
 then
-  echo "Waiting for oci_json_audit.sh to finish."
-  echo "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_audit.log"
+  echoTime "Waiting for oci_json_audit.sh to finish."
+  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_audit.log"
   wait $v_pid_audit && v_ret=$? || v_ret=$?
-  echo "Merging oci_json_audit.sh outputs."
+  echoTime "Merging oci_json_audit.sh outputs."
   mv "${v_dir_audit}"/oci_json_audit_*.zip ${v_dir_ociexp} || true
   rmdir "${v_dir_audit}" || true
   if [ $v_ret -eq 0 ]
@@ -263,10 +274,10 @@ fi
 # Monitoring Merger
 if [ ${v_monit_period} -gt 0 ]
 then
-  echo "Waiting for oci_json_monitoring.sh to finish."
-  echo "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_monitoring.log"
+  echoTime "Waiting for oci_json_monitoring.sh to finish."
+  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_monitoring.log"
   wait $v_pid_monit && v_ret=$? || v_ret=$?
-  echo "Merging oci_json_monitoring.sh outputs."
+  echoTime "Merging oci_json_monitoring.sh outputs."
   mv "${v_dir_monit}"/oci_json_monitoring_*.zip ${v_dir_ociexp} || true
   rmdir "${v_dir_monit}" || true
   if [ $v_ret -eq 0 ]
@@ -291,8 +302,8 @@ fi
 # Usage Report
 if [ ${v_usage_period} -gt 0 ]
 then
-  echo "Waiting for oci_csv_usage.sh to finish."
-  echo "For execution status, run: tail -f ${v_dir_ocilog}/oci_csv_usage.log"
+  echoTime "Waiting for oci_csv_usage.sh to finish."
+  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_csv_usage.log"
   wait $v_pid_usage && v_ret=$? || v_ret=$?
   mv "${v_dir_usage}"/oci_csv_usage_*.zip ${v_dir_ociexp} || true
   rmdir "${v_dir_usage}" || true
@@ -329,7 +340,7 @@ fi
 
 cd ${v_dir_oci360}
 
-echo "Calling oci360.sql. SQLPlus will be executed with the following options:"
+echoTime "Calling oci360.sql. SQLPlus will be executed with the following options:"
 
 cat << EOF
 --
@@ -341,7 +352,7 @@ ${v_oci360_opts}
 --
 EOF
 
-echo "For execution status, run: tail -f ${v_dir_ocilog}/oci360.out"
+echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci360.out"
 sqlplus ${v_conn} > ${v_dir_ocilog}/oci360.out << EOF
 DEF moat369_pre_sw_output_fdr = '${v_dir_ociout}'
 DEF oci360_pre_obj_schema = '${v_schema_name}'
@@ -354,7 +365,7 @@ EOF
 ### Move result to Apache
 ###
 
-echo "Moving results to Apache."
+echoTime "Moving results to Apache."
 
 v_oci_file=$(ls -1t ${v_dir_ociout}/oci360_*.zip | head -n 1)
 v_dir_name=$(basename $v_oci_file .zip)
@@ -373,7 +384,7 @@ mv ${v_dir_path}/00001_*.html ${v_dir_path}/index.html
 cd ${v_dir_path}
 if [ -f ${v_confdir}/oci360_obfuscate.sh -a "${v_obfuscate}" == "yes" ]
 then
-  echo "Running obfuscation."
+  echoTime "Running obfuscation."
   . ${v_confdir}/oci360_obfuscate.sh || true
 fi
 
@@ -412,13 +423,13 @@ mv ${v_oci_file} ${v_dir_ociout}/processed/
 
 #if [ $(date '+%u') -eq 1 ]
 #then
-  echo "Cleaning hist files."
+  echoTime "Cleaning hist files."
   bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${v_dir_ociexp}/processed/billing_hist.zip" history_list.txt ${v_billing_period} || true
   bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${v_dir_ociexp}/processed/monit_hist.zip"   history_list.txt ${v_audit_period}   || true
   bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${v_dir_ociexp}/processed/audit_hist.zip"   history_list.txt ${v_monit_period}   || true
   bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${v_dir_ociexp}/processed/usage_hist.zip"   history_list.txt ${v_usage_period}   || true
 #fi
 
-echo "Script finished."
+echoTime "Script finished."
 exit 0
 ####
