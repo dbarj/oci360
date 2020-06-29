@@ -257,11 +257,18 @@ SELECT 'DEF oci360_lin_prepare_id = ''"cost/productSku"''' || CHR(10) ||
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
 FROM   ( SELECT   NVL("product/resourceId",'NULL') RES_ID,
+                  DECODE(SUBSTR("product/resourceId",1,INSTR("product/resourceId",'.',1,3)-1),
+                         'ocid1.volumebackup.oc1',99,
+                         'ocid1.bootvolumebackup.oc1',98,
+                         'ocid1.volume.oc1',97,
+                         'ocid1.bootvolume.oc1',96,
+                         1) RES_PRIORITY,
                   '"product/resourceId"' || NVL2("product/resourceId", ' = ''' || DBMS_ASSERT.ENQUOTE_LITERAL("product/resourceId") || '''',' IS NULL') FILTER_CLAUSE
          FROM   OCI360_REPORTS_COST t1
          GROUP BY t1."product/resourceId"
          HAVING SUM(t1."cost/myCost") > 0
-         ORDER BY RES_ID);
+         ORDER BY RES_PRIORITY ASC, SUM(t1."cost/myCost") DESC)
+WHERE  ROWNUM <= 100 OR RES_PRIORITY=1;
 SPO OFF
 @@&&fc_spool_end.
 @@&&oci360_loop_section.

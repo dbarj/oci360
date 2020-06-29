@@ -195,7 +195,7 @@ fi
 
 # Compute parallel
 v_cpu_count=$(python -c 'import multiprocessing as mp; print(mp.cpu_count())' 2>&-) || true
-[ ! -z "${v_cpu_count##*[!0-9]*}" ] && v_oci_parallel_target=$((${v_cpu_count}*2)) || v_oci_parallel_target=${v_oci_parallel}
+[ ! -z "${v_cpu_count##*[!0-9]*}" ] && v_oci_parallel_target=${v_cpu_count} || v_oci_parallel_target=${v_oci_parallel}
 [ ! -z "${OCI_JSON_PARALLEL##*[!0-9]*}" ] && v_oci_parallel_target=${OCI_JSON_PARALLEL}
 v_oci_parallel=${v_oci_parallel_target}
 

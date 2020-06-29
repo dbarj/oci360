@@ -122,13 +122,14 @@ SELECT 'DEF title = ''Compartment: ' || COMP_NAME || '''' || CHR(10) ||
        'DEF main_table = ''OCI360_REPORTS_COST''' || CHR(10) ||
        'DEF vAxis = ''Cost (&&oci360_usage_currency.)''' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
-       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["product/compartmentId" = ''' || COMP_ID || ''']'');' || CHR(10) ||
+       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''[' || FILTER_CLAUSE || ']'');' || CHR(10) ||
        'DEF bar_minperc = 0' || CHR(10) ||
        'DEF foot = ''Bars in purple are estimations using linear regression from previous values.''' || CHR(10) ||
        'DEF hAxis = ''Billing Cycle - End Date''' || CHR(10) ||
        'DEF skip_bch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
-FROM   ( SELECT   "product/compartmentName" COMP_NAME, "product/compartmentId" COMP_ID
+FROM   ( SELECT   NVL("product/compartmentName",'NULL') COMP_NAME,
+                  '"product/compartmentId"' || NVL2("product/compartmentId", ' = ' || DBMS_ASSERT.ENQUOTE_LITERAL("product/compartmentId"),' IS NULL') FILTER_CLAUSE
          FROM     OCI360_REPORTS_COST t1
          GROUP BY "product/compartmentName", "product/compartmentId"
          HAVING SUM("cost/myCost") > 0
@@ -157,13 +158,14 @@ SELECT 'DEF title = ''Service: ' || SRV_NAME || '''' || CHR(10) ||
        'DEF main_table = ''OCI360_REPORTS_COST''' || CHR(10) ||
        'DEF vAxis = ''Cost (&&oci360_usage_currency.)''' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
-       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["product/service" = ''' || SRV_NAME || ''']'');' || CHR(10) ||
+       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''[' || FILTER_CLAUSE || ']'');' || CHR(10) ||
        'DEF bar_minperc = 0' || CHR(10) ||
        'DEF foot = ''Bars in purple are estimations using linear regression from previous values.''' || CHR(10) ||
        'DEF hAxis = ''Billing Cycle - End Date''' || CHR(10) ||
        'DEF skip_bch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
-FROM   ( SELECT   "product/service" SRV_NAME
+FROM   ( SELECT   NVL("product/service",'NULL') SRV_NAME,
+                  '"product/service"' || NVL2("product/service", ' = ' || DBMS_ASSERT.ENQUOTE_LITERAL("product/service"),' IS NULL') FILTER_CLAUSE
          FROM     OCI360_REPORTS_COST t1
          GROUP BY "product/service"
          HAVING SUM("cost/myCost") > 0
@@ -227,17 +229,25 @@ SELECT 'DEF title = ''Resource: ' || RES_ID || '''' || CHR(10) ||
        'DEF main_table = ''OCI360_REPORTS_COST''' || CHR(10) ||
        'DEF vAxis = ''Cost (&&oci360_usage_currency.)''' || CHR(10) ||
        'EXEC :sql_text := REPLACE(:sql_text_backup, ''@main_table@'', q''[OCI360_REPORTS_COST]'');' || CHR(10) ||
-       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''["product/resourceId" = ''' || RES_ID || ''']'');' || CHR(10) ||
+       'EXEC :sql_text := REPLACE(:sql_text, ''@filter_predicate@'', q''[' || FILTER_CLAUSE || ']'');' || CHR(10) ||
        'DEF bar_minperc = 0' || CHR(10) ||
        'DEF foot = ''Bars in purple are estimations using linear regression from previous values.''' || CHR(10) ||
        'DEF hAxis = ''Billing Cycle - End Date''' || CHR(10) ||
        'DEF skip_bch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
-FROM   ( SELECT t1."product/resourceId" RES_ID
+FROM   ( SELECT   NVL("product/resourceId",'NULL') RES_ID,
+                  DECODE(SUBSTR("product/resourceId",1,INSTR("product/resourceId",'.',1,3)-1),
+                         'ocid1.volumebackup.oc1',99,
+                         'ocid1.bootvolumebackup.oc1',98,
+                         'ocid1.volume.oc1',97,
+                         'ocid1.bootvolume.oc1',96,
+                         1) RES_PRIORITY,
+                  '"product/resourceId"' || NVL2("product/resourceId", ' = ''' || DBMS_ASSERT.ENQUOTE_LITERAL("product/resourceId") || '''',' IS NULL') FILTER_CLAUSE
          FROM   OCI360_REPORTS_COST t1
          GROUP BY t1."product/resourceId"
          HAVING SUM(t1."cost/myCost") > 0
-         ORDER BY RES_ID);
+         ORDER BY RES_PRIORITY ASC, SUM(t1."cost/myCost") DESC)
+WHERE  ROWNUM <= 100 OR RES_PRIORITY=1;
 SPO OFF
 @@&&fc_spool_end.
 @@&&oci360_loop_section.
