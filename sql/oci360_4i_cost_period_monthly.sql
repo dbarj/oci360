@@ -242,7 +242,7 @@ FROM   ( SELECT   NVL("product/resourceId",'NULL') RES_ID,
                          'ocid1.volume.oc1',97,
                          'ocid1.bootvolume.oc1',96,
                          1) RES_PRIORITY,
-                  '"product/resourceId"' || NVL2("product/resourceId", ' = ''' || DBMS_ASSERT.ENQUOTE_LITERAL("product/resourceId") || '''',' IS NULL') FILTER_CLAUSE
+                  '"product/resourceId"' || NVL2("product/resourceId", ' = ' || DBMS_ASSERT.ENQUOTE_LITERAL("product/resourceId"),' IS NULL') FILTER_CLAUSE
          FROM   OCI360_REPORTS_COST t1
          GROUP BY t1."product/resourceId"
          HAVING SUM(t1."cost/myCost") > 0

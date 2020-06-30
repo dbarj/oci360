@@ -23,7 +23,7 @@ allhours as ( -- Will generate all hours between Min and Max Start Time
   WHERE  trange.min + (rownum - 1)/24 <= trange.max - 1/24  -- Skip last entry as may be incomplete.
   CONNECT BY LEVEL <= (trange.max - trange.min)*24 + 1
 )
-select seq              snap_id,
+select seq                 snap_id,
        TO_CHAR(vdate,     'YYYY-MM-DD HH24:MI') begin_time,
        TO_CHAR(vdate+1/24,'YYYY-MM-DD HH24:MI') end_time,
        TO_CHAR(NVL(CEIL(SUM(COMPUTEDAMOUNT)*100)/100,0),'99999990D00') line1,
@@ -68,22 +68,6 @@ DEF skip_lch = ''
 
 -----------------------------------------
 
-DEF oci360_lin_prepare_id = '"product/compartmentId"'
-DEF oci360_lin_prepare_ds = 'MAX("product/compartmentName")'
-
-@@&&oci360_line_cost_prepare.
-
-DEF title = 'Top Compartments - Total Costs'
-DEF title_suffix = '&&oci360_usage_between.'
-DEF main_table = 'OCI360_REPORTS_COST'
-DEF vaxis = 'Cost (&&oci360_usage_currency.)'
-DEF chartype = 'AreaChart'
-DEF stacked = 'isStacked: true,';
-DEF skip_lch = ''
-@@&&9a_pre_one.
-
------------------------------------------
-
 @@&&oci360_list_subsec_start.
 
 @@&&fc_def_output_file. oci360_loop_section 'oci360_usage_section.sql'
@@ -117,22 +101,6 @@ UNDEF oci360_loop_section
 
 DEF title = 'All Compartments - Total Costs'
 @@&&oci360_list_subsec_stop.
-
------------------------------------------
-
-DEF oci360_lin_prepare_id = '"product/service"'
-DEF oci360_lin_prepare_ds = '"product/service"'
-
-@@&&oci360_line_cost_prepare.
-
-DEF title = 'Top Services - Total Costs'
-DEF title_suffix = '&&oci360_usage_between.'
-DEF main_table = 'OCI360_REPORTS_COST'
-DEF vaxis = 'Cost (&&oci360_usage_currency.)'
-DEF chartype = 'AreaChart'
-DEF stacked = 'isStacked: true,';
-DEF skip_lch = ''
-@@&&9a_pre_one.
 
 -----------------------------------------
 
@@ -172,22 +140,6 @@ DEF title = 'All Services - Total Costs'
 
 -----------------------------------------
 
-DEF oci360_lin_prepare_id = '"cost/productSku"'
-DEF oci360_lin_prepare_ds = 'MAX("product/Description")'
-
-@@&&oci360_line_cost_prepare.
-
-DEF title = 'Top Products - Total Costs'
-DEF title_suffix = '&&oci360_usage_between.'
-DEF main_table = 'OCI360_REPORTS_COST'
-DEF vaxis = 'Cost (&&oci360_usage_currency.)'
-DEF chartype = 'AreaChart'
-DEF stacked = 'isStacked: true,';
-DEF skip_lch = ''
-@@&&9a_pre_one.
-
------------------------------------------
-
 @@&&oci360_list_subsec_start.
 
 @@&&fc_def_output_file. oci360_loop_section 'oci360_usage_section.sql'
@@ -219,22 +171,6 @@ UNDEF oci360_loop_section
 
 DEF title = 'All Products - Total Costs'
 @@&&oci360_list_subsec_stop.
-
------------------------------------------
-
-DEF oci360_lin_prepare_id = '"product/resourceId"'
-DEF oci360_lin_prepare_ds = '"product/resourceId"'
-
-@@&&oci360_line_cost_prepare.
-
-DEF title = 'Top Resources - Total Costs'
-DEF title_suffix = '&&oci360_usage_between.'
-DEF main_table = 'OCI360_REPORTS_COST'
-DEF vaxis = 'Cost (&&oci360_usage_currency.)'
-DEF chartype = 'AreaChart'
-DEF stacked = 'isStacked: true,';
-DEF skip_lch = ''
-@@&&9a_pre_one.
 
 -----------------------------------------
 
@@ -282,38 +218,6 @@ DEF title = 'All Resources - Total Costs'
 
 -----------------------------------------
 
-DEF oci360_lin_prepare_id = '"product/region"'
-DEF oci360_lin_prepare_ds = '"product/region"'
-
-@@&&oci360_line_cost_prepare.
-
-DEF title = 'Top Regions - Total Costs'
-DEF title_suffix = '&&oci360_usage_between.'
-DEF main_table = 'OCI360_REPORTS_COST'
-DEF vaxis = 'Cost (&&oci360_usage_currency.)'
-DEF chartype = 'AreaChart'
-DEF stacked = 'isStacked: true,';
-DEF skip_lch = ''
-@@&&9a_pre_one.
-
------------------------------------------
-
-DEF oci360_lin_prepare_id = '"product/availabilityDomain"'
-DEF oci360_lin_prepare_ds = '"product/availabilityDomain"'
-
-@@&&oci360_line_cost_prepare.
-
-DEF title = 'Top ADs - Total Costs'
-DEF title_suffix = '&&oci360_usage_between.'
-DEF main_table = 'OCI360_REPORTS_COST'
-DEF vaxis = 'Cost (&&oci360_usage_currency.)'
-DEF chartype = 'AreaChart'
-DEF stacked = 'isStacked: true,';
-DEF skip_lch = ''
-@@&&9a_pre_one.
-
------------------------------------------
-
 @@&&oci360_list_subsec_start.
 
 @@&&fc_def_output_file. oci360_loop_section 'oci360_usage_section.sql'
@@ -346,5 +250,101 @@ UNDEF oci360_loop_section
 
 DEF title = 'Tags - Total Costs'
 @@&&oci360_list_subsec_stop.
+
+-----------------------------------------
+
+DEF oci360_lin_prepare_id = '"product/compartmentId"'
+DEF oci360_lin_prepare_ds = 'MAX("product/compartmentName")'
+
+@@&&oci360_line_cost_prepare.
+
+DEF title = 'Top Compartments - Total Costs'
+DEF title_suffix = '&&oci360_usage_between.'
+DEF main_table = 'OCI360_REPORTS_COST'
+DEF vaxis = 'Cost (&&oci360_usage_currency.)'
+DEF chartype = 'AreaChart'
+DEF stacked = 'isStacked: true,';
+DEF skip_lch = ''
+@@&&9a_pre_one.
+
+-----------------------------------------
+
+DEF oci360_lin_prepare_id = '"product/service"'
+DEF oci360_lin_prepare_ds = '"product/service"'
+
+@@&&oci360_line_cost_prepare.
+
+DEF title = 'Top Services - Total Costs'
+DEF title_suffix = '&&oci360_usage_between.'
+DEF main_table = 'OCI360_REPORTS_COST'
+DEF vaxis = 'Cost (&&oci360_usage_currency.)'
+DEF chartype = 'AreaChart'
+DEF stacked = 'isStacked: true,';
+DEF skip_lch = ''
+@@&&9a_pre_one.
+
+-----------------------------------------
+
+DEF oci360_lin_prepare_id = '"cost/productSku"'
+DEF oci360_lin_prepare_ds = 'MAX("product/Description")'
+
+@@&&oci360_line_cost_prepare.
+
+DEF title = 'Top Products - Total Costs'
+DEF title_suffix = '&&oci360_usage_between.'
+DEF main_table = 'OCI360_REPORTS_COST'
+DEF vaxis = 'Cost (&&oci360_usage_currency.)'
+DEF chartype = 'AreaChart'
+DEF stacked = 'isStacked: true,';
+DEF skip_lch = ''
+@@&&9a_pre_one.
+
+-----------------------------------------
+
+DEF oci360_lin_prepare_id = '"product/resourceId"'
+DEF oci360_lin_prepare_ds = '"product/resourceId"'
+
+@@&&oci360_line_cost_prepare.
+
+DEF title = 'Top Resources - Total Costs'
+DEF title_suffix = '&&oci360_usage_between.'
+DEF main_table = 'OCI360_REPORTS_COST'
+DEF vaxis = 'Cost (&&oci360_usage_currency.)'
+DEF chartype = 'AreaChart'
+DEF stacked = 'isStacked: true,';
+DEF skip_lch = ''
+@@&&9a_pre_one.
+
+-----------------------------------------
+
+DEF oci360_lin_prepare_id = '"product/region"'
+DEF oci360_lin_prepare_ds = '"product/region"'
+
+@@&&oci360_line_cost_prepare.
+
+DEF title = 'Top Regions - Total Costs'
+DEF title_suffix = '&&oci360_usage_between.'
+DEF main_table = 'OCI360_REPORTS_COST'
+DEF vaxis = 'Cost (&&oci360_usage_currency.)'
+DEF chartype = 'AreaChart'
+DEF stacked = 'isStacked: true,';
+DEF skip_lch = ''
+@@&&9a_pre_one.
+
+-----------------------------------------
+
+DEF oci360_lin_prepare_id = '"product/availabilityDomain"'
+DEF oci360_lin_prepare_ds = '"product/availabilityDomain"'
+
+@@&&oci360_line_cost_prepare.
+
+DEF title = 'Top ADs - Total Costs'
+DEF title_suffix = '&&oci360_usage_between.'
+DEF main_table = 'OCI360_REPORTS_COST'
+DEF vaxis = 'Cost (&&oci360_usage_currency.)'
+DEF chartype = 'AreaChart'
+DEF stacked = 'isStacked: true,';
+DEF skip_lch = ''
+@@&&9a_pre_one.
 
 -----------------------------------------
