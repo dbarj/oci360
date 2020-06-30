@@ -25,7 +25,7 @@ COL oci360_skip_if_loaded NEW_V oci360_skip_if_loaded
 SELECT DECODE(COUNT(*),0,'','&&fc_skip_script.') oci360_skip_if_loaded -- Skip if find any rows
 FROM   "&&oci360_obj_jsontabs."
 WHERE  table_name = '&&oci360_in_loader_p1.'
-AND    (in_zip + in_csv = 0 or is_processed = 1);
+AND    (in_zip + in_col_csv = 0 or is_processed = 1);
 
 -- Don't load if oci360_pre_loader_filename is null.
 SELECT DECODE('&&oci360_pre_loader_filename.',NULL,'&&fc_skip_script.','&&oci360_skip_if_loaded.') oci360_skip_if_loaded FROM DUAL;
@@ -53,6 +53,17 @@ COMMIT;
 
 @@&&oci360_skip_if_loaded.&&moat369_sw_folder./oci360_fc_prevexec_save.sql "&&oci360_in_loader_p1."
 @@&&oci360_skip_if_loaded.&&moat369_sw_folder./&&oci360_pre_loader_function. "&&oci360_in_loader_p1." "&&oci360_pre_loader_filename."
+
+UPDATE "&&oci360_obj_jsontabs."
+SET    is_created = 1
+WHERE  '&&oci360_skip_if_loaded.' IS NULL
+AND    table_name = '&&oci360_in_loader_p1.'
+AND    exists (SELECT 1
+              FROM   ALL_TABLES
+              where  owner = '&&oci360_user_curschema.'
+              and    table_name = '&&oci360_in_loader_p1.');
+
+COMMIT;
 
 UNDEF oci360_skip_if_loaded
 UNDEF oci360_in_loader_p1

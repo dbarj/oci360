@@ -1,5 +1,22 @@
 -----------------------------------------
 
+DEF title = 'Control - Failed Tables'
+DEF main_table = '&&oci360_obj_jsontabs.'
+
+BEGIN
+  :sql_text := q'{
+SELECT t1.*
+FROM   "&&oci360_obj_jsontabs." t1
+WHERE  is_processed=1 and is_created=0
+}';
+END;
+/
+
+DEF foot = 'If you see any lines here, check file "&&oci360_log_json_nopath." (last section of the tool) for ORA- errors.<br>';
+@@&&9a_pre_one.
+
+-----------------------------------------
+
 DEF title = 'Control - Json Tables'
 DEF main_table = '&&oci360_obj_jsontabs.'
 
@@ -77,6 +94,21 @@ END;
 
 -----------------------------------------
 
+DEF title = 'OCI360 Used Space'
+DEF main_table = 'user_segments'
+
+BEGIN
+  :sql_text := q'{
+SELECT   sum(bytes)/power(1024,2) "MBs"
+FROM     user_segments
+WHERE    SEGMENT_NAME like 'OCI360\_%' ESCAPE '\'
+}';
+END;
+/
+@@&&9a_pre_one.
+
+-----------------------------------------
+
 @@&&fc_clean_file_name. "moat369_log" "moat369_log_nopath" "PATH"
 DEF title = 'File: &&moat369_log_nopath.'
 UNDEF moat369_log_nopath
@@ -113,11 +145,19 @@ DEF skip_text_file = ''
 
 -----------------------------------------
 
-@@&&fc_clean_file_name. "oci360_log" "oci360_log_nopath" "PATH"
-DEF title = 'File: &&oci360_log_nopath.'
-UNDEF oci360_log_nopath
+DEF title = 'File: &&oci360_log_json_nopath.'
 
-DEF one_spool_text_file = '&&oci360_log.'
+DEF one_spool_text_file = '&&oci360_log_json.'
+DEF one_spool_text_file_rename = 'N'
+DEF skip_html = '--'
+DEF skip_text_file = ''
+@@&&9a_pre_one.
+
+-----------------------------------------
+
+DEF title = 'File: &&oci360_log_csv_nopath.'
+
+DEF one_spool_text_file = '&&oci360_log_csv.'
 DEF one_spool_text_file_rename = 'N'
 DEF skip_html = '--'
 DEF skip_text_file = ''

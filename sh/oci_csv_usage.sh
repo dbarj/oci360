@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: May/2020 by Rodrigo Jorge
-# Version 1.03
+# Version 1.04
 #************************************************************************
 set -eo pipefail
 

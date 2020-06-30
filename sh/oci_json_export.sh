@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 2.01
+# Version 2.03
 #************************************************************************
 set -eo pipefail
 
@@ -53,6 +53,9 @@ v_tmpfldr="$(mktemp -d -u -p ${TMPDIR}/.oci 2>&- || mktemp -d -u)"
 # If DEBUG variable is undefined, change to 1.
 [[ "${DEBUG}" == "" ]] && DEBUG=1
 [ ! -z "${DEBUG##*[!0-9]*}" ] || DEBUG=1
+
+# If OCI_JSON_EXCLUDE is unset, by default will exclude the following items.
+[ -z "${OCI_JSON_EXCLUDE}" ] && OCI_JSON_EXCLUDE="OS-Objects"
 
 # DEBUG - Will create a oci_json_export.log file with DEBUG info.
 #  1 = Executed commands.
@@ -223,6 +226,8 @@ fi
 
 echoDebug "Temporary folder is: ${v_tmpfldr}"
 echoDebug "OCI Parallel is: ${v_oci_parallel}"
+echoDebug "OCI JSON Include is: ${OCI_JSON_INCLUDE}" 2
+echoDebug "OCI JSON Exclude is: ${OCI_JSON_EXCLUDE}" 2
 
 if ! $(which timeout >&- 2>&-)
 then
@@ -275,16 +280,6 @@ function jsonCompartments ()
                                 }]' <<< "$v_fout")
     echo "${v_fout}"
   fi
-}
-
-function jsonShapes ()
-{
-  set -e # Exit if error in any call.
-  local v_fout
-  v_fout=$(jsonAllCompartAddTag "compute shape list --all")
-  ## Remove Duplicates
-  [ -z "$v_fout" ] || v_fout=$(${v_jq} '.data | unique | {data : .}' <<< "${v_fout}")
-  [ -z "$v_fout" ] || echo "${v_fout}"
 }
 
 function jsonBkpPolAssign ()
@@ -596,8 +591,8 @@ function jsonGenericMaster ()
       v_i=0
       v_params=""
       $v_tag_mode && v_newits=""
+      v_procs_counter=$((v_procs_counter+1))
     fi
-    v_procs_counter=$((v_procs_counter+1))
   done
 
   # If parallel mode is on, concatenate generated files as executions finishes
@@ -735,6 +730,8 @@ function oci_parallel_release ()
 
 # BEGIN DYNFUNC
 # Budget-Data,oci_budget_data.json,jsonAllCompart,"budgets budget list --all"
+# BDS-Instances,oci_bds_instance.json,jsonAllCompart,"bds instance list"
+# BDS-InstDetails,oci_bds_instance_details.json,jsonGenericMaster,"bds instance get" "BDS-Instances" "id:bds-instance-id" "jsonSimple"
 # BV-BVBackups,oci_bv_boot-volume-backup.json,jsonAllCompart,"bv boot-volume-backup list --all"
 # BV-BVKey,oci_bv_boot-volume-kms-key.json,jsonBVolsKeys
 # BV-BVolumes,oci_bv_boot-volume.json,jsonAllAD,"bv boot-volume list --all"
@@ -757,7 +754,7 @@ function oci_parallel_release ()
 # Comp-PicListing,oci_compute_pic_listing.json,jsonSimple,"compute pic listing list --all"
 # Comp-PicSubs,oci_compute_pic_subscription.json,jsonAllCompart,"compute pic subscription list --all"
 # Comp-PicVersions,oci_compute_pic_version.json,jsonGenericMaster,"compute pic version list --all" "Comp-PicListing" "listing-id:listing-id" "jsonSimple"
-# Comp-Shapes,oci_compute_shape.json,jsonShapes
+# Comp-Shapes,oci_compute_shape.json,jsonRootCompart,"compute shape list --all"
 # Comp-VnicAttachs,oci_compute_vnic-attachment.json,jsonAllCompart,"compute vnic-attachment list --all"
 # Comp-VolAttachs,oci_compute_volume-attachment.json,jsonAllCompart,"compute volume-attachment list --all"
 # CompMgt-InstConfList,oci_compute-management_instance-configuration_list.json,jsonAllCompart,"compute-management instance-configuration list --all"
@@ -779,7 +776,7 @@ function oci_parallel_release ()
 # DB-PatchHist-ByDB,oci_db_patch-history_by-database.json,jsonGenericMaster,"db patch-history list by-database" "DB-Database" "id:database-id" "jsonSimple"
 # DB-PatchHist-ByDS,oci_db_patch-history_by-db-system.json,jsonGenericMaster,"db patch-history list by-db-system" "DB-System" "id:db-system-id" "jsonSimple"
 # DB-System,oci_db_system.json,jsonAllCompart,"db system list --all"
-# DB-SystemShape,oci_db_system-shape.json,jsonGenericMasterAdd,"db system-shape list --all" "IAM-ADs" "name:availability-domain:availability-domain" "jsonAllCompartAddTag"
+# DB-SystemShape,oci_db_system-shape.json,jsonRootCompart,"db system-shape list --all"
 # DB-Version,oci_db_version.json,jsonAllCompartAddTag,"db version list --all"
 # DB-ExaInfra,oci_db_exadata-infrastructure.json,jsonAllCompart,"db exadata-infrastructure list --all"
 # DNS-Zones,oci_dns_zone.json,jsonAllCompart,"dns zone list --all"
@@ -827,7 +824,7 @@ function oci_parallel_release ()
 # LB-PathRoutes,oci_lb_path-route-set.json,jsonGenericMasterAdd,"lb path-route-set list" "LB-LoadBalancers" "id:load-balancer-id:load-balancer-id" "jsonSimple"
 # LB-Policies,oci_lb_policy.json,jsonAllCompartAddTag,"lb policy list --all"
 # LB-Protocols,oci_lb_protocol.json,jsonAllCompartAddTag,"lb protocol list --all"
-# LB-Shapes,oci_lb_shape.json,jsonAllCompartAddTag,"lb shape list --all"
+# LB-Shapes,oci_lb_shape.json,jsonRootCompart,"lb shape list --all"
 # LB-WorkReqs,oci_lb_work-request.json,jsonGenericMasterAdd,"lb work-request list" "LB-LoadBalancers" "id:load-balancer-id:load-balancer-id" "jsonSimple"
 # Limits-Services,oci_limits_service.json,jsonRootCompart,"limits service list --all"
 # Limits-Quotas,oci_limits_quota.json,jsonAllCompartAddTag,"limits quota list --all"
@@ -837,7 +834,7 @@ function oci_parallel_release ()
 # Net-CrossConn,oci_network_cross-connect.json,jsonAllCompart,"network cross-connect list --all"
 # Net-CrossConnGrp,oci_network_cross-connect-group.json,jsonAllCompart,"network cross-connect-group list --all"
 # Net-CrossConnLoc,oci_network_cross-connect-location.json,jsonAllCompart,"network cross-connect-location list --all"
-# Net-CrossConnPort,oci_network_cross-connect-port-speed-shape.json,jsonAllCompart,"network cross-connect-port-speed-shape list --all"
+# Net-CrossConnPort,oci_network_cross-connect-port-speed-shape.json,jsonRootCompart,"network cross-connect-port-speed-shape list --all"
 # Net-CrossConnStatus,oci_network_cross-connect-status.json,jsonGenericMaster,"network cross-connect-status get" "Net-CrossConn" "id:cross-connect-id" "jsonSimple"
 # Net-DhcpOptions,oci_network_dhcp-options.json,jsonAllVCN,"network dhcp-options list --all"
 # Net-DrgAttachs,oci_network_drg-attachment.json,jsonAllCompart,"network drg-attachment list --all"
@@ -863,7 +860,7 @@ function oci_parallel_release ()
 # Net-VirtCircPubPref,oci_network_virtual-circuit-public-prefix.json,jsonGenericMaster,"network virtual-circuit-public-prefix list" "Net-VirtCirc" "id:virtual-circuit-id" "jsonSimple"
 # Net-Vnics,oci_network_vnic.json,jsonGenericMaster,"network vnic get" "Net-PrivateIPs" "vnic-id:vnic-id" "jsonSimple"
 # OS-Buckets,oci_os_bucket.json,jsonAllCompart,"os bucket list --all"
-# OS-BucketsDetails,oci_os_bucket_details.json,jsonGenericMaster,"os bucket get" "OS-Buckets" "name:bucket-name" "jsonSimple"
+# OS-BucketsDetails,oci_os_bucket_details.json,jsonGenericMaster,"os bucket get --fields approximateSize --fields approximateCount" "OS-Buckets" "name:bucket-name" "jsonSimple"
 # OS-Multipart,oci_os_multipart.json,jsonGenericMasterAdd,"os multipart list --all" "OS-Buckets" "name:bucket-name:bucket-name" "jsonSimple"
 # OS-Nameserver,oci_os_ns.json,jsonSimple,"os ns get"
 # OS-NameserverMeta,oci_os_ns-metadata.json,jsonSimple,"os ns get-metadata"

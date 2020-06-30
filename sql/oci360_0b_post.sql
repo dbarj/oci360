@@ -16,8 +16,11 @@ SPO OFF
 UNDEF oci360_step_file
 --
 
-HOS zip -mj &&moat369_zip_filename. &&oci360_log. >> &&moat369_log3.
-UNDEF oci360_log
+HOS zip -mj &&moat369_zip_filename. &&oci360_log_json. >> &&moat369_log3.
+UNDEF oci360_log_json
+
+HOS zip -mj &&moat369_zip_filename. &&oci360_log_csv.  >> &&moat369_log3.
+UNDEF oci360_log_csv
 
 --
 @@&&fc_zip_driver_files. &&oci360_json_files. 

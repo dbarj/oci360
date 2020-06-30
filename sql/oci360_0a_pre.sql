@@ -12,8 +12,14 @@ DEF fc_json_metadata  = '&&moat369_sw_folder./oci360_fc_json_metadata.sql'
 DEF oci360_tzcolformat = 'YYYY-MM-DD"T"HH24:MI:SS.FF6TZH:TZM'
 DEF moat369_sw_desc_linesize = 150
 
-@@&&fc_def_output_file. oci360_log 'internal.log'
-@@&&fc_seq_output_file. oci360_log
+@@&&fc_def_output_file. oci360_log_json 'internal_json.log'
+@@&&fc_seq_output_file. oci360_log_json
+@@&&fc_clean_file_name. "oci360_log_json" "oci360_log_json_nopath" "PATH"
+
+@@&&fc_def_output_file. oci360_log_csv 'internal_csv.log'
+@@&&fc_seq_output_file. oci360_log_csv
+@@&&fc_clean_file_name. "oci360_log_csv" "oci360_log_csv_nopath" "PATH"
+
 
 -- Generate JSON Outputs
 SET TERM ON
@@ -354,6 +360,14 @@ FROM   ALL_TABLES
 WHERE  owner = SYS_CONTEXT('userenv','current_schema')
 and    table_name = 'OCI360_SERV_ENTITLEMENTS';
 COL skip_section_billing clear
+--
+COL skip_section_bigdata NEW_V skip_section_bigdata
+SELECT DECODE(count(*),0,'&&fc_skip_script.','') skip_section_bigdata
+FROM   ALL_TAB_COLUMNS
+WHERE  owner = SYS_CONTEXT('userenv','current_schema')
+and    table_name = 'OCI360_BDS_INSTANCES'
+AND    column_name = 'ID';
+COL skip_section_bigdata clear
 --
 
 ----------------------------------------

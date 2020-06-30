@@ -8,5 +8,6 @@
 @@&&fc_call_secion_sub. '&&moat369_sec_id..7'  '&&moat369_sw_name._&&moat369_sec_id._7_json_kms.sql'      'KMS'
 @@&&fc_call_secion_sub. '&&moat369_sec_id..8'  '&&moat369_sw_name._&&moat369_sec_id._8_json_fs.sql'       'File System'
 @@&&fc_call_secion_sub. '&&moat369_sec_id..9'  '&&moat369_sw_name._&&moat369_sec_id._9_json_lb.sql'       'Load Balancer'
-@@&&fc_call_secion_sub. '&&moat369_sec_id..10' '&&moat369_sw_name._&&moat369_sec_id._99_json_others.sql'  'Others'
+@@&&skip_billing_sql.&&fc_call_secion_sub. '&&moat369_sec_id..10' '&&moat369_sw_name._&&moat369_sec_id._10_json_billing.sql' 'Cloud Billing'
+@@&&fc_call_secion_sub. '&&moat369_sec_id..11' '&&moat369_sw_name._&&moat369_sec_id._99_json_others.sql'  'Others'
 -----------------------------------------

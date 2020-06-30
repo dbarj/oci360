@@ -21,7 +21,7 @@ PRO Creating table &&oci360_in_target_table.
 -- Start SPOOL to log file
 @@&&fc_spool_start.
 SET ECHO OFF FEED ON VER ON HEAD ON SERVEROUT ON
-SPO &&oci360_log. APP;
+SPO &&oci360_log_json. APP;
 
 PRO ----------------------------------------------------------------------------
 
@@ -161,6 +161,7 @@ BEGIN EXECUTE IMMEDIATE 'DROP INDEX "&&oci360_temp_index."'; EXCEPTION WHEN OTHE
 CREATE SEARCH INDEX "&&oci360_temp_index."
 ON "&&oci360_temp_table." ("&&oci360_temp_clob.") FOR JSON
 PARAMETERS ('SEARCH_ON NONE DATAGUIDE ON');
+-- If you get a bug in this creation with 00001: unique constraint (CTXSYS.DRC$IDX_ , best thing to do is reacreate the whole schema.
 
 EXEC DBMS_STATS.GATHER_INDEX_STATS(USER, '&&oci360_temp_index.', estimate_percent => 99);
 

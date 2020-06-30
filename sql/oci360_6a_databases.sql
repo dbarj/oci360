@@ -131,6 +131,7 @@ BEGIN
   :sql_text := q'{
 SELECT t1.*
 FROM   OCI360_DB_SYSTEM_SHAPES t1
+ORDER BY 1
 }';
 END;
 /

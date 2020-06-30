@@ -30,6 +30,7 @@ t_ids AS (
 SELECT /*+ materialize */ id,
        to_char(rank() over (order by id asc)) owl_id
 FROM  (select id from OCI360_INSTANCES union
+       select id from OCI360_DB_NODES union
        select distinct id from OCI360_SUBNETS union
        select distinct 'z_link_' || id from OCI360_SUBNETS union
        select id from OCI360_VCNS union
@@ -39,6 +40,7 @@ FROM  (select id from OCI360_INSTANCES union
        select id from OCI360_PUBLICIPS union
        select 'z_link_' || id from OCI360_PUBLICIPS)),
 t_insts_subs AS (
+-- Compute Instances
 SELECT t4.id,
        t4.ip_address display_name,
        'owl:ObjectProperty' owl_type,
@@ -49,7 +51,21 @@ WHERE t1.id = t2.instance_id (+)
 AND   t2.lifecycle_state (+) = 'ATTACHED'
 AND   t2.vnic_id = t3.id (+)
 AND   t3.lifecycle_state (+) = 'AVAILABLE'
-AND   t2.vnic_id = t4.vnic_id (+)),
+AND   t2.vnic_id = t4.vnic_id (+)
+UNION ALL
+-- DB Nodes
+SELECT t4.id,
+       t4.ip_address display_name,
+       'owl:ObjectProperty' owl_type,
+       t2.subnet_id,
+       t1.id
+FROM  OCI360_DB_NODES t1, OCI360_VNICS t2, OCI360_SUBNETS t3, OCI360_PRIVATEIPS t4
+WHERE t1.vnic_id = t2.id (+)
+AND   t1.lifecycle_state != 'FAILED'
+AND   t2.lifecycle_state (+) = 'AVAILABLE'
+AND   t2.subnet_id = t3.id (+)
+AND   t3.lifecycle_state (+) = 'AVAILABLE'
+AND   t2.id = t4.vnic_id (+)),
 t_subs_vcns AS (
 SELECT distinct
        'z_link_' || t1.id id,
@@ -131,6 +147,12 @@ SELECT t1.id,
        t1.display_name,
        'rdfs:Class' owl_type
 FROM   OCI360_INSTANCES t1
+WHERE  t1.lifecycle_state != 'TERMINATED'
+UNION
+SELECT t1.id,
+       t1.hostname,
+       'rdfs:Class' owl_type
+FROM   OCI360_DB_NODES t1
 WHERE  t1.lifecycle_state != 'TERMINATED'),
 t_subs AS (
 SELECT distinct

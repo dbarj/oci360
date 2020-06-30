@@ -1,3 +1,4 @@
+oci_bds_instance_details.json,$.data.nodes."attached-block-volumes"."volume-size-in-gbs",number,NODES$ATTACHED_BLOCK_VOLUMES$VOLUME_SIZE_IN_GBS
 oci_bv_backup.json,$.data."compartment-id",string,COMPARTMENT_ID
 oci_bv_backup.json,$.data."display-name",string,DISPLAY_NAME
 oci_bv_backup.json,$.data."expiration-time",string,EXPIRATION_TIME
@@ -61,6 +62,15 @@ oci_compute_volume-attachment.json,$.data.id,string,ID
 oci_compute_volume-attachment.json,$.data.ipv4,string,IPV4
 oci_compute_volume-attachment.json,$.data.iqn,string,IQN
 oci_compute_volume-attachment.json,$.data.port,number,PORT
+oci_db_node.json,$.data."lifecycle-state",string,LIFECYCLE_STATE
+oci_db_node.json,$.data."software-storage-size-in-gb",number,SOFTWARE_STORAGE_SIZE_IN_GB
+oci_db_node.json,$.data."vnic-id",string,VNIC_ID
+oci_db_node.json,$.data.hostname,string,HOSTNAME
+oci_db_node.json,$.data.id,string,ID
+oci_db_system.json,$.data."data-storage-size-in-gbs",number,DATA_STORAGE_SIZE_IN_GBS
+oci_db_system.json,$.data."lifecycle-state",string,LIFECYCLE_STATE
+oci_db_system.json,$.data."reco-storage-size-in-gb",number,RECO_STORAGE_SIZE_IN_GB
+oci_db_system.json,$.data.id,string,ID
 oci_network_drg-attachment.json,$.data."drg-id",string,DRG_ID
 oci_network_drg-attachment.json,$.data."lifecycle-state",string,LIFECYCLE_STATE
 oci_network_drg-attachment.json,$.data."vcn-id",string,VCN_ID
