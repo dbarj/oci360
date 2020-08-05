@@ -5,6 +5,12 @@
   - New BigData section.
   - New Costs and Billing sections.
   - More misc info for debugging.
+  - Failed tables section.
+  - Database storage on bar chart.
+  - User in groups improvements.
+  - Improving Shapes Collection.
+  - Separate Json and CSV loader logs.
+  - Rename oci history clean script.
 
 * 20.05 (2020-06-03)
   - Now OCI360 can also run in ADB.

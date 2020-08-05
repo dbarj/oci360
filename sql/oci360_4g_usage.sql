@@ -418,26 +418,37 @@ DEF main_table = 'OCI360_REPORTS_USAGE'
 
 BEGIN
   :sql_text := q'{
-SELECT DISTINCT
-       "product/service"
-      ,"product/resource"
-      ,"product/compartmentId"
-      ,"product/compartmentName"
-      ,"product/region"
-      ,"product/availabilityDomain"
-      ,"product/resourceId"
-      ,TO_CHAR(TO_NUMBER("usage/consumedQuantity"))
-      ,TO_CHAR(TO_NUMBER("usage/billedQuantity"))
-      ,TO_CHAR(TO_NUMBER("usage/consumedQuantity") - TO_NUMBER("usage/billedQuantity")) "Difference"
-      ,"usage/consumedQuantityUnits"
-      ,"usage/consumedQuantityMeasure"
-FROM     OCI360_REPORTS_USAGE
-WHERE    substr("product/resourceId",1,instr("product/resourceId",'.',1,2)-1) = 'ocid1.instance'
-         AND ("product/resource", "product/resourceId") NOT IN
-         ( SELECT "product/resource", "product/resourceId" FROM OCI360_REPORTS_USAGE_TEMP )
-ORDER BY "product/service"
-        ,"product/resource"
-        ,"product/resourceId"
+SELECT t1."product/service"
+      ,t1."product/resource"
+      ,t1."product/compartmentId"
+      ,t1."product/compartmentName"
+      ,t1."product/region"
+      ,t1."product/availabilityDomain"
+      ,t1."product/resourceId"
+      ,TO_CHAR(TO_NUMBER(t1."usage/consumedQuantity"))
+      ,TO_CHAR(TO_NUMBER(t1."usage/billedQuantity"))
+      ,TO_CHAR(TO_NUMBER(t1."usage/consumedQuantity") - TO_NUMBER(t1."usage/billedQuantity")) "Difference"
+      ,t1."usage/consumedQuantityUnits"
+      ,t1."usage/consumedQuantityMeasure"
+      ,MIN("lineItem/intervalUsageStart") MIN_START_DATE
+      ,MAX("lineItem/intervalUsageEnd") MAX_END_DATE
+      ,COUNT(*) TOTAL_ROWS
+FROM  OCI360_REPORTS_USAGE t1, OCI360_REPORTS_USAGE_TEMP t2
+WHERE substr(t1."product/resourceId",1,instr(t1."product/resourceId",'.',1,2)-1) = 'ocid1.instance'
+AND   t1."product/resourceId" = t2."product/resourceId" (+)
+AND   t1."product/resource" = t2."product/resource" (+)
+AND   t2."product/resource" is null AND t2."product/resourceId" is null
+GROUP BY t1."product/service"
+        ,t1."product/resource"
+        ,t1."product/compartmentId"
+        ,t1."product/compartmentName"
+        ,t1."product/region"
+        ,t1."product/availabilityDomain"
+        ,t1."product/resourceId"
+        ,t1."usage/consumedQuantity"
+        ,t1."usage/billedQuantity"
+        ,t1."usage/consumedQuantityUnits"
+        ,t1."usage/consumedQuantityMeasure"
 }';
 END;
 /
@@ -463,14 +474,15 @@ SELECT 'DEF title = ''Compute: ' || NAME || ' Res: ' || RES || '''' || CHR(10) |
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
 FROM   ( 
-SELECT   DISTINCT "product/resource"   RES,
-                  "product/resourceId" NAME,
-                  "usage/consumedQuantityUnits" || ' ' || "usage/consumedQuantityMeasure" UNITS
-FROM     OCI360_REPORTS_USAGE
-WHERE    substr("product/resourceId",1,instr("product/resourceId",'.',1,2)-1) = 'ocid1.instance'
-         AND ("product/resource", "product/resourceId") IN
-         ( SELECT "product/resource", "product/resourceId" FROM OCI360_REPORTS_USAGE_TEMP )
-ORDER BY NAME, RES
+SELECT t1."product/resource"   RES,
+       t1."product/resourceId" NAME,
+       t1."usage/consumedQuantityUnits" || ' ' || t1."usage/consumedQuantityMeasure" UNITS
+FROM   OCI360_REPORTS_USAGE t1, OCI360_REPORTS_USAGE_TEMP t2
+WHERE  substr(t1."product/resourceId",1,instr(t1."product/resourceId",'.',1,2)-1) = 'ocid1.instance'
+AND    t1."product/resourceId" = t2."product/resourceId"
+AND    nvl(t1."product/resource",'x') = nvl(t2."product/resource",'x')
+GROUP  BY t1."product/resource", t1."product/resourceId", t1."usage/consumedQuantityUnits", t1."usage/consumedQuantityMeasure"
+ORDER  BY SUM("usage/consumedQuantity") DESC
 );
 SPO OFF
 @@&&fc_spool_end.
@@ -491,26 +503,20 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE OCI360_REPORTS_USAGE_TEMP PURGE'; EXCEPTION 
 CREATE TABLE OCI360_REPORTS_USAGE_TEMP
 AS
 WITH t1 AS (
-  SELECT /*+ materialize */ "product/resource",
+  SELECT /*+ materialize */
+         "product/resource",
          "product/resourceId",
          SUM("usage/consumedQuantity") CONSUMED_AMOUNT,
          SUM("usage/billedQuantity")   BILLED_AMOUNT,
          TO_TIMESTAMP("lineItem/intervalUsageEnd",'&&oci360_usage_tzcolformat.') ENDTIMEUTC
   FROM   OCI360_REPORTS_USAGE
-  WHERE  substr("product/resourceId",1,instr("product/resourceId",'.',1,2)-1)
-                 NOT IN ('ocid1.instance',
-                         'ocid1.volumebackup',
-                         'ocid1.bootvolumebackup',
-                         'ocid1.volume',
-                         'ocid1.bootvolume',
-                         'ocid1.vnic')
-          OR     nvl(substr("product/resourceId",1,instr("product/resourceId",'.',1,1)-1),'x') != 'ocid1'
   GROUP BY TO_TIMESTAMP("lineItem/intervalUsageEnd",'&&oci360_usage_tzcolformat.'),
          "product/resource",
          "product/resourceId"
 ),
 trange as ( 
-  select /*+ materialize */ trunc(min(TO_TIMESTAMP("lineItem/intervalUsageEnd",'&&oci360_usage_tzcolformat.')),'HH24') min,
+  select /*+ materialize */
+         trunc(min(TO_TIMESTAMP("lineItem/intervalUsageEnd",'&&oci360_usage_tzcolformat.')),'HH24') min,
          trunc(max(TO_TIMESTAMP("lineItem/intervalUsageEnd",'&&oci360_usage_tzcolformat.')),'HH24') max
   FROM   OCI360_REPORTS_USAGE
 ),
@@ -542,8 +548,7 @@ DEF main_table = 'OCI360_REPORTS_USAGE'
 
 BEGIN
   :sql_text := q'{
-SELECT DISTINCT
-       t1."product/service"
+SELECT t1."product/service"
       ,t1."product/resource"
       ,t1."product/compartmentId"
       ,t1."product/compartmentName"
@@ -555,20 +560,25 @@ SELECT DISTINCT
       ,TO_CHAR(TO_NUMBER(t1."usage/consumedQuantity") - TO_NUMBER(t1."usage/billedQuantity")) "Difference"
       ,t1."usage/consumedQuantityUnits"
       ,t1."usage/consumedQuantityMeasure"
+      ,MIN("lineItem/intervalUsageStart") MIN_START_DATE
+      ,MAX("lineItem/intervalUsageEnd") MAX_END_DATE
+      ,COUNT(*) TOTAL_ROWS
 FROM  OCI360_REPORTS_USAGE t1, OCI360_REPORTS_USAGE_TEMP t2
-WHERE  (
-       substr(t1."product/resourceId",1,instr(t1."product/resourceId",'.',1,2)-1)
-       NOT IN ('ocid1.instance',
-               'ocid1.volumebackup',
-               'ocid1.bootvolumebackup',
-               'ocid1.volume',
-               'ocid1.bootvolume',
-               'ocid1.vnic')
-OR     nvl(substr(t1."product/resourceId",1,instr(t1."product/resourceId",'.',1,1)-1),'x') != 'ocid1'
-      )
+WHERE  nvl(substr(t1."product/resourceId",1,instr(t1."product/resourceId",'.',1,2)-1),'x') != 'ocid1.instance'
 AND   t1."product/resourceId" = t2."product/resourceId" (+)
 AND   t1."product/resource" = t2."product/resource" (+)
 AND   t2."product/resource" is null AND t2."product/resourceId" is null
+GROUP BY t1."product/service"
+        ,t1."product/resource"
+        ,t1."product/compartmentId"
+        ,t1."product/compartmentName"
+        ,t1."product/region"
+        ,t1."product/availabilityDomain"
+        ,t1."product/resourceId"
+        ,t1."usage/consumedQuantity"
+        ,t1."usage/billedQuantity"
+        ,t1."usage/consumedQuantityUnits"
+        ,t1."usage/consumedQuantityMeasure"
 }';
 END;
 /
@@ -593,26 +603,23 @@ SELECT 'DEF title = ''Object: ' || NAME || DECODE(RES,NULL,NULL,' Res: ' || RES)
        'DEF chartype = ''LineChart''' || CHR(10) ||
        'DEF skip_lch = ''''' || CHR(10) ||
        '@@&&9a_pre_one.'
-FROM   ( 
-SELECT DISTINCT t1."product/resource"   RES,
-       t1."product/resourceId" NAME,
-       t1."usage/consumedQuantityUnits" || ' ' || t1."usage/consumedQuantityMeasure" UNITS
-FROM  OCI360_REPORTS_USAGE t1, OCI360_REPORTS_USAGE_TEMP t2
-WHERE  (
-       substr(t1."product/resourceId",1,instr(t1."product/resourceId",'.',1,2)-1)
-       NOT IN ('ocid1.instance',
-               'ocid1.volumebackup',
-               'ocid1.bootvolumebackup',
-               'ocid1.volume',
-               'ocid1.bootvolume',
-               'ocid1.vnic')
-OR     nvl(substr(t1."product/resourceId",1,instr(t1."product/resourceId",'.',1,1)-1),'x') != 'ocid1'
-      )
-AND   t1."product/resourceId" = t2."product/resourceId"
-AND   nvl(t1."product/resource",'x') = nvl(t2."product/resource",'x')
-ORDER BY t1."product/resource"
-        ,t1."product/resourceId"
-);
+FROM   ( SELECT t1."product/resource"   RES,
+                t1."product/resourceId" NAME,
+                t1."usage/consumedQuantityUnits" || ' ' || t1."usage/consumedQuantityMeasure" UNITS,
+                DECODE(SUBSTR(t1."product/resourceId",1,INSTR(t1."product/resourceId",'.',1,3)-1),
+                   'ocid1.volumebackup.oc1',99,
+                   'ocid1.bootvolumebackup.oc1',98,
+                   'ocid1.volume.oc1',97,
+                   'ocid1.bootvolume.oc1',96,
+                   1) RES_PRIORITY
+         FROM  OCI360_REPORTS_USAGE t1, OCI360_REPORTS_USAGE_TEMP t2
+         WHERE nvl(substr(t1."product/resourceId",1,instr(t1."product/resourceId",'.',1,2)-1),'x') != 'ocid1.instance'
+         AND   t1."product/resourceId" = t2."product/resourceId"
+         AND   nvl(t1."product/resource",'x') = nvl(t2."product/resource",'x')
+         GROUP BY t1."product/resource", t1."product/resourceId", t1."usage/consumedQuantityUnits", t1."usage/consumedQuantityMeasure"
+         ORDER BY RES_PRIORITY ASC, SUM("usage/consumedQuantity") DESC
+       )
+WHERE  ROWNUM <= 100 OR RES_PRIORITY=1;
 SPO OFF
 @@&&fc_spool_end.
 @@&&oci360_loop_section.

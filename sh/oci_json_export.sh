@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 2.03
+# Version 2.07
 #************************************************************************
 set -eo pipefail
 
@@ -60,8 +60,12 @@ v_tmpfldr="$(mktemp -d -u -p ${TMPDIR}/.oci 2>&- || mktemp -d -u)"
 # DEBUG - Will create a oci_json_export.log file with DEBUG info.
 #  1 = Executed commands.
 #  2 = + Commands Queue + Stop
-#  9 = + Parallel Wait
-# 10 = + Folder Lock/Unlock
+#  3 = + Subcalls Info
+#  4 = + Parallel Lock/Release
+#  ...
+#  8 = + Job Wait Loop
+#  9 = + Parallel Wait Loop
+# 10 = + Lock/Unlock Loop
 
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM
 
@@ -576,7 +580,7 @@ function jsonGenericMaster ()
         while :
         do
           v_procs_sub=$(jobs -p | wc -l)
-          [ $v_procs_sub -lt $v_oci_parallel ] && break || echoDebug "Current child jobs: $v_procs_sub. Waiting slot." 3
+          [ $v_procs_sub -lt $v_oci_parallel ] && break || echoDebug "Current child jobs: $v_procs_sub. Waiting slot." 8
           sleep 2
         done
         echoDebug "Subcalls Left: $((${v_procs_tot}-${v_procs_counter})) - ${v_arg4} \"${v_arg1}\"" 3
@@ -675,9 +679,11 @@ function oci_parallel_wait ()
 
   local wait_time=3
   local v_parallel_count
+  local v_limit=100
+  local v_counter=1
 
-  echoDebug "OCI Parallel - Getting slot.." 9
-  while true
+  echoDebug "OCI Parallel - Getting slot.." 4
+  while :
   do
     create_lock_or_wait parallel_file "${v_tmpfldr_root}"
     v_parallel_count=$(cat "${v_parallel_file}" 2>&-) || v_parallel_count=0
@@ -685,15 +691,24 @@ function oci_parallel_wait ()
     then
       v_parallel_count=$((v_parallel_count+1))
       echo "${v_parallel_count}" > "${v_parallel_file}"
-      echoDebug "OCI Parallel - Counter Increased. Current: $v_parallel_count/$v_oci_parallel" 9
+      echoDebug "OCI Parallel - Counter Increased. Current: $v_parallel_count/$v_oci_parallel" 4
       remove_lock parallel_file "${v_tmpfldr_root}"
       break
     fi
+    echoDebug "OCI Parallel - Waiting ${v_counter}/${v_limit}. Current: $v_parallel_count/$v_oci_parallel" 9
     remove_lock parallel_file "${v_tmpfldr_root}"
+    v_counter=$((v_counter+1))
+    if [ ${v_counter} -gt ${v_limit} ]
+    then
+      create_lock_or_wait parallel_file "${v_tmpfldr_root}"
+      echoDebug "OCI Parallel - Wait limit reached: $((v_limit*wait_time)) secs. Force setting v_parallel_count to 0" 4
+      echo 0 > "${v_parallel_file}"
+      remove_lock parallel_file "${v_tmpfldr_root}"
+      break
+    fi
     sleep $wait_time
-    echoDebug "OCI Parallel - Waiting. Current: $v_parallel_count/$v_oci_parallel" 9
   done
-  echoDebug "OCI Parallel - Check Passed." 9
+  echoDebug "OCI Parallel - Check Passed." 4
   return 0
 }
 
@@ -706,12 +721,18 @@ function oci_parallel_release ()
 
   local v_parallel_count
 
-  echoDebug "OCI Parallel - Releasing slot.." 9
+  echoDebug "OCI Parallel - Releasing slot.." 4
   create_lock_or_wait parallel_file "${v_tmpfldr_root}"
-  v_parallel_count=$(cat "${v_parallel_file}") || v_parallel_count=0
+  v_parallel_count=$(cat "${v_parallel_file}")
   v_parallel_count=$((v_parallel_count-1))
-  echo "${v_parallel_count}" > "${v_parallel_file}"
-  echoDebug "OCI Parallel - Counter Descreased. Current: $v_parallel_count/$v_oci_parallel" 9
+  if [ $v_parallel_count -lt 0 ]
+  then
+    echoDebug "OCI Parallel - Negative value detected. Force setting v_parallel_count to 0" 4
+    echo 0 > "${v_parallel_file}"
+  else
+    echo $v_parallel_count > "${v_parallel_file}"
+  fi
+  echoDebug "OCI Parallel - Counter Descreased. Current: $v_parallel_count/$v_oci_parallel" 4
   remove_lock parallel_file "${v_tmpfldr_root}"
   return 0
 }
@@ -966,45 +987,87 @@ function runAndZip ()
   fi
 }
 
-function create_lock_or_wait ()
-{
-  [ -z "$1" -o -z "${v_tmpfldr}" ] && return 0
-  local v_lock_name="$1"
-  local v_dest_folder="$2"
-  local wait_time=1
-  local v_ret
-  [ -z "${v_dest_folder}" ] && v_dest_folder="${v_tmpfldr}"
-  [ -z "${v_dest_folder}" ] && v_msg="${v_lock_name}" || v_msg="${v_lock_name} (ROOT)"
-  echoDebug "${v_msg} - Locking.." 10
-  while true
-  do
-    mkdir "${v_dest_folder}/.${v_lock_name}.lock.d" 2>&- && v_ret=$? || v_ret=$?
-    [ $v_ret -eq 0 ] && break
-    sleep $wait_time
-    echoDebug "${v_msg} - Waiting.." 10
-  done
-  echoDebug "${v_msg} - Locked" 10
-  return 0
-}
+if ! $(which flock >&- 2>&-)
+then
 
-function remove_lock ()
-{
-  [ -z "$1" -o -z "${v_tmpfldr}" ] && return 0
-  local v_lock_name="$1"
-  local v_dest_folder="$2"
-  [ -z "${v_dest_folder}" ] && v_dest_folder="${v_tmpfldr}"
-  [ -z "${v_dest_folder}" ] && v_msg="${v_lock_name}" || v_msg="${v_lock_name} (ROOT)"
-  echoDebug "${v_msg} - Unlocking.." 10
-  rmdir "${v_dest_folder}/.${v_lock_name}.lock.d"
-  echoDebug "${v_msg} - Unlocked" 10
-  return 0
-}
+  function create_lock_or_wait ()
+  {
+    [ -z "$1" -o -z "${v_tmpfldr}" ] && return 0
+    local v_lock_name="$1"
+    local v_dest_folder="$2"
+    local wait_time=1
+    local v_ret
+    [ -z "${v_dest_folder}" ] && v_dest_folder="${v_tmpfldr}"
+    [ -z "${v_dest_folder}" ] && v_msg="${v_lock_name}" || v_msg="${v_lock_name} (ROOT)"
+    echoDebug "${v_msg} - Locking.." 10
+    while :
+    do
+      mkdir "${v_dest_folder}/.${v_lock_name}.lock.d" 2>&- && v_ret=$? || v_ret=$?
+      [ $v_ret -eq 0 ] && break
+      sleep $wait_time
+      echoDebug "${v_msg} - Waiting.." 10
+    done
+    echoDebug "${v_msg} - Locked" 10
+    return 0
+  }
+  
+  function remove_lock ()
+  {
+    [ -z "$1" -o -z "${v_tmpfldr}" ] && return 0
+    local v_lock_name="$1"
+    local v_dest_folder="$2"
+    [ -z "${v_dest_folder}" ] && v_dest_folder="${v_tmpfldr}"
+    [ -z "${v_dest_folder}" ] && v_msg="${v_lock_name}" || v_msg="${v_lock_name} (ROOT)"
+    echoDebug "${v_msg} - Unlocking.." 10
+    rmdir "${v_dest_folder}/.${v_lock_name}.lock.d"
+    echoDebug "${v_msg} - Unlocked" 10
+    return 0
+  }
+
+  echoDebug "Parallel semaphore method: mkdir" 3
+
+else
+
+  function create_lock_or_wait ()
+  {
+    [ -z "$1" -o -z "${v_tmpfldr}" ] && return 0
+    local v_lock_name="$1"
+    local v_dest_folder="$2"
+    local wait_time=1
+    local v_ret
+    [ -z "${v_dest_folder}" ] && v_dest_folder="${v_tmpfldr}"
+    [ -z "${v_dest_folder}" ] && v_msg="${v_lock_name}" || v_msg="${v_lock_name} (ROOT)"
+    echoDebug "${v_msg} - Locking.." 10
+    exec 7>"${v_dest_folder}/.${v_lock_name}.lock.d"
+    flock -x 7
+    echoDebug "${v_msg} - Locked" 10
+    return 0
+  }
+  
+  function remove_lock ()
+  {
+    [ -z "$1" -o -z "${v_tmpfldr}" ] && return 0
+    local v_lock_name="$1"
+    local v_dest_folder="$2"
+    [ -z "${v_dest_folder}" ] && v_dest_folder="${v_tmpfldr}"
+    [ -z "${v_dest_folder}" ] && v_msg="${v_lock_name}" || v_msg="${v_lock_name} (ROOT)"
+    echoDebug "${v_msg} - Unlocking.." 10
+    exec 7>&-
+    echoDebug "${v_msg} - Unlocked" 10
+    return 0
+  }
+
+  echoDebug "Parallel semaphore method: flock" 3
+
+fi
+
 
 function cleanTmpFiles ()
 {
+  # TODO: PRINT FILES IN DEBUG BEFORE REMOVING.
   [ -n "${v_tmpfldr}" ] && rm -f "${v_tmpfldr}"/.*.json 2>&- || true
-  [ -n "${v_tmpfldr}" ] && rm -f "${v_tmpfldr}"/*.json.out 2>&- || true
-  [ -n "${v_tmpfldr}" ] && rm -f "${v_tmpfldr}"/*.json.err 2>&- || true
+  [ -n "${v_tmpfldr}" ] && rm -f "${v_tmpfldr}"/*.out 2>&- || true
+  [ -n "${v_tmpfldr}" ] && rm -f "${v_tmpfldr}"/*.err 2>&- || true
   [ -f "${v_parallel_file}" ] && rm -f "${v_parallel_file}" 2>&- || true
   return 0
 }

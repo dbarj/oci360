@@ -161,6 +161,16 @@ DEF one_spool_text_file = '&&oci360_log_csv.'
 DEF one_spool_text_file_rename = 'N'
 DEF skip_html = '--'
 DEF skip_text_file = ''
-@@&&9a_pre_one.
+
+@@&&fc_def_output_file. oci360_step_file 'oci360_check_file.sql'
+DEF oci360_skip_file = ''
+HOS if [ ! -f "&&oci360_log_csv." ]; then echo "DEF oci360_skip_file = '&&fc_skip_script.'" > "&&oci360_step_file."; fi;
+@@&&oci360_step_file.
+@@&&fc_zip_driver_files. &&oci360_step_file.
+UNDEF oci360_step_file
+
+@@&&oci360_skip_file.&&9a_pre_one.
+
+UNDEF oci360_skip_file
 
 -----------------------------------------
