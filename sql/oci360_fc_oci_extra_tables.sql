@@ -1,8 +1,10 @@
--- Last update on 2019-12-29
+-- Last update on 2020-09-23
 
 INSERT ALL
   INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('IAD', 3,  39.0150271,  -77.4607984, 'us-ashburn-1'  , 'US East (Ashburn)')
   INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('PHX', 3,  33.4546318, -111.9796236, 'us-phoenix-1'  , 'US West (Phoenix)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('LFI', 1,  39.0150271,  -77.4607984, 'us-langley-1'  , 'US Gov East (Ashburn)')
+  INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('LUF', 1,  33.4546318, -111.9796236, 'us-luke-1'     , 'US Gov West (Phoenix)')
   INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('LHR', 3,  51.5245503,   -0.6371384, 'uk-london-1'   , 'UK South (London)')
   INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('FRA', 3,  50.0988793,    8.6337247, 'eu-frankfurt-1', 'Germany Central (Frankfurt)')
   INTO "&&oci360_obj_location." (NAME, TOTAL_ADS, LATITUDE, LONGITUDE, ID, DESCRIPTION) VALUES ('GRU', 1, -23.6821604,  -46.8754842, 'sa-saopaulo-1' , 'Brazil East (Sao Paulo)')
