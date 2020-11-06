@@ -13,6 +13,7 @@
 ######################################################
 
 set -eo pipefail
+set -x
 
 # Check if server is OL 6, 7, ..
 major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
@@ -53,6 +54,13 @@ systemctl start docker
 rm -rf docker-images/
 git clone https://github.com/oracle/docker-images.git
 cd docker-images/OracleDatabase/SingleInstance/dockerfiles
+
+if [ $major_version -eq 8 ]
+then
+  firewall-cmd --zone=public --add-masquerade --permanent
+  firewall-cmd --reload
+fi
+
 ./buildDockerImage.sh -v 18.4.0 -x
 
 docker images
@@ -97,6 +105,7 @@ oracle/database:18.4.0-xe
 docker logs -f ${v_oci360_con_name} &
 v_pid=$!
 
+set +x
 while :
 do
   v_out=$(docker logs ${v_oci360_con_name})
@@ -109,6 +118,7 @@ do
   echo 'Waiting Database creation.'
   sleep 30
 done
+set -x
 
 kill ${v_pid}
 
@@ -188,6 +198,8 @@ firewall-cmd --permanent --add-service=https || true
 # Call OCI360 #
 ###############
 
+set +x
+
 echo "
 ########################################
 
@@ -199,11 +211,11 @@ To run OCI360, first setup the tenancy credentials on ${v_master_directory}/.oci
 
 Then, connect as oci360 user and run:
 
-[oci360]$ docker exec -it --user oci360 oci360 bash /u01/oci360_tool/scripts/oci360_run.sh
+[oci360]$ docker exec -it --user oci360 ${v_oci360_con_name} bash /u01/oci360_tool/scripts/oci360_run.sh
 
 Optionally, you can add a crontab job for this collection:
 
-00 */6 * * * docker exec -it --user oci360 oci360 bash /u01/oci360_tool/scripts/oci360_run.sh
+00 */6 * * * docker exec -it --user oci360 ${v_oci360_con_name} bash /u01/oci360_tool/scripts/oci360_run.sh
 
 To access the output, you can either connect on:
 
