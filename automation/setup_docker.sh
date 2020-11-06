@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 # To execute the latest version of this script, execute the line below instead:
-# bash -x -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/master/automation/setup_docker.sh)"
+# bash -x -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/setup_docker.sh)"
 # v1.0
 
 set -eo pipefail
@@ -9,6 +9,9 @@ set -eo pipefail
 v_master_directory="/u01"
 v_db_dir="${v_master_directory}/oci360_database"
 v_apache_dir="${v_master_directory}/oci360_apache"
+
+v_oci360_con_name="oci360"
+v_apache_con_name="oci360-apache"
 
 yum -y install yum-utils
 yum -y install docker-engine
@@ -52,10 +55,10 @@ wget https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/setup_oci3
 
 cd -
 
-docker stop oci360 || true
-docker rm oci360 || true
+docker stop ${v_oci360_con_name} || true
+docker rm ${v_oci360_con_name} || true
 
-docker run --name oci360 \
+docker run --name ${v_oci360_con_name} \
 -d \
 -p 1521:1521 \
 -e ORACLE_PWD=oracle \
@@ -65,16 +68,16 @@ docker run --name oci360 \
 -v ${v_master_directory}:/u01 \
 oracle/database:18.4.0-xe
 
-docker logs -f oci360 &
+docker logs -f ${v_oci360_con_name} &
 v_pid=$!
 
 while :
 do
-  v_out=$(docker logs oci360)
+  v_out=$(docker logs ${v_oci360_con_name})
   grep -qF 'DATABASE IS READY TO USE!' <<< "$v_out" && break || true
   if $(grep -qF 'DATABASE SETUP WAS NOT SUCCESSFUL!' <<< "$v_out")
   then
-    echo "Error while creating the oci360 container. Check docker logs."
+    echo "Error while creating the ${v_oci360_con_name} container. Check docker logs."
     exit 1
   fi
   echo 'Waiting Database creation.'
@@ -90,8 +93,8 @@ kill ${v_pid}
 rm -rf "${v_apache_dir}"
 mkdir -p "${v_apache_dir}"
 
-docker stop oci360-apache || true
-docker rm oci360-apache || true
+docker stop ${v_apache_con_name} || true
+docker rm ${v_apache_con_name} || true
 
 docker run --rm httpd:2.4 cat /usr/local/apache2/conf/httpd.conf > "${v_apache_dir}/httpd.conf"
 docker run --rm httpd:2.4 cat /usr/local/apache2/conf/extra/httpd-ssl.conf > "${v_apache_dir}/httpd-ssl.conf"
@@ -137,7 +140,7 @@ touch "${v_apache_dir}/.htpasswd"
 
 docker run \
 -dit \
---name oci360-apache \
+--name ${v_apache_con_name} \
 -p 443:443 \
 -v "${v_master_directory}/www":/usr/local/apache2/htdocs/oci360 \
 -v "${v_apache_dir}/httpd.conf":/usr/local/apache2/conf/httpd.conf \
@@ -149,10 +152,10 @@ httpd:2.4
 
 v_http_pass="welcome1.$(openssl rand -hex 2)"
 
-docker exec -it oci360-apache htpasswd -b /etc/httpd/.htpasswd oci360 ${v_http_pass}
+docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 ${v_http_pass}
 
-docker stop oci360-apache
-docker start oci360-apache
+# docker stop ${v_apache_con_name}
+# docker start ${v_apache_con_name}
 
 # Enable port 443
 firewall-cmd --add-service=https
@@ -164,6 +167,8 @@ firewall-cmd --permanent --add-service=https
 
 echo "
 ########################################
+
+This file is available on \"${v_master_directory}/INSTRUCTIONS.txt\".
 
 OCI360 install/upgrade finished successfully.
 
@@ -179,14 +184,14 @@ Optionally, you can add a crontab job for this collection:
 
 To access the output, you can either connect on:
 
-- Connect on https://localhost:443/oci360/
+- Connect on https://localhost/oci360/
  * User: oci360
- * Pass: welcome1
+ * Pass: ${v_http_pass}
 
 - Download and open the zip file from ${v_master_directory}/oci360_tool/out/processed/
 
 To change OCI360 website password, run:
-[oci360]$ docker exec -it oci360-apache htpasswd -b /etc/httpd/.htpasswd oci360 *new_password*
+[oci360]$ docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 *new_password*
 
 ########################################
 " | tee ${v_master_directory}/INSTRUCTIONS.txt
