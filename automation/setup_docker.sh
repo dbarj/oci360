@@ -1,8 +1,16 @@
 #!/bin/bash -x
 
-# To execute the latest version of this script, execute the line below instead:
+######################################################
+#
+# This script will create 2 docker containers:
+# 1 - OCI360 engine with 18c XE database.
+# 2 - Apache Webserver to expose oci360 output.
+#
+# To execute the latest version of this script, execute the line below:
 # bash -x -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/setup_docker.sh)"
+#
 # v1.0
+######################################################
 
 set -eo pipefail
 
@@ -158,8 +166,8 @@ docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 ${v
 # docker start ${v_apache_con_name}
 
 # Enable port 443
-firewall-cmd --add-service=https
-firewall-cmd --permanent --add-service=https
+firewall-cmd --add-service=https || true
+firewall-cmd --permanent --add-service=https || true
 
 ###############
 # Call OCI360 #

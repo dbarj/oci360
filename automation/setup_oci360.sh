@@ -17,7 +17,7 @@ v_exec_date=$(/bin/date '+%Y%m%d%H%M%S')
 
 yum install -y oraclelinux-developer-release-el7.x86_64
 yum-config-manager --enable ol7_developer
-yum install -y --setopt=tsflags=nodocs python-oci-cli jq httpd git which
+yum install -y --setopt=tsflags=nodocs python-oci-cli jq git which
 
 mkdir -p ${v_oci360_www}
 
