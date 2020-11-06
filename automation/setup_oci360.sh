@@ -20,28 +20,6 @@ yum-config-manager --enable ol7_developer
 yum install -y --setopt=tsflags=nodocs python-oci-cli jq httpd git which
 
 mkdir -p ${v_oci360_www}
-ln -s ${v_oci360_www} /var/www/oci360
-useradd -g users -m -d ${v_oci360_home} oci360
-chown -R oci360: ${v_oci360_www} ${v_oci360_home}
-htpasswd -i -c /etc/httpd/.htpasswd oci360 <<< "welcome1"
-
-cat << 'EOF' > /etc/httpd/conf.d/oci360.conf
-Alias /oci360 "/var/www/oci360/"
-<Directory "/var/www/oci360">
-  Options +Indexes
-  AllowOverride All
-  Require all granted
-  Order allow,deny
-  Allow from all
-</Directory>
-EOF
-
-cat << 'EOF' > /var/www/oci360/.htaccess
-AuthType Basic
-AuthName "Restricted Content"
-AuthUserFile /etc/httpd/.htpasswd
-Require valid-user
-EOF
 
 mkdir -p ${v_oci360_tool}
 mkdir -p ${v_oci360_tool}/{log,out,exp}

@@ -83,55 +83,113 @@ done
 
 kill ${v_pid}
 
-docker exec -it --user oci360 oci360 bash /u01/oci360_tool/scripts/oci360_run.sh
-
 ###########################
 # Docker Image for APACHE #
 ###########################
 
+rm -rf "${v_apache_dir}"
+mkdir -p "${v_apache_dir}"
+
 docker stop oci360-apache || true
 docker rm oci360-apache || true
 
-docker run --rm httpd:2.4 cat /usr/local/apache2/conf/httpd.conf > ${v_apache_dir}/httpd.conf
+docker run --rm httpd:2.4 cat /usr/local/apache2/conf/httpd.conf > "${v_apache_dir}/httpd.conf"
+docker run --rm httpd:2.4 cat /usr/local/apache2/conf/extra/httpd-ssl.conf > "${v_apache_dir}/httpd-ssl.conf"
+
+cat << 'EOF' >> "${v_apache_dir}/httpd.conf"
+Alias /oci360 "/usr/local/apache2/htdocs/oci360/"
+<Directory "/usr/local/apache2/htdocs/oci360>
+  Options +Indexes
+  AllowOverride All
+  Require all granted
+  Order allow,deny
+  Allow from all
+</Directory>
+EOF
+
+cat << 'EOF' > "${v_apache_dir}/.htaccess"
+AuthType Basic
+AuthName "Restricted Content"
+AuthUserFile /etc/httpd/.htpasswd
+Require valid-user
+EOF
+
+SERVER_NAME=oci360.example.com
+
+sed -i "s%#ServerName www.example.com:80%ServerName ${SERVER_NAME}:80%" "${v_apache_dir}/httpd.conf"
+sed -i "s%#\(Include conf/extra/httpd-ssl.conf\)%\1%" "${v_apache_dir}/httpd.conf"
+sed -i "s%#\(LoadModule ssl_module modules/mod_ssl.so\)%\1%" "${v_apache_dir}/httpd.conf"
+sed -i "s%#\(LoadModule socache_shmcb_module modules/mod_socache_shmcb.so\)%\1%" "${v_apache_dir}/httpd.conf"
+sed -i "s%ServerName www.example.com:443%ServerName ${SERVER_NAME}:443%" "${v_apache_dir}/httpd-ssl.conf"
+
+mkdir -p "${v_apache_dir}/ssl"
+
+openssl req \
+-x509 \
+-nodes \
+-days 1095 \
+-newkey rsa:2048 \
+-out "${v_apache_dir}/ssl/server.crt" \
+-keyout "${v_apache_dir}/ssl/server.key" \
+-subj "/C=BR/ST=RJ/L=RJ/O=OCI360/CN=${SERVER_NAME}"
+
+touch "${v_apache_dir}/.htpasswd"
 
 docker run \
 -dit \
 --name oci360-apache \
--p 80:80 \
 -p 443:443 \
--v "${v_master_directory}/www":/usr/local/apache2/htdocs/ \
--v "${v_apache_dir}/apache2/ssl":/etc/apache2/ssl \
+-v "${v_master_directory}/www":/usr/local/apache2/htdocs/oci360 \
+-v "${v_apache_dir}/httpd.conf":/usr/local/apache2/conf/httpd.conf \
+-v "${v_apache_dir}/httpd-ssl.conf":/usr/local/apache2/conf/extra/httpd-ssl.conf \
+-v "${v_apache_dir}/ssl/server.crt":/usr/local/apache2/conf/server.crt \
+-v "${v_apache_dir}/ssl/server.key":/usr/local/apache2/conf/server.key \
+-v "${v_apache_dir}/.htpasswd":/etc/httpd/.htpasswd \
 httpd:2.4
 
-mkdir -p ${v_apache_dir}/apache2/ssl
-openssl req -x509 -nodes -days 1095 -newkey rsa:2048 -out ${v_apache_dir}/apache2/ssl/server.crt -keyout ${v_apache_dir}/apache2/ssl/server.key
+v_http_pass="welcome1.$(openssl rand -hex 2)"
 
-COPY cert.pem /usr/local/apache2/conf/server.crt
-COPY key.pem /usr/local/apache2/conf/server.key
+docker exec -it oci360-apache htpasswd -b /etc/httpd/.htpasswd oci360 ${v_http_pass}
 
-EXPOSE 443
+docker stop oci360-apache
+docker start oci360-apache
 
-SERVER_NAME=oci360.example.com
-
-
-sed -i "s%#ServerName www.example.com:80%ServerName ${SERVER_NAME}:80%" conf/httpd.conf
-sed -i "s%#\(Include conf/extra/httpd-ssl.conf\)%\1%" conf/httpd.conf
-sed -i "s%#\(LoadModule ssl_module modules/mod_ssl.so\)%\1%" conf/httpd.conf
-sed -i "s%#\(LoadModule socache_shmcb_module modules/mod_socache_shmcb.so\)%\1%" conf/httpd.conf
-sed -i "s%ServerName www.example.com:443%ServerName ${SERVER_NAME}:443%" conf/extra/httpd-ssl.conf
-
-
-a2enmod ssl
-
-# Enable port 80 and 443
-firewall-cmd --add-service=http
+# Enable port 443
 firewall-cmd --add-service=https
-firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
 
-crontab -l > mycron
-echo '00 */6 * * * docker exec -it --user oci360 oci360 bash /u01/oci360_tool/scripts/oci360_run.sh' >> mycron
-crontab mycron
-rm -f mycron
+###############
+# Call OCI360 #
+###############
+
+echo "
+########################################
+
+OCI360 install/upgrade finished successfully.
+
+To run OCI360, first setup the tenancy credentials on ${v_master_directory}/.oci/config file.
+
+Then, connect as oci360 user and run:
+
+[oci360]$ docker exec -it --user oci360 oci360 bash /u01/oci360_tool/scripts/oci360_run.sh
+
+Optionally, you can add a crontab job for this collection:
+
+00 */6 * * * docker exec -it --user oci360 oci360 bash /u01/oci360_tool/scripts/oci360_run.sh
+
+To access the output, you can either connect on:
+
+- Connect on https://localhost:443/oci360/
+ * User: oci360
+ * Pass: welcome1
+
+- Download and open the zip file from ${v_master_directory}/oci360_tool/out/processed/
+
+To change OCI360 website password, run:
+[oci360]$ docker exec -it oci360-apache htpasswd -b /etc/httpd/.htpasswd oci360 *new_password*
+
+########################################
+" | tee ${v_master_directory}/INSTRUCTIONS.txt
 
 exit 0
 #####
