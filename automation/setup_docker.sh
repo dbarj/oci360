@@ -19,6 +19,7 @@ major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
 
 if [ $major_version -eq 6 ]
 then
+  set +x
   echo "Oracle Linux 6 does not support latest versions of Docker."
   echo "You will need to deploy OCI360 manually."
   exit 1
