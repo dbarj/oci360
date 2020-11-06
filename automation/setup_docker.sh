@@ -15,7 +15,7 @@
 set -eo pipefail
 set -x
 
-# Check if server is OL 6, 7, ..
+# Check Linux server release.
 major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
 
 if [ $major_version -lt 7 ]
