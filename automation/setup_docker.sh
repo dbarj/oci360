@@ -108,9 +108,10 @@ v_pid=$!
 set +x
 while :
 do
-  v_out=$(docker logs ${v_oci360_con_name})
+  v_out=$(docker logs ${v_oci360_con_name} 2>&1 >/dev/null)
   grep -qF 'DATABASE IS READY TO USE!' <<< "$v_out" && break || true
-  if $(grep -qF 'DATABASE SETUP WAS NOT SUCCESSFUL!' <<< "$v_out")
+  if grep -qF 'DATABASE SETUP WAS NOT SUCCESSFUL!' <<< "$v_out" ||
+     grep -qE 'Error on line [0-9]+ of "setup_oci360.sh".' <<< "$v_out"
   then
     echo "Error while creating the ${v_oci360_con_name} container. Check docker logs."
     exit 1
