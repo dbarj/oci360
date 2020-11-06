@@ -17,11 +17,11 @@ set -eo pipefail
 # Check if server is OL 6, 7, ..
 major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
 
-if [ $major_version -eq 6 ]
+if [ $major_version -lt 7 ]
 then
   set +x
-  echo "Oracle Linux 6 does not support latest versions of Docker."
-  echo "You will need to deploy OCI360 manually."
+  echo "Oracle Linux 6 or lower does not support latest versions of Docker."
+  echo "You will need to deploy OCI360 manually. Check wiki."
   exit 1
 fi
 
@@ -33,8 +33,15 @@ v_oci360_con_name="oci360"
 v_apache_con_name="oci360-apache"
 
 yum -y install yum-utils
-yum -y install docker-engine
 yum -y install git
+
+if [ $major_version -eq 7 ]
+then
+  yum -y install docker-engine
+else
+  yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  yum -y install docker-ce
+fi
 
 systemctl enable docker
 systemctl start docker
