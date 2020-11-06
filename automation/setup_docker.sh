@@ -40,6 +40,7 @@ cd docker-images/OracleDatabase/SingleInstance/dockerfiles
 docker images
 docker ps
 
+# Those IDs cannot be changed as they must be aligned with the docker image.
 # 54321 -> User: oracle
 # 54322 -> User: oci360
 
@@ -69,7 +70,6 @@ docker rm ${v_oci360_con_name} || true
 docker run --name ${v_oci360_con_name} \
 -d \
 -p 1521:1521 \
--e ORACLE_PWD=oracle \
 -e ORACLE_CHARACTERSET=AL32UTF8 \
 -v ${v_db_dir}/oradata:/opt/oracle/oradata \
 -v ${v_db_dir}/setup:/opt/oracle/scripts/setup \
@@ -161,9 +161,6 @@ httpd:2.4
 v_http_pass="welcome1.$(openssl rand -hex 2)"
 
 docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 ${v_http_pass}
-
-# docker stop ${v_apache_con_name}
-# docker start ${v_apache_con_name}
 
 # Enable port 443
 firewall-cmd --add-service=https || true
