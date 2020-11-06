@@ -3,6 +3,14 @@
 set -eo pipefail
 set -x
 
+trap_err ()
+{
+  echo "Error on line $1 of \"setup_oci360.sh\"."
+  exit 1
+}
+
+trap 'trap_err $LINENO' ERR
+
 v_oci360_home='/home/oci360'
 v_oci360_tool='/u01/oci360_tool'
 v_oci360_www='/u01/www'

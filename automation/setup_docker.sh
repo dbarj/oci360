@@ -14,6 +14,16 @@
 
 set -eo pipefail
 
+# Check if server is OL 6, 7, ..
+major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
+
+if [ $major_version -eq 6 ]
+then
+  echo "Oracle Linux 6 does not support latest versions of Docker."
+  echo "You will need to deploy OCI360 manually."
+  exit 1
+fi
+
 v_master_directory="/u01"
 v_db_dir="${v_master_directory}/oci360_database"
 v_apache_dir="${v_master_directory}/oci360_apache"
