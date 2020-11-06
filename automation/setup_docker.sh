@@ -7,7 +7,7 @@
 # 2 - Apache Webserver to expose oci360 output.
 #
 # To execute the latest version of this script, execute the line below:
-# bash -x -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/setup_docker.sh)"
+# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/setup_docker.sh)"
 #
 # v1.0
 ######################################################
