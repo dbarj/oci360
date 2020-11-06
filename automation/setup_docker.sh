@@ -15,6 +15,14 @@
 set -eo pipefail
 set -x
 
+# Directory Paths
+v_master_directory="/u01"
+v_db_dir="${v_master_directory}/oci360_database"
+v_apache_dir="${v_master_directory}/oci360_apache"
+
+v_oci360_con_name="oci360"
+v_apache_con_name="oci360-apache"
+
 # Check Linux server release.
 major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
 
@@ -25,13 +33,6 @@ then
   echo "You will need to deploy OCI360 manually. Check wiki."
   exit 1
 fi
-
-v_master_directory="/u01"
-v_db_dir="${v_master_directory}/oci360_database"
-v_apache_dir="${v_master_directory}/oci360_apache"
-
-v_oci360_con_name="oci360"
-v_apache_con_name="oci360-apache"
 
 yum -y install yum-utils
 yum -y install git
@@ -212,7 +213,7 @@ To run OCI360, first setup the tenancy credentials on ${v_master_directory}/.oci
 
 Then, connect as oci360 user and run:
 
-[oci360]$ docker exec -it --user oci360 ${v_oci360_con_name} bash /u01/oci360_tool/scripts/oci360_run.sh
+[OCI360]$ docker exec -it --user oci360 ${v_oci360_con_name} bash /u01/oci360_tool/scripts/oci360_run.sh
 
 Optionally, you can add a crontab job for this collection:
 
@@ -227,7 +228,7 @@ To access the output, you can either connect on:
 - Download and open the zip file from ${v_master_directory}/oci360_tool/out/processed/
 
 To change OCI360 website password, run:
-[oci360]$ docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 *new_password*
+[OCI360]$ docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 *new_password*
 
 ########################################
 " | tee ${v_master_directory}/INSTRUCTIONS.txt
