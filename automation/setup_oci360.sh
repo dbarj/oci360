@@ -28,14 +28,13 @@ yum-config-manager --enable ol7_developer
 yum install -y --setopt=tsflags=nodocs python-oci-cli jq git which
 
 mkdir -p ${v_oci360_www}
-
-useradd -g users -m -d ${v_oci360_home} oci360
-chown -R oci360: ${v_oci360_www} ${v_oci360_home}
-
 mkdir -p ${v_oci360_tool}
 mkdir -p ${v_oci360_tool}/{log,out,exp}
 mkdir -p ${v_oci360_config}
 mkdir -p ${v_oci360_netadmin}
+
+useradd -g users -m -d ${v_oci360_home} oci360
+chown -R oci360: ${v_oci360_www} ${v_oci360_home}
 
 echo 'export ORACLE_HOME=/opt/oracle/product/18c/dbhomeXE' >> ${v_oci360_home}/.bash_profile
 echo 'export PATH=$PATH:$ORACLE_HOME/bin:$ORACLE_HOME/OPatch' >> ${v_oci360_home}/.bash_profile
