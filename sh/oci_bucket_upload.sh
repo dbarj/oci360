@@ -21,9 +21,12 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 1.01
+# Version 1.02
 #************************************************************************
 set -eo pipefail
+
+# Required privileges:
+# allow group xxx to manage objects in tenancy where target.bucket.name='yyy'	
 
 # Define paths for oci-cli and jq or put them on $PATH. Don't use relative PATHs in the variables below.
 v_oci="oci"
@@ -55,8 +58,6 @@ v_tmpfldr="$(mktemp -d -u -p ${TMPDIR}/.oci 2>&- || mktemp -d -u)"
 # DEBUG - Will create a oci_json_export.log file with DEBUG info.
 #  1 = Executed commands.
 #  2 = + Commands Queue + Stop
-#  9 = + Parallel Wait
-# 10 = + Folder Lock/Unlock
 
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM
 
@@ -140,10 +141,11 @@ fi
 
 [ -z "${v_oci_args}" ] || v_oci="${v_oci} ${v_oci_args}"
 
-v_test=$(${v_oci} iam region-subscription list 2>&1) && v_ret=$? || v_ret=$?
+echo "Checking if bucket is accessible."
+v_test=$(${v_oci} os object list --bucket-name "${v_bucket}" 2>&1) && v_ret=$? || v_ret=$?
 if [ $v_ret -ne 0 ]
 then
-  echoError "oci-cli not able to run \"${v_oci} iam region-subscription list\". Please check error:"
+  echoError "oci-cli not able to run \"${v_oci} os object list --bucket-name ${v_bucket}\". Please check error:"
   echoError "$v_test"
   exit 1
 fi
@@ -175,15 +177,6 @@ fi
 
 # Start code execution.
 echoDebug "BEGIN"
-
-echo "Checking if bucket is accessible."
-v_test=$(${v_oci} os bucket get --bucket-name "${v_bucket}" 2>&1) && v_ret=$? || v_ret=$?
-if [ $v_ret -ne 0 ]
-then
-  echoError "oci-cli not able to run \"${v_oci} os bucket get --bucket-name oci360_bucket\". Please check error:"
-  echoError "$v_test"
-  exit 1
-fi
 
 [ -n "$OCI_UP_INCLUDE" ] && v_oci_include="--include $OCI_UP_INCLUDE"
 [ -n "$OCI_UP_EXCLUDE" ] && v_oci_exclude="--exclude $OCI_UP_EXCLUDE"

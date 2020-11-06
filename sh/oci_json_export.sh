@@ -4,7 +4,7 @@
 #   oci_json_export.sh - Export all Oracle Cloud Infrastructure
 #   metadata information into JSON files.
 #
-#   Copyright 2018  Rodrigo Jorge <http://www.dbarj.com.br/>
+#   Copyright 2020  Rodrigo Jorge <http://www.dbarj.com.br/>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 2.07
+# Version 2.10
 #************************************************************************
 set -eo pipefail
 
@@ -40,7 +40,7 @@ fi
 [ -z "${OCI_CLI_ARGS}" ] && v_oci_args="--cli-rc-file /dev/null"
 
 # Don't change it.
-v_min_ocicli="2.9.11"
+v_min_ocicli="2.12.3"
 
 # Timeout for OCI-CLI calls
 v_oci_timeout=600 # Seconds
@@ -67,7 +67,15 @@ v_tmpfldr="$(mktemp -d -u -p ${TMPDIR}/.oci 2>&- || mktemp -d -u)"
 #  9 = + Parallel Wait Loop
 # 10 = + Lock/Unlock Loop
 
-trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM
+trap "trap - SIGTERM && cleanAllonAbort && kill -- -$$" SIGINT SIGTERM
+
+function cleanAllonAbort ()
+{
+  if [ -n "${v_tmpfldr_root}" -a -d "${v_tmpfldr_root}" ]
+  then
+    rm -rf "${v_tmpfldr_root}" 2>&- || true
+  fi
+}
 
 function echoError ()
 {
@@ -82,7 +90,7 @@ function echoDebug ()
   [ -z "${v_debug_lvl}" ] && v_debug_lvl=1
   if [ $DEBUG -ge ${v_debug_lvl} ]
   then
-    v_msg="$(date '+%Y%m%d%H%M%S'): $v_msg"
+    v_msg="$(date '+%Y%m%d_%H%M%S'): $v_msg"
     [ -n "${v_exec_id}" ] && v_msg="$v_msg (${v_exec_id})"
     echo "$v_msg" >> "${v_filename}"
     [ -f "../${v_filename}" ] && echo "$v_msg" >> "../${v_filename}"
@@ -216,6 +224,7 @@ else
   echoError "Press CTRL+C in next 10 seconds if you want to exit and fix this."
   sleep 10
 fi
+
 if [ -n "${v_tmpfldr}" -a ! -w "${v_tmpfldr}" ]
 then
   echoError "Temporary folder \"${v_tmpfldr}\" is NOT WRITABLE. Execution will take much longer."
@@ -230,6 +239,7 @@ fi
 
 echoDebug "Temporary folder is: ${v_tmpfldr}"
 echoDebug "OCI Parallel is: ${v_oci_parallel}"
+echoDebug "DEBUG level is: ${DEBUG}" 2
 echoDebug "OCI JSON Include is: ${OCI_JSON_INCLUDE}" 2
 echoDebug "OCI JSON Exclude is: ${OCI_JSON_EXCLUDE}" 2
 
@@ -247,13 +257,11 @@ function jsonCompartmentsAccessible ()
   # Will only return compartments which the connect user has any inspect privilege.
   set -e # Exit if error in any call.
   local v_fout v_tenancy_entry
-  v_fout=$(jsonSimple "iam compartment list --all --compartment-id-in-subtree true --access-level ACCESSIBLE")
+  v_fout=$(jsonSimple "iam compartment list --all --compartment-id-in-subtree true --access-level ACCESSIBLE --include-root")
   ## Remove DELETED compartments to avoid query errors
   if [ -n "$v_fout" ]
   then
-    v_tenancy_entry=$(IAM-Comparts | ${v_jq} -rc '.data[] | select(."id" | startswith("ocid1.tenancy.oc1."))')
-    ## Add root:
-    v_fout=$(${v_jq} '.data += ['${v_tenancy_entry}']' <<< "$v_fout")
+    v_fout=$(${v_jq} '{data:[.data[] | select(."lifecycle-state" != "DELETED")]}' <<< "${v_fout}")
     echo "${v_fout}"
   fi
 }
@@ -263,25 +271,11 @@ function jsonCompartments ()
   # Will return all compartments in the tenancy.
   set -e # Exit if error in any call.
   local v_fout v_tenancy_id
-  v_fout=$(jsonSimple "iam compartment list --all --compartment-id-in-subtree true --access-level ANY")
+  v_fout=$(jsonSimple "iam compartment list --all --compartment-id-in-subtree true --access-level ANY --include-root")
   ## Remove DELETED compartments to avoid query errors
   if [ -n "$v_fout" ]
   then
     v_fout=$(${v_jq} '{data:[.data[] | select(."lifecycle-state" != "DELETED")]}' <<< "${v_fout}")
-    v_tenancy_id=$(${v_jq} -r '[.data[]."compartment-id"] | unique | .[] | select(startswith("ocid1.tenancy.oc1."))' <<< "${v_fout}")
-    ## Add root:
-    v_fout=$(${v_jq} '.data += [{
-                                 "compartment-id": "'${v_tenancy_id}'",
-                                 "defined-tags": {},
-                                 "description": null,
-                                 "freeform-tags": {},
-                                 "id": "'${v_tenancy_id}'",
-                                 "inactive-status": null,
-                                 "is-accessible": null,
-                                 "lifecycle-state": "ACTIVE",
-                                 "name": "ROOT",
-                                 "time-created": null
-                                }]' <<< "$v_fout")
     echo "${v_fout}"
   fi
 }
@@ -485,6 +479,11 @@ function jsonGenericMaster ()
   local v_sub_pids_list v_sub_files_list v_sub_newits_list v_file_out
   local v_procs_tot v_procs_sub v_procs_counter
 
+  # Used on while loop limit
+  local wait_time=2
+  local v_limit=300
+  local v_counter=1
+
   v_exec_id=$(genRandom) # For Debugging
 
   v_arg1="$1" # Main oci call
@@ -581,8 +580,15 @@ function jsonGenericMaster ()
         do
           v_procs_sub=$(jobs -p | wc -l)
           [ $v_procs_sub -lt $v_oci_parallel ] && break || echoDebug "Current child jobs: $v_procs_sub. Waiting slot." 8
-          sleep 2
+          sleep $wait_time
+          v_counter=$((v_counter+1))
+          if [ ${v_counter} -gt ${v_limit} ]
+          then
+            echoDebug "Child jobs - Wait limit reached: $((v_limit*wait_time)) secs. Moving to next. Current child jobs: $v_procs_sub." 3
+            break
+          fi
         done
+        v_counter=1
         echoDebug "Subcalls Left: $((${v_procs_tot}-${v_procs_counter})) - ${v_arg4} \"${v_arg1}\"" 3
       else
         set +e
@@ -609,7 +615,7 @@ function jsonGenericMaster ()
       v_ret=$?
       set -e
       [ $v_ret -ne 0 ] && echoDebug "Failed background process: ${v_sub_pids_list[$v_i]}" 3
-      v_out=$(cat "${v_sub_files_list[$v_i]}.out")
+      v_out=$(< "${v_sub_files_list[$v_i]}.out")
       $v_tag_mode && v_newits="${v_sub_newits_list[$v_i]}"
       echoDebug "Merging File: $(($v_i+1)) of $v_procs_tot" 3
       concat_out_fout
@@ -664,6 +670,7 @@ function callOCI ()
   eval "timeout ${v_oci_timeout} ${v_oci} ${v_arg1}"
   v_ret=$?
   set -e
+  [ $v_ret -ne 0 ] && echoDebug "Command failed: \"${v_oci} ${v_arg1}\". Return code: $v_ret"
   echoDebug "Finished: \"${v_oci} ${v_arg1}\"" 2
   oci_parallel_release
   return $v_ret
@@ -686,7 +693,7 @@ function oci_parallel_wait ()
   while :
   do
     create_lock_or_wait parallel_file "${v_tmpfldr_root}"
-    v_parallel_count=$(cat "${v_parallel_file}" 2>&-) || v_parallel_count=0
+    read v_parallel_count 2>&- < "${v_parallel_file}" || v_parallel_count=0
     if [ $v_parallel_count -lt $v_oci_parallel ]
     then
       v_parallel_count=$((v_parallel_count+1))
@@ -723,15 +730,14 @@ function oci_parallel_release ()
 
   echoDebug "OCI Parallel - Releasing slot.." 4
   create_lock_or_wait parallel_file "${v_tmpfldr_root}"
-  v_parallel_count=$(cat "${v_parallel_file}")
+  read v_parallel_count < "${v_parallel_file}"
   v_parallel_count=$((v_parallel_count-1))
   if [ $v_parallel_count -lt 0 ]
   then
     echoDebug "OCI Parallel - Negative value detected. Force setting v_parallel_count to 0" 4
-    echo 0 > "${v_parallel_file}"
-  else
-    echo $v_parallel_count > "${v_parallel_file}"
+    v_parallel_count=0
   fi
+  echo $v_parallel_count > "${v_parallel_file}"
   echoDebug "OCI Parallel - Counter Descreased. Current: $v_parallel_count/$v_oci_parallel" 4
   remove_lock parallel_file "${v_tmpfldr_root}"
   return 0
@@ -857,22 +863,22 @@ function oci_parallel_release ()
 # Net-CrossConnLoc,oci_network_cross-connect-location.json,jsonAllCompart,"network cross-connect-location list --all"
 # Net-CrossConnPort,oci_network_cross-connect-port-speed-shape.json,jsonRootCompart,"network cross-connect-port-speed-shape list --all"
 # Net-CrossConnStatus,oci_network_cross-connect-status.json,jsonGenericMaster,"network cross-connect-status get" "Net-CrossConn" "id:cross-connect-id" "jsonSimple"
-# Net-DhcpOptions,oci_network_dhcp-options.json,jsonAllVCN,"network dhcp-options list --all"
+# Net-DhcpOptions,oci_network_dhcp-options.json,jsonAllCompart,"network dhcp-options list --all"
 # Net-DrgAttachs,oci_network_drg-attachment.json,jsonAllCompart,"network drg-attachment list --all"
 # Net-Drgs,oci_network_drg.json,jsonAllCompart,"network drg list --all"
-# Net-FCProviderServices,oci_network_fast-connect-provider-service.json,jsonSimple,"network fast-connect-provider-service list --compartment-id xxx --all"
-# Net-InternetGateway,oci_network_internet-gateway.json,jsonAllVCN,"network internet-gateway list --all"
+# Net-FCProviderServices,oci_network_fast-connect-provider-service.json,jsonRootCompart,"network fast-connect-provider-service list --all"
+# Net-InternetGateway,oci_network_internet-gateway.json,jsonAllCompart,"network internet-gateway list --all"
 # Net-IpSecConns,oci_network_ip-sec-connection.json,jsonAllCompart,"network ip-sec-connection list --all"
-# Net-LocalPeering,oci_network_local-peering-gateway.json,jsonAllVCN,"network local-peering-gateway list --all"
+# Net-LocalPeering,oci_network_local-peering-gateway.json,jsonAllCompart,"network local-peering-gateway list --all"
 # Net-NatGateway,oci_network_nat-gateway.json,jsonAllCompart,"network nat-gateway list --all"
 # Net-PrivateIPs,oci_network_private-ip.json,jsonGenericMaster,"network private-ip list --all" "Net-Subnets" "id:subnet-id" "jsonSimple"
 # Net-PublicIPs,oci_network_public-ip.json,jsonPublicIPs
 # Net-RemotePeering,oci_network_remote-peering-connection.json,jsonAllCompart,"network remote-peering-connection list --all"
-# Net-RouteTables,oci_network_route-table.json,jsonAllVCN,"network route-table list --all"
-# Net-SecLists,oci_network_security-list.json,jsonAllVCN,"network security-list list --all"
+# Net-RouteTables,oci_network_route-table.json,jsonAllCompart,"network route-table list --all"
+# Net-SecLists,oci_network_security-list.json,jsonAllCompart,"network security-list list --all"
 # Net-ServiceGW,oci_network_service-gateway.json,jsonAllCompart,"network service-gateway list --all"
 # Net-Services,oci_network_service.json,jsonSimple,"network service list --all"
-# Net-Subnets,oci_network_subnet.json,jsonAllVCN,"network subnet list --all"
+# Net-Subnets,oci_network_subnet.json,jsonAllCompart,"network subnet list --all"
 # Net-VCNs,oci_network_vcn.json,jsonAllCompart,"network vcn list --all"
 # Net-NSGs,oci_network_nsg.json,jsonAllCompart,"network nsg list --all"
 # Net-NSGRules,oci_network_nsg_rules.json,jsonGenericMasterAdd,"network nsg rules list --all" "Net-NSGs" "id:nsg-id:nsg-id" "jsonSimple"
