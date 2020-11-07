@@ -76,7 +76,7 @@ then
   useradd -u 54322 -g users -G docker oci360
 fi
 
-rm -rf "${v_db_dir}/oradata/"
+rm -rf "${v_db_dir}"
 
 mkdir -p "${v_master_directory}"
 mkdir -p "${v_db_dir}/oradata/"
@@ -204,14 +204,15 @@ set +x
 
 echo "
 ########################################
+########################################
 
-This file is available on \"${v_master_directory}/INSTRUCTIONS.txt\".
+The instructions below will be saved on \"${v_master_directory}/INSTRUCTIONS.txt\".
 
 OCI360 install/upgrade finished successfully.
 
-To run OCI360, first setup the tenancy credentials on ${v_master_directory}/.oci/config file.
+To run OCI360, first setup the tenancy credentials on \"${v_master_directory}/.oci/config\" file.
 
-Then, connect as oci360 user and run:
+Then, connect locally in this compute as oci360 user (\"sudo su - oci360\") and run:
 
 [OCI360]$ docker exec -it --user oci360 ${v_oci360_con_name} bash /u01/oci360_tool/scripts/oci360_run.sh
 
@@ -219,7 +220,7 @@ Optionally, you can add a crontab job for this collection:
 
 00 */6 * * * docker exec -it --user oci360 ${v_oci360_con_name} bash /u01/oci360_tool/scripts/oci360_run.sh
 
-To access the output, you can either connect on:
+To access the OCI360 output, you can either:
 
 - Connect on https://localhost/oci360/
  * User: oci360
@@ -230,6 +231,7 @@ To access the output, you can either connect on:
 To change OCI360 website password, run:
 [OCI360]$ docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 *new_password*
 
+########################################
 ########################################
 " | tee ${v_master_directory}/INSTRUCTIONS.txt
 
