@@ -67,6 +67,8 @@ then
 fi
 
 ./buildDockerImage.sh -v 18.4.0 -x
+cd -
+rm -rf docker-images/
 
 docker images
 docker ps
