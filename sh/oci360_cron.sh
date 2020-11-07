@@ -67,7 +67,7 @@ v_confdir=$v_basedir/scripts                  # Folder of this script
 export TMPDIR=$v_basedir/tmp/
 export OCI_CLI_ARGS="--cli-rc-file /dev/null"
 
-v_dir_www=/var/www/oci360       # Apache folder.
+v_dir_www=/var/www/oci360       # Apache output folder.
 v_dir_oci360=$v_basedir/app     # OCI360 github tool folder.
 v_dir_ociexp=$v_basedir/exp     # Output folder for exported json files.
 v_dir_ociout=$v_basedir/out     # Output folder of OCI360 execution.
@@ -109,6 +109,7 @@ v_script_runtime=$(/bin/date '+%Y%m%d%H%M%S')
 v_script_log="${v_dir_ocilog}/run.${v_script_runtime}.log"
 v_script_trc="${v_dir_ocilog}/run.${v_script_runtime}.trc"
 echo "From this point, all the output will be redirected to \"${v_script_log}\"."
+echo "To follow the steps, run in another session: tail -f ${v_script_log}"
 
 # Redirect script STDOUT and STDERR to file.
 exec 1<&-

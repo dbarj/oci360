@@ -1,4 +1,5 @@
 #!/bin/bash -x
+# v1.0
 
 ######################################################
 #
@@ -9,7 +10,6 @@
 # To execute the latest version of this script, execute the line below:
 # bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/setup_docker.sh)"
 #
-# v1.0
 ######################################################
 
 set -eo pipefail

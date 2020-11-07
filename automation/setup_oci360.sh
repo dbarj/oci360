@@ -1,5 +1,7 @@
 #!/bin/bash
 # v1.0
+# This script will make the deployment and configuration of OCI360 files and folders.
+
 set -eo pipefail
 set -x
 
@@ -18,10 +20,11 @@ v_oci360_tool='/u01/oci360_tool'
 v_oci360_www='/u01/www'
 v_oci360_config="${v_oci360_tool}/scripts"
 v_oci360_netadmin="${v_oci360_config}/network"
-
-v_replace_config_files=false # true or false. Keep false to reuse your configuration. True to recreate default ones.
-
 v_ocicli_dir="/u01/.oci"
+
+# v_replace_config_files = true or false.
+# Keep false to reuse your configuration. True to recreate default files.
+v_replace_config_files=false
 
 v_exec_date=$(/bin/date '+%Y%m%d%H%M%S')
 
@@ -48,34 +51,27 @@ echo 'export ORACLE_SID=XE' >> ${v_oci360_home}/.bash_profile
 source ${v_oci360_home}/.bash_profile
 
 # Backup previous files if v_replace_config_files is true
-
 if $v_replace_config_files
 then
-
   if [ -f ${v_oci360_netadmin}/tnsnames.ora ]
   then
     mv ${v_oci360_netadmin}/tnsnames.ora ${v_oci360_netadmin}/tnsnames.ora.${v_exec_date}
   fi
-  
   if [ -f ${v_oci360_netadmin}/sqlnet.ora ]
   then
     mv ${v_oci360_netadmin}/sqlnet.ora ${v_oci360_netadmin}/sqlnet.ora.${v_exec_date}
   fi
-  
   if [ -f ${v_oci360_config}/oci360.cfg ]
   then
     mv ${v_oci360_config}/oci360.cfg ${v_oci360_config}/oci360.cfg.${v_exec_date}
   fi
-
   if [ -f ${v_oci360_home}/.oci/config ]
   then
     mv ${v_oci360_home}/.oci/config ${v_oci360_home}/.oci/config.${v_exec_date}
   fi
-
 fi
 
 # Wallet files must always be recreated as OCI360 user will have a new random pass.
-
 if [ -f ${v_oci360_netadmin}/cwallet.sso ]
 then
   mkdir -p ${v_oci360_netadmin}/old
@@ -88,14 +84,10 @@ then
   mv ${v_oci360_netadmin}/ewallet.p12 ${v_oci360_netadmin}/old/ewallet.p12.${v_exec_date}
 fi
 
-# Create wallet files if not exist.
-
-if [ ! -f ${v_oci360_netadmin}/cwallet.sso -a ! -f ${v_oci360_netadmin}/ewallet.p12 ]
-then
-  v_wallet_pass="Oracle.123.$(openssl rand -hex 4)"
-  orapki wallet create -wallet ${v_oci360_netadmin} -auto_login -pwd ${v_wallet_pass}
-  mkstore -wrl ${v_oci360_netadmin} -createCredential oci360xe oci360 oracle <<< "${v_wallet_pass}"
-fi
+# Create wallet files.
+v_wallet_pass="Oracle.123.$(openssl rand -hex 4)"
+orapki wallet create -wallet ${v_oci360_netadmin} -auto_login -pwd ${v_wallet_pass}
+mkstore -wrl ${v_oci360_netadmin} -createCredential oci360xe oci360 oracle <<< "${v_wallet_pass}"
 
 if [ ! -f ${v_oci360_netadmin}/tnsnames.ora ]
 then
@@ -157,12 +149,10 @@ fi
 
 cp -av ${v_oci360_tool}/app/sh/oci360_cron.sh ${v_oci360_config}/oci360_run.sh
 
-if [ -n "${v_wallet_pass}" ]
-then
-  v_oci360_pass="$(openssl rand -hex 6)"
-  bash ${v_oci360_tool}/app/automation/change_oci360_pass.sh "${v_oci360_pass}"
-  mkstore -wrl ${v_oci360_netadmin} -modifyCredential oci360xe oci360 ${v_oci360_pass} <<< "${v_wallet_pass}"
-fi
+# Change OCI360 password
+v_oci360_pass="$(openssl rand -hex 6)"
+bash ${v_oci360_tool}/app/automation/change_oci360_pass.sh "${v_oci360_pass}"
+mkstore -wrl ${v_oci360_netadmin} -modifyCredential oci360xe oci360 ${v_oci360_pass} <<< "${v_wallet_pass}"
 
 if [ -f ${v_oci360_config}/credentials ]
 then
@@ -170,13 +160,14 @@ then
 fi
 
 echo "Wallet Pass is: ${v_wallet_pass}" > ${v_oci360_config}/credentials
-echo "OCI360 Database User Pass is: ${v_oci360_pass}" > ${v_oci360_config}/credentials
-
-chown root: ${v_oci360_config}/credentials
-chmod 600 ${v_oci360_config}/credentials
+echo "OCI360 DB Pass is: ${v_oci360_pass}" > ${v_oci360_config}/credentials
+echo "SYS/SYSTEM DB Pass is: $ORACLE_PWD" > ${v_oci360_config}/credentials
 
 chown -R oci360: ${v_oci360_home}
 chown -R oci360: ${v_oci360_tool}
+
+chown root: ${v_oci360_config}/credentials
+chmod 600 ${v_oci360_config}/credentials
 
 chgrp dba ${v_oci360_tool}/out/
 chmod g+w ${v_oci360_tool}/out/
