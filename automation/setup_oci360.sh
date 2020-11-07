@@ -33,6 +33,7 @@ mkdir -p ${v_oci360_tool}/{log,out,exp}
 mkdir -p ${v_oci360_config}
 mkdir -p ${v_oci360_netadmin}
 
+mkdir -p /var/www/
 ln -s ${v_oci360_www} /var/www/oci360
 
 useradd -g users -m -d ${v_oci360_home} oci360
@@ -135,6 +136,7 @@ EOF
 fi
 
 chmod 600 ${v_oci360_home}/.oci/config
+chown oci360: ${v_oci360_home}/.oci/config
 
 cd ${v_oci360_tool}
 git clone https://github.com/dbarj/oci360.git
