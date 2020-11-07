@@ -11,6 +11,8 @@ trap_err ()
 
 trap 'trap_err $LINENO' ERR
 
+[ "$(id -u -n)" != "root" ] && echo "Must be executed as root! Exiting..." && exit 1
+
 v_oci360_home='/home/oci360'
 v_oci360_tool='/u01/oci360_tool'
 v_oci360_www='/u01/www'
@@ -45,24 +47,11 @@ echo 'export ORACLE_SID=XE' >> ${v_oci360_home}/.bash_profile
 
 source ${v_oci360_home}/.bash_profile
 
-v_wallet_pass="Oracle.123.$(openssl rand -hex 4)"
-
 # Backup previous files if v_replace_config_files is true
 
 if $v_replace_config_files
 then
-  if [ -f ${v_oci360_netadmin}/cwallet.sso ]
-  then
-    mkdir -p ${v_oci360_netadmin}/old
-    mv ${v_oci360_netadmin}/cwallet.sso ${v_oci360_netadmin}/old/cwallet.sso.${v_exec_date}
-  fi
-  
-  if [ -f ${v_oci360_netadmin}/ewallet.p12 ]
-  then
-    mkdir -p ${v_oci360_netadmin}/old
-    mv ${v_oci360_netadmin}/ewallet.p12 ${v_oci360_netadmin}/old/ewallet.p12.${v_exec_date}
-  fi
-  
+
   if [ -f ${v_oci360_netadmin}/tnsnames.ora ]
   then
     mv ${v_oci360_netadmin}/tnsnames.ora ${v_oci360_netadmin}/tnsnames.ora.${v_exec_date}
@@ -85,10 +74,25 @@ then
 
 fi
 
-# Create config files if not exist
+# Wallet files must always be recreated as OCI360 user will have a new random pass.
+
+if [ -f ${v_oci360_netadmin}/cwallet.sso ]
+then
+  mkdir -p ${v_oci360_netadmin}/old
+  mv ${v_oci360_netadmin}/cwallet.sso ${v_oci360_netadmin}/old/cwallet.sso.${v_exec_date}
+fi
+
+if [ -f ${v_oci360_netadmin}/ewallet.p12 ]
+then
+  mkdir -p ${v_oci360_netadmin}/old
+  mv ${v_oci360_netadmin}/ewallet.p12 ${v_oci360_netadmin}/old/ewallet.p12.${v_exec_date}
+fi
+
+# Create wallet files if not exist.
 
 if [ ! -f ${v_oci360_netadmin}/cwallet.sso -a ! -f ${v_oci360_netadmin}/ewallet.p12 ]
 then
+  v_wallet_pass="Oracle.123.$(openssl rand -hex 4)"
   orapki wallet create -wallet ${v_oci360_netadmin} -auto_login -pwd ${v_wallet_pass}
   mkstore -wrl ${v_oci360_netadmin} -createCredential oci360xe oci360 oracle <<< "${v_wallet_pass}"
 fi
@@ -143,7 +147,33 @@ git clone https://github.com/dbarj/oci360.git
 [ -d app ] && rm -rf app
 mv oci360 app
 
-cp -av ${v_oci360_tool}/app/sh/oci360_cron.sh ${v_oci360_config}/oci360_run.sh 
+# If OCI360_BRANCH is defined, change to it.
+if [ -n "${OCI360_BRANCH}" -a "${OCI360_BRANCH}" != "master" ]
+then
+  cd app
+  git checkout ${OCI360_BRANCH}
+  cd -
+fi
+
+cp -av ${v_oci360_tool}/app/sh/oci360_cron.sh ${v_oci360_config}/oci360_run.sh
+
+if [ -n "${v_wallet_pass}" ]
+then
+  v_oci360_pass="$(openssl rand -hex 6)"
+  bash ${v_oci360_tool}/app/automation/change_oci360_pass.sh "${v_oci360_pass}"
+  mkstore -wrl ${v_oci360_netadmin} -modifyCredential oci360xe oci360 ${v_oci360_pass} <<< "${v_wallet_pass}"
+fi
+
+if [ -f ${v_oci360_config}/credentials ]
+then
+  mv ${v_oci360_config}/credentials ${v_oci360_config}/credentials.${v_exec_date}
+fi
+
+echo "Wallet Pass is: ${v_wallet_pass}" > ${v_oci360_config}/credentials
+echo "OCI360 Database User Pass is: ${v_oci360_pass}" > ${v_oci360_config}/credentials
+
+chown root: ${v_oci360_config}/credentials
+chmod 600 ${v_oci360_config}/credentials
 
 chown -R oci360: ${v_oci360_home}
 chown -R oci360: ${v_oci360_tool}

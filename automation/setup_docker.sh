@@ -22,11 +22,15 @@ v_apache_dir="${v_master_directory}/oci360_apache"
 
 v_oci360_con_name="oci360"
 v_apache_con_name="oci360-apache"
+v_git_branch="v20.07"
+
+# Check if root
+[ "$(id -u -n)" != "root" ] && echo "Must be executed as root! Exiting..." && exit 1
 
 # Check Linux server release.
-major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
+v_major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
 
-if [ $major_version -lt 7 ]
+if [ $v_major_version -lt 7 ]
 then
   set +x
   echo "Oracle Linux 6 or lower does not support latest versions of Docker."
@@ -37,7 +41,7 @@ fi
 yum -y install yum-utils
 yum -y install git
 
-if [ $major_version -eq 7 ]
+if [ $v_major_version -eq 7 ]
 then
   yum -y install docker-engine
 else
@@ -56,7 +60,7 @@ rm -rf docker-images/
 git clone https://github.com/oracle/docker-images.git
 cd docker-images/OracleDatabase/SingleInstance/dockerfiles
 
-if [ $major_version -eq 8 ]
+if [ $v_major_version -eq 8 ]
 then
   firewall-cmd --zone=public --add-masquerade --permanent
   firewall-cmd --reload
@@ -85,9 +89,9 @@ chown -R 54321:54321 "${v_db_dir}"
 
 cd "${v_db_dir}/setup/"
 
-wget https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/enable_max_string.sql
-wget https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/create_oci360.sql
-wget https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/setup_oci360.sh
+wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/automation/enable_max_string.sql
+wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/automation/create_oci360.sql
+wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/automation/setup_oci360.sh
 
 cd -
 
@@ -98,6 +102,7 @@ docker run --name ${v_oci360_con_name} \
 -d \
 -p 1521:1521 \
 -e ORACLE_CHARACTERSET=AL32UTF8 \
+-e OCI360_BRANCH=${v_git_branch} \
 -v ${v_db_dir}/oradata:/opt/oracle/oradata \
 -v ${v_db_dir}/setup:/opt/oracle/scripts/setup \
 -v ${v_master_directory}:/u01 \
@@ -234,6 +239,8 @@ To change OCI360 website password, run:
 ########################################
 ########################################
 " | tee ${v_master_directory}/INSTRUCTIONS.txt
+
+chmod 600 ${v_master_directory}/INSTRUCTIONS.txt
 
 exit 0
 #####

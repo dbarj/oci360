@@ -1,8 +1,9 @@
 whenever sqlerror exit sql.sqlcode
 conn / as sysdba
 alter session set container=XEPDB1;
+create profile DEFAULT_PASSWORD_NOEXP limit password_life_time unlimited;
 create user OCI360 identified by "oracle";
-alter user OCI360 default tablespace USERS quota unlimited on USERS;
+alter user OCI360 default tablespace USERS quota unlimited on USERS profile DEFAULT_PASSWORD_NOEXP;
 grant CREATE SESSION, ALTER SESSION, CREATE SEQUENCE, CREATE TABLE, CREATE VIEW to OCI360;
 grant SELECT on SYS.GV_$INSTANCE to OCI360;
 grant SELECT on SYS.GV_$OSSTAT to OCI360;
