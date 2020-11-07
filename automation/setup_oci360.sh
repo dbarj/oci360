@@ -33,6 +33,8 @@ mkdir -p ${v_oci360_tool}/{log,out,exp}
 mkdir -p ${v_oci360_config}
 mkdir -p ${v_oci360_netadmin}
 
+ln -s ${v_oci360_www} /var/www/oci360
+
 useradd -g users -m -d ${v_oci360_home} oci360
 chown -R oci360: ${v_oci360_www} ${v_oci360_home}
 
