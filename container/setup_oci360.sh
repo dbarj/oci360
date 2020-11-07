@@ -151,7 +151,7 @@ cp -av ${v_oci360_tool}/app/sh/oci360_cron.sh ${v_oci360_config}/oci360_run.sh
 
 # Change OCI360 password
 v_oci360_pass="$(openssl rand -hex 6)"
-bash ${v_oci360_tool}/app/automation/change_oci360_pass.sh "${v_oci360_pass}"
+bash ${v_oci360_tool}/app/container/change_oci360_pass.sh "${v_oci360_pass}"
 mkstore -wrl ${v_oci360_netadmin} -modifyCredential oci360xe oci360 ${v_oci360_pass} <<< "${v_wallet_pass}"
 
 if [ -f ${v_oci360_config}/credentials ]

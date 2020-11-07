@@ -8,7 +8,7 @@
 # 2 - Apache Webserver to expose oci360 output.
 #
 # To execute the latest version of this script, execute the line below:
-# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/v20.07/automation/setup_docker.sh)"
+# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/v20.07/container/setup_docker.sh)"
 #
 ######################################################
 
@@ -89,9 +89,9 @@ chown -R 54321:54321 "${v_db_dir}"
 
 cd "${v_db_dir}/setup/"
 
-wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/automation/enable_max_string.sql
-wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/automation/create_oci360.sql
-wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/automation/setup_oci360.sh
+wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/enable_max_string.sql
+wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/create_oci360.sql
+wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/setup_oci360.sh
 
 cd -
 
