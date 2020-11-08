@@ -9,8 +9,7 @@ DEF oci360_obj_dir_path = '&&moat369_sw_output_fdr_fpath.'
 -- This was done because oracle can be running with umask that will not allow this program to read it later.
 @@&&fc_def_output_file. oci360_change_obj_dir 'directory.sql'
 HOS touch &&oci360_change_obj_dir.
-HOS chgrp dba &&oci360_change_obj_dir.
-HOS chmod g+w &&oci360_change_obj_dir.
+HOS chmod o+rw &&oci360_change_obj_dir.
 
 -- TODO: When running as SYS for another user, must give READ/WRITE/EXECUTE permissions on the folder.
 DECLARE
