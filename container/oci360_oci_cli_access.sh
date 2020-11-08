@@ -26,13 +26,13 @@ v_err=$(oci iam dynamic-group create \
 --matching-rule "instance.id = '${v_instance_ocid}'" \
 --description 'Group to handle oci-cli calls from the host of OCI360.' 2>&1 >/dev/null) || true
 
-if grep -q -F 'EntityAlreadyExists' <<< "${v_err}"
+if grep -qF 'EntityAlreadyExists' <<< "${v_err}"
 then
   v_dyn_group_json=$(oci iam dynamic-group list --all | jq '.data[] | select(."name" == "'${v_dyngroup_name}'")')
   v_dyn_group_id=$(jq -rc '.id' <<< "${v_dyn_group_json}")
   v_dyn_group_rules=$(jq -rc '."matching-rule"' <<< "${v_dyn_group_json}")
   v_new_dyn_group_rules="$(sed 's/}//' <<< "${v_dyn_group_rules}") , instance.id='${v_instance_ocid}'}"
-  if ! grep -q -F "${v_instance_ocid}" <<< "${v_new_dyn_group_rules}"
+  if ! grep -qF "${v_instance_ocid}" <<< "${v_dyn_group_rules}"
   then
     echo 'Dynamic Group already exists. Adding this instance on it.'
     oci iam dynamic-group update \
@@ -40,7 +40,7 @@ then
     --force \
     --matching-rule "${v_new_dyn_group_rules}"
   else
-    echo 'Dynamic Group already exists with this tenancy on it.'
+    echo 'Dynamic Group already exists with this instance on it.'
   fi
 elif [ -n "${v_err}" ]
 then
