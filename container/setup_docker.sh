@@ -20,7 +20,7 @@ v_master_directory="/u01"
 v_db_dir="${v_master_directory}/oci360_database"
 v_apache_dir="${v_master_directory}/oci360_apache"
 
-v_oci360_con_name="oci360"
+v_oci360_con_name="oci360-tool"
 v_apache_con_name="oci360-apache"
 v_git_branch="v20.07"
 

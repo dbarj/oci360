@@ -159,15 +159,15 @@ then
   mv ${v_oci360_config}/credentials ${v_oci360_config}/credentials.${v_exec_date}
 fi
 
-echo "Wallet Pass is: ${v_wallet_pass}" > ${v_oci360_config}/credentials
-echo "OCI360 DB Pass is: ${v_oci360_pass}" > ${v_oci360_config}/credentials
-echo "SYS/SYSTEM DB Pass is: $ORACLE_PWD" > ${v_oci360_config}/credentials
+echo "DB Wallet Pass is: ${v_wallet_pass}" > ${v_oci360_config}/credentials
+echo "OCI360 DB Pass is: ${v_oci360_pass}" >> ${v_oci360_config}/credentials
+echo "SYS/SYSTEM DB Pass is: $ORACLE_PWD" >> ${v_oci360_config}/credentials
 
 chown -R oci360: ${v_oci360_home}
 chown -R oci360: ${v_oci360_tool}
 
-chown root: ${v_oci360_config}/credentials
-chmod 600 ${v_oci360_config}/credentials
+chown root: ${v_oci360_config}/credentials*
+chmod 600 ${v_oci360_config}/credentials*
 
 chgrp dba ${v_oci360_tool}/out/
 chmod g+w ${v_oci360_tool}/out/
