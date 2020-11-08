@@ -5,6 +5,13 @@ DEF oci360_obj_dir_path = '&&moat369_sw_output_fdr_fpath.'
 -- @@&&fc_set_value_var_decode. 'oci360_obj_dir_path' '&&oci360_adb_skip.' '' 'oci360'            '&&moat369_sw_output_fdr_fpath.'
 -- @@&&fc_set_value_var_decode. 'oci360_obj_dir'      '&&oci360_adb_skip.' '' '&&oci360_adb_flr.' '&&oci360_obj_dir.'
 
+-- Create file where the next block will write into.
+-- This was done because oracle can be running with umask that will not allow this program to read it later.
+@@&&fc_def_output_file. oci360_change_obj_dir 'directory.sql'
+HOS touch &&oci360_change_obj_dir.
+HOS chgrp dba &&oci360_change_obj_dir.
+HOS chmod g+w &&oci360_change_obj_dir.
+
 -- TODO: When running as SYS for another user, must give READ/WRITE/EXECUTE permissions on the folder.
 DECLARE
   FHANDLE    SYS.UTL_FILE.FILE_TYPE;
@@ -70,11 +77,7 @@ WHENEVER SQLERROR CONTINUE
 @@&&fc_set_term_off.
 
 -- Define directory
-@@&&fc_def_output_file. oci360_change_obj_dir 'oci360_change_obj_dir.sql'
-HOS touch &&oci360_change_obj_dir.
-HOS if [ -f "&&moat369_sw_output_fdr./directory.sql" ]; then echo "@&&moat369_sw_output_fdr./directory.sql"; fi >> &&oci360_change_obj_dir.
-HOS if [ -f "&&moat369_sw_output_fdr./directory.sql" ]; then echo "! rm -f &&moat369_sw_output_fdr./directory.sql"; fi >> &&oci360_change_obj_dir.
 @&&oci360_change_obj_dir.
 HOS rm -f &&oci360_change_obj_dir.
 
-UNDEF oci360_obj_dir_path
+UNDEF oci360_change_obj_dir oci360_obj_dir_path
