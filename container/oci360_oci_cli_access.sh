@@ -26,21 +26,24 @@ v_err=$(oci iam dynamic-group create \
 --matching-rule "instance.id = '${v_instance_ocid}'" \
 --description 'Group to handle oci-cli calls from the host of OCI360.' 2>&1 >/dev/null) || true
 
+v_dyngroup_name_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_dyngroup_name}")
+
 if grep -qF 'EntityAlreadyExists' <<< "${v_err}"
 then
-  v_dyn_group_json=$(oci iam dynamic-group list --all | jq '.data[] | select(."name" == "'${v_dyngroup_name}'")')
+  echo 'Dynamic Group already exists. Checking if it has this instance..'
+  v_dyn_group_json=$(oci iam dynamic-group list --all | jq '.data[] | select(."name" | ascii_downcase == "'${v_dyngroup_name_comp}'")')
   v_dyn_group_id=$(jq -rc '.id' <<< "${v_dyn_group_json}")
   v_dyn_group_rules=$(jq -rc '."matching-rule"' <<< "${v_dyn_group_json}")
   v_new_dyn_group_rules="$(sed 's/}//' <<< "${v_dyn_group_rules}") , instance.id='${v_instance_ocid}'}"
   if ! grep -qF "${v_instance_ocid}" <<< "${v_dyn_group_rules}"
   then
-    echo 'Dynamic Group already exists. Adding this instance on it.'
+    echo 'Dynamic Group will be updated. Adding this instance on it.'
     oci iam dynamic-group update \
     --dynamic-group-id ${v_dyn_group_id} \
     --force \
     --matching-rule "${v_new_dyn_group_rules}"
   else
-    echo 'Dynamic Group already exists with this instance on it.'
+    echo 'Dynamic Group already has this instance on it.'
   fi
 elif [ -n "${v_err}" ]
 then
@@ -67,9 +70,46 @@ v_err=$(oci iam policy create \
 ]" \
 --description 'Policy to handle oci-cli calls from the host of OCI360.' 2>&1 >/dev/null) || true
 
+v_policy_name_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_policy_name}")
+
 if grep -q -F 'PolicyAlreadyExists' <<< "${v_err}"
 then
-  echo 'Policy already exists.'
+  echo 'Policy already exists. Checking if it has the required policies..'
+
+  v_policy_json=$(oci iam policy list --compartment-id "${v_tenancy_id}" --all | jq '.data[] | select(."name" | ascii_downcase == "'${v_policy_name_comp}'")')
+  v_policy_id=$(jq -rc '.id' <<< "${v_policy_json}")
+  v_policy_stms=$(jq '."statements"' <<< "${v_policy_json}")
+  v_policy_stms_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_policy_stms}")
+  v_new_policy_stms="${v_policy_stms}"
+
+  # Check and add rule 1 if not in policy
+  v_value="allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy"
+  v_value_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_value}")
+  v_result=$(jq 'index("'"${v_value_comp}"'") // empty' <<< "$v_policy_stms_comp")
+  if [ -z "${v_result}" ]
+  then
+    v_new_policy_stms=$(jq '. += ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
+  fi
+
+  # Check and add rule 2 if not in policy
+  v_value="allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy"
+  v_value_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_value}")
+  v_result=$(jq 'index("'"${v_value_comp}"'") // empty' <<< "$v_policy_stms_comp")
+  if [ -z "${v_result}" ]
+  then
+    v_new_policy_stms=$(jq '. += ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
+  fi
+
+  if ! diff <(echo "${v_policy_stms}") <(echo "${v_new_policy_stms}") > /dev/null
+  then
+    echo 'Policy will be updated. Adding new rules on it.'
+    oci iam policy update \
+    --policy-id ${v_policy_id} \
+    --force \
+    --statements "${v_new_policy_stms}"
+  else
+    echo 'Policy already has all the required rules.'
+  fi
 elif [ -n "${v_err}" ]
 then
   echo "${v_err}"
