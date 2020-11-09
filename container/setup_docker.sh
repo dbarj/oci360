@@ -20,9 +20,13 @@ v_master_directory="/u01"
 v_db_dir="${v_master_directory}/oci360_database"
 v_apache_dir="${v_master_directory}/oci360_apache"
 
+# Container names
 v_oci360_con_name="oci360-tool"
 v_apache_con_name="oci360-apache"
+
+# Don't change unless asked.
 v_git_branch="v20.07"
+v_oci360_uid=54322
 
 # Check if root
 [ "$(id -u -n)" != "root" ] && echo "Must be executed as root! Exiting..." && exit 1
@@ -33,8 +37,8 @@ v_major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$
 if [ $v_major_version -lt 7 ]
 then
   set +x
-  echo "Oracle Linux 6 or lower does not support latest versions of Docker."
-  echo "You will need to deploy OCI360 manually. Check wiki."
+  echo "Linux 6 or lower does not support latest versions of Docker."
+  echo "You will need to deploy OCI360 manually. Check the wiki page."
   exit 1
 fi
 
@@ -62,6 +66,7 @@ cd docker-images/OracleDatabase/SingleInstance/dockerfiles
 
 if [ $v_major_version -eq 8 ]
 then
+  # This is required on Linux 8 to allow the docker container to communicate with the internet.
   firewall-cmd --zone=public --add-masquerade --permanent
   firewall-cmd --reload
 fi
@@ -75,11 +80,11 @@ docker ps
 
 # Those IDs cannot be changed as they must be aligned with the docker image.
 # 54321 -> User: oracle
-# 54322 -> User: oci360
+# ${v_oci360_uid} -> User: oci360
 
 if ! $(getent passwd oci360 > /dev/null)
 then
-  useradd -u 54322 -g users -G docker oci360
+  useradd -u ${v_oci360_uid} -g users -G docker oci360
 fi
 
 rm -rf "${v_db_dir}"
@@ -105,6 +110,7 @@ docker run --name ${v_oci360_con_name} \
 -p 1521:1521 \
 -e ORACLE_CHARACTERSET=AL32UTF8 \
 -e OCI360_BRANCH=${v_git_branch} \
+-e OCI360_UID=${v_oci360_uid} \
 -v ${v_db_dir}/oradata:/opt/oracle/oradata \
 -v ${v_db_dir}/setup:/opt/oracle/scripts/setup \
 -v ${v_master_directory}:/u01 \
