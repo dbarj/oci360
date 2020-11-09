@@ -15,6 +15,14 @@
 set -eo pipefail
 set -x
 
+trap_err ()
+{
+  echo "Error on line $1 of \"setup_docker.sh\"."
+  exit 1
+}
+
+trap 'trap_err $LINENO' ERR
+
 # Directory Paths
 v_master_directory="/u01"
 v_db_dir="${v_master_directory}/oci360_database"
@@ -225,11 +233,17 @@ OCI360 install/upgrade finished successfully.
 
 To run OCI360, first setup the tenancy credentials on \"${v_master_directory}/.oci/config\" file.
 
-Then, connect locally in this compute as oci360 user (\"sudo su - oci360\") and run:
+Then, connect locally in this compute as oci360 user (\"sudo su - oci360\") or ROOT and test oci-cli:
 
-[OCI360]$ docker exec -it --user oci360 ${v_oci360_con_name} bash /u01/oci360_tool/scripts/oci360_run.sh
+[oci360@localhost ]$ docker exec -it --user oci360 ${v_oci360_con_name} bash -c 'export OCI_CLI_AUTH=instance_principal; cd /tmp/; /u01/oci360_tool/app/sh/oci_json_export.sh Comp-Instances'
 
-Optionally, you can add a crontab job for this collection:
+If the command above produce a JSON output with all your compute instances, everything is set correctly.
+
+Finally, call the OCI360 tool:
+
+[oci360@localhost ]$ docker exec -it --user oci360 ${v_oci360_con_name} bash /u01/oci360_tool/scripts/oci360_run.sh
+
+Optionally, you can add a crontab job for this collection to run every X hours (eg for 6 hours):
 
 00 */6 * * * docker exec -it --user oci360 ${v_oci360_con_name} bash /u01/oci360_tool/scripts/oci360_run.sh
 
@@ -242,7 +256,7 @@ To access the OCI360 output, you can either:
 - Download and open the zip file from ${v_master_directory}/oci360_tool/out/processed/
 
 To change OCI360 website password, run:
-[OCI360]$ docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 *new_password*
+[oci360@localhost ]$ docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 *new_password*
 
 ########################################
 ########################################
