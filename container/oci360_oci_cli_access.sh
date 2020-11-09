@@ -41,6 +41,7 @@ then
     oci iam dynamic-group update \
     --dynamic-group-id ${v_dyn_group_id} \
     --force \
+    --version-date '' \
     --matching-rule "${v_new_dyn_group_rules}"
   else
     echo 'Dynamic Group already has this instance on it.'
@@ -74,7 +75,7 @@ v_policy_name_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_policy_name}")
 
 if grep -q -F 'PolicyAlreadyExists' <<< "${v_err}"
 then
-  echo 'Policy already exists. Checking if it has the required policies..'
+  echo 'Policy already exists. Checking if it has the required rules..'
 
   v_policy_json=$(oci iam policy list --compartment-id "${v_tenancy_id}" --all | jq '.data[] | select(."name" | ascii_downcase == "'${v_policy_name_comp}'")')
   v_policy_id=$(jq -rc '.id' <<< "${v_policy_json}")
