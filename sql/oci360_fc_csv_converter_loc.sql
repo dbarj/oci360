@@ -14,6 +14,11 @@ DEF fc_csv_converter_loop  = '&&moat369_sw_folder./oci360_fc_csv_converter_loc_l
 @@&&fc_def_output_file. oci360_temp_preproc 'preproc.sh'
 @@&&fc_clean_file_name. oci360_temp_preproc oci360_temp_preproc_nopath "PATH"
 
+-- If I let oracle user create the file, I can't change its permissions later.
+-- So creating the file and giving oracle user permission to write and execute.
+HOS touch &&oci360_temp_preproc.
+HOS chmod o+rwx &&oci360_temp_preproc.
+
 DECLARE 
   FHANDLE  UTL_FILE.FILE_TYPE;
 BEGIN
@@ -28,7 +33,7 @@ EXCEPTION
 END;
 /
 
-HOS chmod +x &&oci360_temp_preproc.
+-- HOS chmod +x &&oci360_temp_preproc.
 
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE "&&oci360_temp_colcontrol." PURGE'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
