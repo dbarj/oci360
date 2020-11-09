@@ -18,5 +18,5 @@ grant SELECT on SYS.V_$SYSTEM_PARAMETER2 to OCI360;
 grant EXECUTE on SYS.DBMS_LOCK to OCI360;
 grant EXECUTE on SYS.UTL_FILE to OCI360;
 create directory OCI360_DIR as '/u01/oci360_tool/out/';
-grant READ, WRITE on directory OCI360_DIR to OCI360;
+grant READ, WRITE, EXECUTE on directory OCI360_DIR to OCI360;
 exit

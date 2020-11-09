@@ -3,7 +3,7 @@
 * 20.07 (2020-11-09)
   - Easy tool deployment using container.
   - Preparing for future release of monitoring section.
-  - Several fix and improvement on extraction scripts.
+  - Several fix and improvements on extraction scripts.
   - Fix bug when database created files could not be read by oci360 user.
   - Cron job will continue from last failure.
   - Web report is now accessed through HTTPS (not HTTP).
