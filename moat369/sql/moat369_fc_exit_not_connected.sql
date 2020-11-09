@@ -10,7 +10,7 @@ SELECT 'I_AM_HERE_' || COUNT(*) FROM DUAL;
 SPOOL OFF
 
 HOS printf "HOS rm -f &&exit_file." > &&exit_file.
-HOS grep "I_AM_HERE_1" &&step_file. 1>/dev/null || printf "PRO YOU ARE NOT CONNECTED\nHOS rm -f original_settings.sql\nHOS rm -f &&exit_file.\nEXIT SQL.SQLCODE" > &&exit_file.
+HOS grep "I_AM_HERE_1" &&step_file. 1>/dev/null || printf "PRO YOU ARE NOT CONNECTED\nHOS rm -f original_settings.sql\nHOS rm -f &&exit_file.\nEXIT 1" > &&exit_file.
 
 HOS rm -f &&step_file.
 UNDEF step_file
