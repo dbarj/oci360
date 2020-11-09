@@ -39,7 +39,7 @@ Finally, the tool will pull the data from the Oracle database to generate tables
 
 ## Execution Steps
 
-For the execution steps, please check the [Wiki Page](https://github.com/dbarj/oci360/wiki/Execution-Steps).
+For the execution steps, please check the [Wiki Page](https://github.com/dbarj/oci360/wiki/Install-OCI360).
 
 ## Results
 
