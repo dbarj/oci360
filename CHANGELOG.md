@@ -6,6 +6,7 @@
   - Several fix and improvement on extraction scripts.
   - Fix bug when database created files could not be read by oci360 user.
   - Cron job will continue from last failure.
+  - Web report is now accessed through HTTPS (not HTTP).
 
 * 20.06 (2020-06-25)
   - Infrastructure Visual Design now includes DB Systems.

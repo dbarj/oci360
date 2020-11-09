@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 2.10
+# Version 2.11
 #************************************************************************
 set -eo pipefail
 
@@ -1134,12 +1134,14 @@ then
         [ -n "${v_tmpfldr_root}" ] && { v_tmpfldr="${v_tmpfldr_root}/${v_region}"; cleanTmpFiles; rmdir "${v_tmpfldr}"; }
     done
     v_tmpfldr="${v_tmpfldr_root}"
+    echo "Script finished."
   elif [ $(echo "$l_regions" | wc -l) -eq 1 -a -n "$l_regions" ]
   then
     echo "Running in a single subscribed region \"$l_regions\"."
     v_oci="${v_oci_orig} --region ${l_regions}"
     v_outfile="${v_outfile_pref}_${l_regions}.zip"
     main
+    echo "Script finished."
   else
     echoError "Problem detecting subscribed regions. Output: $l_regions."
   fi
