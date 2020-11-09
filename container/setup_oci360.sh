@@ -41,7 +41,8 @@ mkdir -p ${v_oci360_netadmin}
 mkdir -p /var/www/
 ln -s ${v_oci360_www} /var/www/oci360
 
-useradd -g users -m -d ${v_oci360_home} oci360
+[ -z "${OCI360_UID}" ] && OCI360_UID=54322
+useradd -u ${OCI360_UID} -g users -m -d ${v_oci360_home} oci360
 chown -R oci360: ${v_oci360_www} ${v_oci360_home}
 
 echo 'export ORACLE_HOME=/opt/oracle/product/18c/dbhomeXE' >> ${v_oci360_home}/.bash_profile
