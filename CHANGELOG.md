@@ -1,10 +1,25 @@
 ## Versions ##
 
+* 20.07 (2020-11-09)
+  - Easy tool deployment using container.
+  - Preparing for future release of monitoring section.
+  - Several fix and improvements on extraction scripts.
+  - Fix bug when database created files could not be read by oci360 user.
+  - Cron job will continue from last failure.
+  - Web report is now accessed through HTTPS (not HTTP).
+  - Fix oci360.sql exit codes on error
+
 * 20.06 (2020-06-25)
   - Infrastructure Visual Design now includes DB Systems.
   - New BigData section.
   - New Costs and Billing sections.
   - More misc info for debugging.
+  - Failed tables section.
+  - Database storage on bar chart.
+  - User in groups improvements.
+  - Improving Shapes Collection.
+  - Separate Json and CSV loader logs.
+  - Rename oci history clean script.
 
 * 20.05 (2020-06-03)
   - Now OCI360 can also run in ADB.

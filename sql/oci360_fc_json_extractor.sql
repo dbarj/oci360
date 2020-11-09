@@ -5,8 +5,8 @@
 
 HOS ls -1 &&moat369_sw_output_fdr./oci_json_export_*.zip 2>&- > &&step_json_file_name.
 HOS printf "HOS rm -f &&step_json_file_driver." > &&step_json_file_driver.
-HOS if [ $(cat &&step_json_file_name. | wc -l) -eq 0 ]; then printf "PRO No zip file found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_json_file_name. &&step_json_file_driver.\nEXIT SQL.SQLCODE" > &&step_json_file_driver.; fi
-HOS if [ $(cat &&step_json_file_name. | wc -l) -ge 2 ]; then printf "PRO More than ONE zip file like oci_json_export_*.zip found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_json_file_name. &&step_json_file_driver.\nEXIT SQL.SQLCODE" > &&step_json_file_driver.; fi
+HOS if [ $(cat &&step_json_file_name. | wc -l) -eq 0 ]; then printf "PRO No zip file found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_json_file_name. &&step_json_file_driver.\nEXIT 1" > &&step_json_file_driver.; fi
+HOS if [ $(cat &&step_json_file_name. | wc -l) -ge 2 ]; then printf "PRO More than ONE zip file like oci_json_export_*.zip found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_json_file_name. &&step_json_file_driver.\nEXIT 1" > &&step_json_file_driver.; fi
 
 SET TERM ON
 

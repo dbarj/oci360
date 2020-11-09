@@ -5,7 +5,7 @@ SET TERM OFF
 DEF exit_file = '/tmp/exit_now.sql'
 
 HOS printf "HOS rm -f &&exit_file." > &&exit_file.
-HOS [ -w "&&moat369_sw_output_fdr." ] || printf "PRO OUTPUT FOLDER '&&moat369_sw_output_fdr.' NOT WRITABLE\nHOS rm -f original_settings.sql\nHOS rm -f &&exit_file.\nEXIT SQL.SQLCODE" > &&exit_file.
+HOS [ -w "&&moat369_sw_output_fdr." ] || printf "PRO OUTPUT FOLDER '&&moat369_sw_output_fdr.' NOT WRITABLE\nHOS rm -f original_settings.sql\nHOS rm -f &&exit_file.\nEXIT 1" > &&exit_file.
 
 SET TERM ON
 

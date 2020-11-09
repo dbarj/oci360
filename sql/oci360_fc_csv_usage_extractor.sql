@@ -5,7 +5,7 @@
 
 HOS ls -1 &&moat369_sw_output_fdr./oci_csv_usage_*.zip 2>&- > &&step_csv_file_name.
 HOS printf "HOS rm -f &&step_csv_file_driver." > &&step_csv_file_driver.
-HOS if [ $(cat &&step_csv_file_name. | wc -l) -ge 2 ]; then printf "PRO More than ONE zip file like oci_csv_usage_*.zip found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_csv_file_name. &&step_csv_file_driver.\nEXIT SQL.SQLCODE" > &&step_csv_file_driver.; fi
+HOS if [ $(cat &&step_csv_file_name. | wc -l) -ge 2 ]; then printf "PRO More than ONE zip file like oci_csv_usage_*.zip found in '&&moat369_sw_output_fdr.'.\nHOS rm -f original_settings.sql &&step_csv_file_name. &&step_csv_file_driver.\nEXIT 1" > &&step_csv_file_driver.; fi
 
 SET TERM ON
 

@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 1.06
+# Version 1.07
 #************************************************************************
 set -e
 
@@ -135,7 +135,8 @@ v_json_files=""
 for v_zip_file in $v_zip_files
 do
   v_this_list=$(unzip -Z -1 "${v_zip_file}" "*.json") && v_ret=$? || v_ret=$?
-  [ $v_ret -eq 0 ] || exitError "Can't zip list ${v_zip_file}"
+  # 11 = no matching files were found.
+  [ $v_ret -eq 0 -o $v_ret -eq 11 ] || exitError "Can't zip list ${v_zip_file}"
   [ -z "$v_json_files" ] && v_json_files="${v_this_list}" || v_json_files="${v_json_files}"$'\n'"${v_this_list}"
   v_json_files=$(echo "${v_json_files}" | sort -u)
 done

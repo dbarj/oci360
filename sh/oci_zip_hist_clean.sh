@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: May/2019 by Rodrigo Jorge
-# Version 1.01
+# Version 1.02
 #************************************************************************
 set -eo pipefail
 
@@ -102,14 +102,17 @@ then
   exitError "Temporary folder \"${v_tmpfldr}\" is NOT WRITABLE."
 fi
 
-v_zip_new="${v_zip}.new"
-v_list_new="${v_list}.new"
+v_zip_fdr="$(cd "$(dirname "${v_zip}")"; pwd)"
+v_zip_file="$(basename "${v_zip}")"
 
-cd "${v_tmpfldr}"
+v_zip_new="${v_zip_file}.new"
+v_list_new="${v_list}.new"
 
 v_now_epoch=$(date -u '+%s')
 
 unzip -q -d "${v_tmpfldr}" "${v_zip}"
+
+cd "${v_tmpfldr}"
 
 if [ ! -f "${v_list}" ]
 then
@@ -235,16 +238,17 @@ then
   done 3< "${v_list}"
 
   cd outfdr
-  zip -qmT -9 "${v_zip_new}" *
+  zip -qmT -9 "${v_zip_fdr}/${v_zip_new}" *
   cd ..
   rmdir outfdr
 else
-  zip -qmT -9 "${v_zip_new}" *
+  zip -qmT -9 "${v_zip_fdr}/${v_zip_new}" *
 fi
 
 cleanTmpFiles
 
-mv "${v_zip_new}" "${v_zip}"
+cd "${v_zip_fdr}"
+mv "${v_zip_new}" "${v_zip_file}"
 
 exit 0
 ###

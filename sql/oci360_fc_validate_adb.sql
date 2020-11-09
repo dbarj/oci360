@@ -20,7 +20,7 @@ from DUAL
 WHERE REGEXP_LIKE ('&&oci360_adb_uri.','&&oci360_adb_uri_pattern.');
 COL oci360_check clear
 
-HOS if [ &&oci360_check. -eq 0 ]; then printf 'PRO\nPRO Variable oci360_adb_uri is with wrong pattern. It should be "https://objectstorage.REGION.oraclecloud.com/n/NAMESPACE/b/BUCKET/o/".\nHOS rm -f original_settings.sql "&&oci360_step_file."\nEXIT SQL.SQLCODE' > &&oci360_step_file.; fi
+HOS if [ &&oci360_check. -eq 0 ]; then printf 'PRO\nPRO Variable oci360_adb_uri is with wrong pattern. It should be "https://objectstorage.REGION.oraclecloud.com/n/NAMESPACE/b/BUCKET/o/".\nHOS rm -f original_settings.sql "&&oci360_step_file."\nEXIT 1' > &&oci360_step_file.; fi
 
 SET TERM ON
 
@@ -38,7 +38,7 @@ from all_credentials
 WHERE CREDENTIAL_NAME = '&&oci360_adb_cred.';
 COL oci360_check clear
 
-HOS if [ &&oci360_check. -eq 0 ]; then printf 'PRO\nPRO Could not find the credential oci360_adb_cred: "&&oci360_adb_cred.".\nHOS rm -f original_settings.sql "&&oci360_step_file."\nEXIT SQL.SQLCODE' > &&oci360_step_file.; fi
+HOS if [ &&oci360_check. -eq 0 ]; then printf 'PRO\nPRO Could not find the credential oci360_adb_cred: "&&oci360_adb_cred.".\nHOS rm -f original_settings.sql "&&oci360_step_file."\nEXIT 1' > &&oci360_step_file.; fi
 
 SET TERM ON
 
@@ -68,7 +68,7 @@ SPO OFF
 
 @@&&oci360_step_file.
 
-HOS if [ $(cat "&&oci360_step_out." | grep 'ORA-' | wc -l) -ge 1 ]; then printf 'PRO\nPRO Error when running DBMS_CLOUD.LIST_OBJECTS...\nPRO Check the credential permissions and the URL.\nPRO\nHOS cat "&&oci360_step_out."\nHOS rm -f original_settings.sql "&&oci360_step_file." "&&oci360_step_out."\nEXIT SQL.SQLCODE' > &&oci360_step_file.; fi
+HOS if [ $(cat "&&oci360_step_out." | grep 'ORA-' | wc -l) -ge 1 ]; then printf 'PRO\nPRO Error when running DBMS_CLOUD.LIST_OBJECTS...\nPRO Check the credential permissions and the URL.\nPRO\nHOS cat "&&oci360_step_out."\nHOS rm -f original_settings.sql "&&oci360_step_file." "&&oci360_step_out."\nEXIT 1' > &&oci360_step_file.; fi
 SET TERM ON
 
 @@&&oci360_step_file.
