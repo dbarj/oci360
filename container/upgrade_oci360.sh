@@ -3,7 +3,7 @@
 # This script will make the deployment and configuration of OCI360 files and folders.
 
 # To execute the latest version of this script, execute the line below:
-# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/v20.07/container/upgrade_oci360.sh)"
+# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/master/container/upgrade_oci360.sh)"
 
 set -eo pipefail
 set -x
