@@ -405,26 +405,36 @@ wait $v_pid_bill && v_ret=$? || v_ret=$?
 
 if [ ${OCI360_SKIP_BILL} -eq 0 ]
 then
-  [ $v_ret -eq 0 ] && echoTime "oci_json_billing.sh completed." || echoTime "oci_json_billing.sh failed. Returned $v_ret."
+  if [ $v_ret -eq 0 ]
+  then
+    echoTime "oci_json_billing.sh completed."
+  else
+    echoTime "oci_json_billing.sh failed. Returned $v_ret."
+  fi
 fi
 
 if [ ${OCI360_SKIP_MERGER_BILL} -eq 0 ]
 then
   echoTime "Merging oci_json_billing.sh outputs."
-  mv "${v_dir_bill}"/oci_json_billing_*.zip ${v_dir_ociexp} || true
-  rmdir "${v_dir_bill}" || true
-  if [ $v_ret -eq 0 ]
+  if ls "${v_dir_bill}"/oci_json_billing_*.zip 1> /dev/null 2>&1
   then
-    v_file=$(ls -t1 oci_json_billing_*.zip | sed 's/.zip$//' | head -n 1) || true
-    if [ -f ${v_file}.zip ]
+    mv "${v_dir_bill}"/oci_json_billing_*.zip ${v_dir_ociexp}
+    rmdir "${v_dir_bill}" || true
+    if [ $v_ret -eq 0 ]
     then
-      mkdir ${v_file}
-      unzip -d ${v_file} ${v_file}.zip
-      cd ${v_file}
-      zip -m ${v_dir_ociexp}/${v_exp_file}.zip *.json
-      cd ${v_dir_ociexp}
-      rm -rf ${v_file}
+      v_file=$(ls -t1 oci_json_billing_*.zip | sed 's/.zip$//' | head -n 1) || true
+      if [ -f ${v_file}.zip ]
+      then
+        mkdir ${v_file}
+        unzip -d ${v_file} ${v_file}.zip
+        cd ${v_file}
+        zip -m ${v_dir_ociexp}/${v_exp_file}.zip *.json
+        cd ${v_dir_ociexp}
+        rm -rf ${v_file}
+      fi
     fi
+  else
+    echoTime "Unable to find oci_json_billing_*.zip files."
   fi
 else
   echoTime 'Skip billing merger execution.'
@@ -446,7 +456,12 @@ wait $v_pid_audit && v_ret=$? || v_ret=$?
 
 if [ ${OCI360_SKIP_AUDIT} -eq 0 ]
 then
-  [ $v_ret -eq 0 ] && echoTime "oci_json_audit.sh completed." || echoTime "oci_json_audit.sh failed. Returned $v_ret."
+  if [ $v_ret -eq 0 ]
+  then
+    echoTime "oci_json_audit.sh completed."
+  else
+    echoTime "oci_json_audit.sh failed. Returned $v_ret."
+  fi
 fi
 
 if [ ${OCI360_SKIP_MERGER_AUDIT} -eq 0 ]
@@ -496,7 +511,12 @@ wait $v_pid_monit && v_ret=$? || v_ret=$?
 
 if [ ${OCI360_SKIP_MONIT} -eq 0 ]
 then
-  [ $v_ret -eq 0 ] && echoTime "oci_json_monitoring.sh completed." || echoTime "oci_json_monitoring.sh failed. Returned $v_ret."
+  if [ $v_ret -eq 0 ]
+  then
+    echoTime "oci_json_monitoring.sh completed."
+  else
+    echoTime "oci_json_monitoring.sh failed. Returned $v_ret."
+  fi
 fi
 
 if [ ${OCI360_SKIP_MERGER_MONIT} -eq 0 ]
@@ -546,7 +566,12 @@ wait $v_pid_usage && v_ret=$? || v_ret=$?
 
 if [ ${OCI360_SKIP_USAGE} -eq 0 ]
 then
-  [ $v_ret -eq 0 ] && echoTime "oci_csv_usage.sh completed." || echoTime "oci_csv_usage.sh failed. Returned $v_ret."
+  if [ $v_ret -eq 0 ]
+  then
+    echoTime "oci_csv_usage.sh completed."
+  else
+    echoTime "oci_csv_usage.sh failed. Returned $v_ret."
+  fi
 fi
 
 if [ ${OCI360_SKIP_MERGER_USAGE} -eq 0 ]
@@ -673,6 +698,10 @@ rm -f latest
 ln -sf ${v_dir_name} latest
 /usr/sbin/restorecon -R ${v_dir_www} || true
 
+#############################
+### Cleanup for next Exec ###
+#############################
+
 # Create folders if not exit
 [ ! -d "${v_dir_ociout}/processed" ] && mkdir "${v_dir_ociout}/processed"
 [ ! -d "${v_dir_ociexp}/processed" ] && mkdir "${v_dir_ociexp}/processed"
@@ -707,7 +736,7 @@ mv ${v_oci_file} ${v_dir_ociout}/processed/
   bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${v_dir_ociexp}/processed/usage_hist.zip"   history_list.txt ${v_usage_period}   || true
 #fi
 
-# Clean last execution step.
+# Clean last execution step if exists.
 sed -i '/OCI360_LAST_EXEC_STEP=/d' ${v_config_file}
 
 echoTime "Script finished."
