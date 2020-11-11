@@ -7,8 +7,11 @@
 # 1 - OCI360 engine with 18c XE database.
 # 2 - Apache Webserver to expose oci360 output.
 #
-# To execute the latest version of this script, execute the line below:
+# To execute the stable version of this script, execute the line below:
 # bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/master/container/setup_docker.sh)"
+#
+# To execute the latest (unstable) version of this script, execute the line below:
+# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/Development/container/setup_docker.sh)"
 #
 ######################################################
 
@@ -33,7 +36,7 @@ v_oci360_con_name="oci360-tool"
 v_apache_con_name="oci360-apache"
 
 # Don't change unless asked.
-v_git_branch="master"
+v_git_branch="Development"
 v_oci360_uid=54322
 
 # Check if root
