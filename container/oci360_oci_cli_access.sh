@@ -1,5 +1,5 @@
 #!/bin/sh
-# v1.0
+# v1.1
 
 # Create oci-cli instance_principal access for OCI360
 # Only use this script if the tenancy you are running OCI360 is the same you want to get the info.
@@ -66,12 +66,26 @@ v_err=$(oci iam policy create \
 --name "${v_policy_name}"  \
 --statements \
 "[
-  \"allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy\" ,
-  \"allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy\"
+  \"allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy\",
+  \"allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy\",
+  \"define tenancy usage-report as ${v_tenancy_id}\",
+  \"endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report\"
 ]" \
 --description 'Policy to handle oci-cli calls from the host of OCI360.' 2>&1 >/dev/null) || true
 
 v_policy_name_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_policy_name}")
+
+function check_policy_exist ()
+{
+  # Check and add rule 3 if not in policy
+  v_value="$1"
+  v_value_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_value}")
+  v_result=$(jq 'index("'"${v_value_comp}"'") // empty' <<< "$v_policy_stms_comp")
+  if [ -z "${v_result}" ]
+  then
+    v_new_policy_stms=$(jq '. += ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
+  fi
+}
 
 if grep -q -F 'PolicyAlreadyExists' <<< "${v_err}"
 then
@@ -85,21 +99,19 @@ then
 
   # Check and add rule 1 if not in policy
   v_value="allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy"
-  v_value_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_value}")
-  v_result=$(jq 'index("'"${v_value_comp}"'") // empty' <<< "$v_policy_stms_comp")
-  if [ -z "${v_result}" ]
-  then
-    v_new_policy_stms=$(jq '. += ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
-  fi
+  check_policy_exist
 
   # Check and add rule 2 if not in policy
   v_value="allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy"
-  v_value_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_value}")
-  v_result=$(jq 'index("'"${v_value_comp}"'") // empty' <<< "$v_policy_stms_comp")
-  if [ -z "${v_result}" ]
-  then
-    v_new_policy_stms=$(jq '. += ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
-  fi
+  check_policy_exist
+
+  # Check and add rule 3 if not in policy
+  v_value="define tenancy usage-report as ${v_tenancy_id}"
+  check_policy_exist
+
+  # Check and add rule 4 if not in policy
+  v_value="endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report"
+  check_policy_exist
 
   if ! diff <(echo "${v_policy_stms}") <(echo "${v_new_policy_stms}") > /dev/null
   then
