@@ -229,11 +229,11 @@ then
 
   echoTime "Calling oci_json_export.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_export.sh ALL_REGIONS > ${v_dir_ocilog}/oci_json_export.log 2>&1 &
+  v_pid_exp=$!
+  echoTime "Process oci_json_export.sh in running with PID ${v_pid_exp}."
 else
   echoTime 'Skip oci_json_export.sh execution.'
-  true &
 fi
-v_pid_exp=$!
 
 # Billing Collector
 
@@ -256,11 +256,11 @@ then
 
   echoTime "Calling oci_json_billing.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_billing.sh ALL $(date -d "-${v_billing_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_json_billing.log 2>&1 &
+  v_pid_bill=$!
+  echoTime "Process oci_json_billing.sh in running with PID ${v_pid_bill}."
 else
   echoTime 'Skip oci_json_billing.sh execution.'
-  true &
 fi
-v_pid_bill=$!
 
 # Audit Collector
 
@@ -283,11 +283,11 @@ then
 
   echoTime "Calling oci_json_audit.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_audit.sh ALL_REGIONS $(date -d "-${v_audit_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_json_audit.log 2>&1 &
+  v_pid_audit=$!
+  echoTime "Process oci_json_audit.sh in running with PID ${v_pid_audit}."
 else
   echoTime 'Skip oci_json_audit.sh execution.'
-  true &
 fi
-v_pid_audit=$!
 
 # Monitoring Collector
 
@@ -310,11 +310,11 @@ then
 
   echoTime "Calling oci_json_monitoring.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_monitoring.sh ALL_REGIONS $(date -d "-${v_monit_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_json_monitoring.log 2>&1 &
+  v_pid_monit=$!
+  echoTime "Process oci_json_monitoring.sh in running with PID ${v_pid_monit}."
 else
   echoTime 'Skip oci_json_monitoring.sh execution.'
-  true &
 fi
-v_pid_monit=$!
 
 # Usage Collector
 
@@ -336,11 +336,11 @@ then
 
   echoTime "Calling oci_csv_usage.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_csv_usage.sh -r $(date -d "-${v_usage_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_csv_usage.log 2>&1 &
+  v_pid_usage=$!
+  echoTime "Process oci_csv_usage.sh in running with PID ${v_pid_usage}."
 else
   echoTime 'Skip oci_csv_usage.sh execution.'
-  true &
 fi
-v_pid_usage=$!
 
 ##############
 ### Merger ###
@@ -368,6 +368,17 @@ copy_json_from_zip1_to_zip2 ()
   rm -rf "${v_fdr}"
 }
 
+wait_pid_if_exists ()
+{
+  if [ -n "${1}" ]
+  then
+    echoTime "Waiting process ${2} with PID ${1}. Hold on."
+    wait ${1} && v_ret=$? || v_ret=$?
+  else
+    v_ret=0
+  fi
+}
+
 cd ${v_dir_ociexp}
 
 # Tenancy Merger
@@ -383,7 +394,7 @@ then
   tail -f ${v_dir_ocilog}/oci_json_export.log & || true
 fi
 
-wait $v_pid_exp && v_ret=$? || v_ret=$?
+wait_pid_if_exists "$v_pid_exp" "oci_json_export.sh"
 
 if [ $v_ret -ne 0 ]
 then
@@ -438,7 +449,7 @@ then
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_billing.log"
 fi
 
-wait $v_pid_bill && v_ret=$? || v_ret=$?
+wait_pid_if_exists "$v_pid_bill" "oci_json_billing.sh"
 
 if [ ${OCI360_SKIP_BILL} -eq 0 ]
 then
@@ -480,7 +491,7 @@ then
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_audit.log"
 fi
 
-wait $v_pid_audit && v_ret=$? || v_ret=$?
+wait_pid_if_exists "$v_pid_audit" "oci_json_audit.sh"
 
 if [ ${OCI360_SKIP_AUDIT} -eq 0 ]
 then
@@ -532,7 +543,7 @@ then
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_monitoring.log"
 fi
 
-wait $v_pid_monit && v_ret=$? || v_ret=$?
+wait_pid_if_exists "$v_pid_monit" "oci_json_monitoring.sh"
 
 if [ ${OCI360_SKIP_MONIT} -eq 0 ]
 then
@@ -587,7 +598,7 @@ then
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci_csv_usage.log"
 fi
 
-wait $v_pid_usage && v_ret=$? || v_ret=$?
+wait_pid_if_exists "$v_pid_usage" "oci_csv_usage.sh"
 
 if [ ${OCI360_SKIP_USAGE} -eq 0 ]
 then
@@ -669,7 +680,7 @@ ${v_oci360_opts}
 --
 EOF
 
-  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci360.out"
+  echoTime "Log File: tail -f ${v_dir_ocilog}/oci360.out"
 
   set +e
   sqlplus ${v_conn} > ${v_dir_ocilog}/oci360.out << EOF
