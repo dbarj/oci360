@@ -8,7 +8,7 @@
 # 2 - Apache Webserver to expose oci360 output.
 #
 # To execute the latest version of this script, execute the line below:
-# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/Development/container/setup_docker.sh)"
+# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/master/container/setup_docker.sh)"
 #
 ######################################################
 
@@ -199,7 +199,7 @@ openssl req \
 -keyout "${v_apache_dir}/ssl/server.key" \
 -subj "/C=BR/ST=RJ/L=RJ/O=OCI360/CN=${SERVER_NAME}"
 
-chmod 600 "${v_apache_dir}/ssl/server.*"
+chmod 600 "${v_apache_dir}"/ssl/server.*
 
 touch "${v_apache_dir}/.htpasswd"
 
