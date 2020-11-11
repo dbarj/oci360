@@ -93,6 +93,8 @@ docker ps
 if ! $(getent passwd oci360 > /dev/null)
 then
   useradd -u ${v_oci360_uid} -g users -G docker oci360
+else
+  v_oci360_uid=$(id -u oci360)
 fi
 
 rm -rf "${v_db_dir}"
@@ -196,6 +198,8 @@ openssl req \
 -out "${v_apache_dir}/ssl/server.crt" \
 -keyout "${v_apache_dir}/ssl/server.key" \
 -subj "/C=BR/ST=RJ/L=RJ/O=OCI360/CN=${SERVER_NAME}"
+
+chmod 600 "${v_apache_dir}/ssl/server.*"
 
 touch "${v_apache_dir}/.htpasswd"
 
