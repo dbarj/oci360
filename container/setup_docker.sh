@@ -24,6 +24,15 @@ trap_err ()
   exit 1
 }
 
+loop_wait_proc ()
+{
+  while kill -0 "$1"
+  do
+    echo "Process is still running. Please wait."
+    sleep 30
+  done
+}
+
 trap 'trap_err $LINENO' ERR
 
 # Directory Paths
@@ -71,10 +80,6 @@ systemctl start docker
 # Docker Image for 18c XE #
 ###########################
 
-rm -rf docker-images/
-git clone https://github.com/oracle/docker-images.git
-cd docker-images/OracleDatabase/SingleInstance/dockerfiles
-
 if [ $v_major_version -eq 8 ]
 then
   # This is required on Linux 8 to allow the docker container to communicate with the internet.
@@ -82,9 +87,18 @@ then
   firewall-cmd --reload
 fi
 
-./buildDockerImage.sh -v 18.4.0 -x
-cd -
-rm -rf docker-images/
+if [ "$(docker images -q oracle/database:18.4.0-xe)" == "" ]
+then
+  rm -rf docker-images/
+  git clone https://github.com/oracle/docker-images.git
+  cd docker-images/OracleDatabase/SingleInstance/dockerfiles
+  ./buildDockerImage.sh -v 18.4.0 -x &
+  loop_wait_proc "$!"
+  cd -
+  rm -rf docker-images/
+else
+  echo "oracle/database:18.4.0-xe image already exists."
+fi
 
 docker images
 docker ps
