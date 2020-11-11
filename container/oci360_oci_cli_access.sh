@@ -70,9 +70,9 @@ v_err=$(oci iam policy create \
 --statements \
 "[
   \"define tenancy usage-report as ${v_usage_cost_tenancy}\",
+  \"endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report\",
   \"allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy\",
-  \"allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy\",
-  \"endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report\"
+  \"allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy\"
 ]" \
 --description 'Policy to handle oci-cli calls from the host of OCI360.' 2>&1 >/dev/null) || true
 
@@ -82,11 +82,17 @@ function check_policy_exist ()
 {
   # Check and add rule 3 if not in policy
   v_value="$1"
+  v_pos="$2" # Position to add new rule. 1 or NULL
   v_value_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_value}")
   v_result=$(jq 'index("'"${v_value_comp}"'") // empty' <<< "$v_policy_stms_comp")
   if [ -z "${v_result}" ]
   then
-    v_new_policy_stms=$(jq '. += ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
+    if [ "$v_pos" = "1" ]
+    then
+      v_new_policy_stms=$(jq '["'"${v_value}"'"] + .' <<< "${v_new_policy_stms}")
+    else
+      v_new_policy_stms=$(jq '. + ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
+    fi
   fi
 }
 
@@ -102,19 +108,19 @@ then
 
   # Check and add rule 1 if not in policy
   v_value="allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy"
-  check_policy_exist
+  check_policy_exist "$v_value"
 
   # Check and add rule 2 if not in policy
   v_value="allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy"
-  check_policy_exist
+  check_policy_exist "$v_value"
 
   # Check and add rule 3 if not in policy
   v_value="define tenancy usage-report as ${v_usage_cost_tenancy}"
-  check_policy_exist
+  check_policy_exist "$v_value" 1
 
-  # Check and add rule 4 if not in policy
+  # Check and add rule 4 if not in policy (in the beggining)
   v_value="endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report"
-  check_policy_exist
+  check_policy_exist "$v_value"
 
   if ! diff <(echo "${v_policy_stms}") <(echo "${v_new_policy_stms}") > /dev/null
   then
@@ -122,6 +128,7 @@ then
     oci iam policy update \
     --policy-id ${v_policy_id} \
     --force \
+    --version-date '' \
     --statements "${v_new_policy_stms}"
   else
     echo 'Policy already has all the required rules.'
