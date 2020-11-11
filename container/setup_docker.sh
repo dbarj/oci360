@@ -1,5 +1,5 @@
 #!/bin/bash -x
-# v1.0
+# v1.1
 
 ######################################################
 #
@@ -113,7 +113,9 @@ cd -
 docker stop ${v_oci360_con_name} || true
 docker rm ${v_oci360_con_name} || true
 
-docker run --name ${v_oci360_con_name} \
+docker run \
+--name ${v_oci360_con_name} \
+--restart unless-stopped \
 -d \
 -p 1521:1521 \
 -e ORACLE_CHARACTERSET=AL32UTF8 \
@@ -200,6 +202,7 @@ touch "${v_apache_dir}/.htpasswd"
 docker run \
 -dit \
 --name ${v_apache_con_name} \
+--restart unless-stopped \
 -p 443:443 \
 -v "${v_master_directory}/www":/usr/local/apache2/htdocs/oci360 \
 -v "${v_apache_dir}/httpd.conf":/usr/local/apache2/conf/httpd.conf \
