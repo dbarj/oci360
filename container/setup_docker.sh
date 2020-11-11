@@ -8,7 +8,7 @@
 # 2 - Apache Webserver to expose oci360 output.
 #
 # To execute the latest version of this script, execute the line below:
-# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/master/container/setup_docker.sh)"
+# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/Development/container/setup_docker.sh)"
 #
 ######################################################
 
@@ -216,7 +216,7 @@ docker run \
 -v "${v_apache_dir}/.htpasswd":/etc/httpd/.htpasswd \
 httpd:2.4
 
-v_http_pass="welcome1.$(openssl rand -hex 2)"
+v_http_pass="$(openssl rand -hex 6)"
 
 docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 ${v_http_pass}
 
@@ -225,7 +225,7 @@ firewall-cmd --add-service=https || true
 firewall-cmd --permanent --add-service=https || true
 
 ###############
-# Call OCI360 #
+# Info OCI360 #
 ###############
 
 set +x
