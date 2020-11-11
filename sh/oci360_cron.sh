@@ -91,10 +91,10 @@ then
   v_param1_lower=$(tr '[:upper:]' '[:lower:]' <<< "$v_param1")
   v_param1_upper=$(tr '[:lower:]' '[:upper:]' <<< "$v_param1")
   export OCI_CLI_ARGS="${OCI_CLI_ARGS} --profile ${v_param1_upper}"
-  v_dir_www=${v_dir_www}/${v_param1_lower}
   v_dir_ociexp=${v_dir_ociexp}/${v_param1_lower}
   v_dir_ociout=${v_dir_ociout}/${v_param1_lower}
   v_dir_ocilog=${v_dir_ocilog}/${v_param1_lower}
+  v_dir_www=${v_dir_www}/${v_param1_lower}
   v_schema_name=${v_param1_upper}
   v_config_file=${v_param1_lower}.cfg
   export TMPDIR=${TMPDIR}/${v_param1_lower}
@@ -105,24 +105,22 @@ fi
 
 v_config_file="${v_confdir}/${v_config_file}"
 
+[ ! -d "${v_dir_ociexp}" ]   && { exitError "Folder \"${v_dir_ociexp}\" was not created."; }
 [ ! -d "${v_dir_ociout}" ]   && { exitError "Folder \"${v_dir_ociout}\" was not created."; }
 [ ! -d "${v_dir_ocilog}" ]   && { exitError "Folder \"${v_dir_ocilog}\" was not created."; }
-[ ! -d ${v_dir_www} ]        && { exitError "Folder \"${v_dir_www}\" was not created."; }
-[ ! -d ${v_dir_ociexp} ]     && { exitError "Folder \"${v_dir_ociexp}\" was not created."; }
+[ ! -d "${v_dir_www}" ]      && { exitError "Folder \"${v_dir_www}\" was not created."; }
 
 set +x
 
 v_script_runtime=$(/bin/date '+%Y%m%d%H%M%S')
 v_script_log="${v_dir_ocilog}/run.${v_script_runtime}.log"
 v_script_trc="${v_dir_ocilog}/run.${v_script_runtime}.trc"
-echo "From this point, all the output will be redirected to \"${v_script_log}\"."
-echo "To follow the steps, run in another session: tail -f ${v_script_log}"
+echo "From this point, all the output will also be redirected to \"${v_script_log}\"."
 
 # Redirect script STDOUT and STDERR to file.
-exec 1<&-
 exec 2<&-
-exec 1<>"${v_script_log}"
 exec 2<>"${v_script_trc}"
+exec &> >(tee -a "${v_script_log}")
 
 set -x
 
@@ -348,6 +346,28 @@ v_pid_usage=$!
 ### Merger ###
 ##############
 
+move_and_remove_folder ()
+{
+  # $1 -> Subfolder.
+  # $2 -> File to move to parent folder.
+  if ls "${1}"/"${2}" 1> /dev/null 2>&1
+  then
+    mv "${1}"/"${2}" "${1}"
+    rmdir "${1}" || true
+  fi
+}
+
+copy_json_from_zip1_to_zip2 ()
+{
+  v_fdr=$(sed 's/.zip$//' <<< "${1}")
+  mkdir "${v_fdr}"
+  unzip -d "${v_fdr}" "${1}"
+  cd "${v_fdr}"
+  zip -m "${2}" *.json
+  cd -
+  rm -rf "${v_fdr}"
+}
+
 cd ${v_dir_ociexp}
 
 # Tenancy Merger
@@ -358,8 +378,9 @@ incr_oci360_step
 if [ ${OCI360_SKIP_EXP} -eq 0 ]
 then
   echoTime "Waiting for oci_json_export.sh to finish."
-  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_export.log"
-  echoTime "For tracing detailed steps, run: tail -f ${v_dir_exp}/oci_json_export.log"
+  echoTime "Trace File: tail -f ${v_dir_exp}/oci_json_export.log"
+  echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_export.log"
+  tail -f ${v_dir_ocilog}/oci_json_export.log & || true
 fi
 
 wait $v_pid_exp && v_ret=$? || v_ret=$?
@@ -371,31 +392,27 @@ then
   exitError "Check logfile for more info: ${v_dir_ocilog}/oci_json_export.${v_script_runtime}.log"
 fi
 
+move_and_remove_folder "${v_dir_exp}" "oci_json_export_*_*.zip"
+
 if [ ${OCI360_SKIP_MERGER_EXP} -eq 0 ]
 then
   echoTime "Merging oci_json_export.sh outputs."
-  mv "${v_dir_exp}"/oci_json_export_*.zip ${v_dir_ociexp} || true
-  rmdir "${v_dir_exp}" || true
 
-  if ! ls oci_json_export_*_*.zip 1> /dev/null 2>&1
+  if ls oci_json_export_*_*.zip 1> /dev/null 2>&1
   then
+    v_exp_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
+    ${v_dir_oci360}/sh/oci_json_merger.sh "${v_exp_file}_*.zip" "${v_exp_file}.zip"
+  else
     echoTime "Could not find oci_json_export_*_*.zip file on \"${v_dir_ociexp}\"."
     exitError "Restart the script removing OCI360_LAST_EXEC_STEP from ${v_config_file}."
   fi
 
-  v_exp_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
-  ${v_dir_oci360}/sh/oci_json_merger.sh "${v_exp_file}_*.zip" "${v_exp_file}.zip"
 else
   echoTime 'Skip export merger execution.'
 fi
 
 if [ -z "${v_exp_file}" ]
 then
-
-  if ls oci_json_export_*_*.zip 1> /dev/null 2>&1
-  then
-    v_exp_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
-  fi
 
   if ls oci_json_export_*.zip 1> /dev/null 2>&1
   then
@@ -404,7 +421,7 @@ then
 
   if [ -z "${v_exp_file}" ]
   then
-    echoTime "Could not find oci_json_export_*_*.zip file on \"${v_dir_ociexp}\"."
+    echoTime "Could not find oci_json_export_*.zip file on \"${v_dir_ociexp}\"."
     exitError "Restart the script removing OCI360_LAST_EXEC_STEP from ${v_config_file}."
   fi
 fi
@@ -417,8 +434,8 @@ incr_oci360_step
 if [ ${OCI360_SKIP_BILL} -eq 0 ]
 then
   echoTime "Waiting for oci_json_billing.sh to finish."
-  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_billing.log"
-  echoTime "For tracing detailed steps, run: tail -f ${v_dir_bill}/oci_json_billing.log"
+  echoTime "Trace File: tail -f ${v_dir_bill}/oci_json_billing.log"
+  echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_billing.log"
 fi
 
 wait $v_pid_bill && v_ret=$? || v_ret=$?
@@ -430,28 +447,20 @@ then
     echoTime "oci_json_billing.sh completed."
   else
     echoTime "oci_json_billing.sh failed. Returned $v_ret."
+    OCI360_SKIP_MERGER_BILL=1
   fi
 fi
+
+move_and_remove_folder "${v_dir_bill}" "oci_json_billing_*.zip"
 
 if [ ${OCI360_SKIP_MERGER_BILL} -eq 0 ]
 then
   echoTime "Merging oci_json_billing.sh outputs."
 
-  if ls "${v_dir_bill}"/oci_json_billing_*.zip 1> /dev/null 2>&1
-  then
-    mv "${v_dir_bill}"/oci_json_billing_*.zip ${v_dir_ociexp}
-    rmdir "${v_dir_bill}" || true
-  fi
-
   if ls oci_json_billing_*.zip 1> /dev/null 2>&1
   then
-    v_file=$(ls -t1 oci_json_billing_*.zip | head -n 1 | sed 's/.zip$//')
-    mkdir ${v_file}
-    unzip -d ${v_file} ${v_file}.zip
-    cd ${v_file}
-    zip -m ${v_dir_ociexp}/${v_exp_file}.zip *.json
-    cd ${v_dir_ociexp}
-    rm -rf ${v_file}
+    v_file=$(ls -t1 oci_json_billing_*.zip | head -n 1)
+    copy_json_from_zip1_to_zip2 "${v_file}" "${v_dir_ociexp}/${v_exp_file}.zip"
   else
     echoTime "Unable to find oci_json_billing_*.zip files."
   fi
@@ -467,8 +476,8 @@ incr_oci360_step
 if [ ${OCI360_SKIP_AUDIT} -eq 0 ]
 then
   echoTime "Waiting for oci_json_audit.sh to finish."
-  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_audit.log"
-  echoTime "For tracing detailed steps, run: tail -f ${v_dir_audit}/oci_json_audit.log"
+  echoTime "Trace File: tail -f ${v_dir_audit}/oci_json_audit.log"
+  echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_audit.log"
 fi
 
 wait $v_pid_audit && v_ret=$? || v_ret=$?
@@ -480,18 +489,15 @@ then
     echoTime "oci_json_audit.sh completed."
   else
     echoTime "oci_json_audit.sh failed. Returned $v_ret."
+    OCI360_SKIP_MERGER_AUDIT=1
   fi
 fi
+
+move_and_remove_folder "${v_dir_audit}" "oci_json_audit_*_*.zip"
 
 if [ ${OCI360_SKIP_MERGER_AUDIT} -eq 0 ]
 then
   echoTime "Merging oci_json_audit.sh outputs."
-
-  if ls "${v_dir_audit}"/oci_json_audit_*.zip 1> /dev/null 2>&1
-  then
-    mv "${v_dir_audit}"/oci_json_audit_*.zip ${v_dir_ociexp}
-    rmdir "${v_dir_audit}" || true
-  fi
 
   if ls oci_json_audit_*_*.zip 1> /dev/null 2>&1
   then
@@ -499,19 +505,16 @@ then
     v_prefix_file=$(ls -t1 oci_json_audit_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
     ${v_dir_oci360}/sh/oci_json_merger.sh "${v_prefix_file}_*.zip" "${v_prefix_file}.zip"
     unset MERGE_UNIQUE
+  else
+    echoTime "Unable to find oci_json_audit_*_*.zip files."
   fi
 
   if ls oci_json_audit_*.zip 1> /dev/null 2>&1
   then
-    v_file=$(ls -t1 oci_json_audit_*.zip | head -n 1 | sed 's/.zip$//')
-    mkdir ${v_file}
-    unzip -d ${v_file} ${v_file}.zip
-    cd ${v_file}
-    zip -m ${v_dir_ociexp}/${v_exp_file}.zip *.json
-    cd ${v_dir_ociexp}
-    rm -rf ${v_file}
+    v_file=$(ls -t1 oci_json_audit_*.zip | head -n 1)
+    copy_json_from_zip1_to_zip2 "${v_file}" "${v_dir_ociexp}/${v_exp_file}.zip"
   else
-    echoTime "Unable to find oci_json_audit_*_*.zip files."
+    echoTime "Unable to find oci_json_audit_*.zip files."
   fi
 else
   echoTime 'Skip audit merger execution.'
@@ -525,8 +528,8 @@ incr_oci360_step
 if [ ${OCI360_SKIP_MONIT} -eq 0 ]
 then
   echoTime "Waiting for oci_json_monitoring.sh to finish."
-  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_json_monitoring.log"
-  echoTime "For tracing detailed steps, run: tail -f ${v_dir_monit}/oci_json_monitoring.log"
+  echoTime "Trace File: tail -f ${v_dir_monit}/oci_json_monitoring.log"
+  echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_monitoring.log"
 fi
 
 wait $v_pid_monit && v_ret=$? || v_ret=$?
@@ -544,29 +547,29 @@ fi
 if [ ${OCI360_SKIP_MERGER_MONIT} -eq 0 ]
 then
   echoTime "Merging oci_json_monitoring.sh outputs."
-  mv "${v_dir_monit}"/oci_json_monitoring_*.zip ${v_dir_ociexp} || true
-  rmdir "${v_dir_monit}" || true
-  if [ $v_ret -eq 0 ]
+
+  if ls "${v_dir_monit}"/oci_json_monitoring_*.zip 1> /dev/null 2>&1
+  then
+    mv "${v_dir_monit}"/oci_json_monitoring_*.zip ${v_dir_ociexp}
+    rmdir "${v_dir_monit}" || true
+  fi
+
+  if ls oci_json_monitoring_*_*.zip 1> /dev/null 2>&1
   then
     export MERGE_UNIQUE=0
-    v_prefix_file=$(ls -t1 oci_json_monitoring_*_*.zip | head -n 1 | sed 's/_[^_]*$//') || true
-    if [ -f ${v_prefix_file}_*.zip ]
-    then
-      ${v_dir_oci360}/sh/oci_json_merger.sh "${v_prefix_file}_*.zip" "${v_prefix_file}.zip"
-    else
-      echoTime "Unable to find oci_json_monitoring_*_*.zip files."
-    fi
+    v_prefix_file=$(ls -t1 oci_json_monitoring_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
+    ${v_dir_oci360}/sh/oci_json_merger.sh "${v_prefix_file}_*.zip" "${v_prefix_file}.zip"
     unset MERGE_UNIQUE
-    v_file=$(ls -t1 oci_json_monitoring_*.zip | head -n 1 | sed 's/.zip$//') || true
-    if [ -f ${v_file}.zip ]
-    then
-      mkdir ${v_file}
-      unzip -d ${v_file} ${v_file}.zip
-      cd ${v_file}
-      zip -m ${v_dir_ociexp}/${v_exp_file}.zip *.json
-      cd ${v_dir_ociexp}
-      rm -rf ${v_file}
-    fi
+  else
+    echoTime "Unable to find oci_json_monitoring_*_*.zip files."
+  fi
+
+  if ls oci_json_monitoring_*.zip 1> /dev/null 2>&1
+  then
+    v_file=$(ls -t1 oci_json_monitoring_*.zip | head -n 1 | sed 's/.zip$//')
+    copy_json_from_zip1_to_zip2 "${v_file}" "${v_dir_ociexp}/${v_exp_file}.zip"
+  else
+    echoTime "Unable to find oci_json_monitoring_*.zip files."
   fi
 else
   echoTime 'Skip monitoring merger execution.'
@@ -580,8 +583,8 @@ incr_oci360_step
 if [ ${OCI360_SKIP_USAGE} -eq 0 ]
 then
   echoTime "Waiting for oci_csv_usage.sh to finish."
-  echoTime "For execution status, run: tail -f ${v_dir_ocilog}/oci_csv_usage.log"
-  echoTime "For tracing detailed steps, run: tail -f ${v_dir_usage}/oci_csv_usage.log"
+  echoTime "Trace File: tail -f ${v_dir_usage}/oci_csv_usage.log"
+  echoTime "Log File: tail -f ${v_dir_ocilog}/oci_csv_usage.log"
 fi
 
 wait $v_pid_usage && v_ret=$? || v_ret=$?
@@ -593,17 +596,22 @@ then
     echoTime "oci_csv_usage.sh completed."
   else
     echoTime "oci_csv_usage.sh failed. Returned $v_ret."
+    OCI360_SKIP_MERGER_USAGE=1
   fi
 fi
 
+move_and_remove_folder "${v_dir_usage}" "oci_csv_usage_*.zip"
+
 if [ ${OCI360_SKIP_MERGER_USAGE} -eq 0 ]
 then
-  mv "${v_dir_usage}"/oci_csv_usage_*.zip ${v_dir_ociexp} || true
-  rmdir "${v_dir_usage}" || true
-  if [ $v_ret -eq 0 ]
+
+  if ls oci_csv_usage_*.zip 1> /dev/null 2>&1
   then
-    v_csv_file=$(ls -t1 oci_csv_usage_*.zip | head -n 1) || true
+    v_csv_file=$(ls -t1 oci_csv_usage_*.zip | head -n 1)
+  else
+    echoTime "Unable to find oci_csv_usage_*.zip files."
   fi
+
 else
   echoTime 'Skip usage merger execution.'
 fi
