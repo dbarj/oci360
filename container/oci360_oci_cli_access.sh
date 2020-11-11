@@ -1,5 +1,5 @@
 #!/bin/sh
-# v1.0
+# v1.1
 
 # Create oci-cli instance_principal access for OCI360
 # Only use this script if the tenancy you are running OCI360 is the same you want to get the info.
@@ -61,17 +61,40 @@ v_tenancy_id=$(oci iam compartment list \
 --raw-output \
 --query "data[?contains(\"id\",'tenancy')].id | [0]")
 
+# Don't change this: https://docs.cloud.oracle.com/en-us/iaas/Content/Billing/Tasks/accessingusagereports.htm
+v_usage_cost_tenancy='ocid1.tenancy.oc1..aaaaaaaaned4fkpkisbwjlr56u7cj63lf3wffbilvqknstgtvzub7vhqkggq'
+
 v_err=$(oci iam policy create \
 --compartment-id "${v_tenancy_id}" \
 --name "${v_policy_name}"  \
 --statements \
 "[
-  \"allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy\" ,
+  \"define tenancy usage-report as ${v_usage_cost_tenancy}\",
+  \"endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report\",
+  \"allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy\",
   \"allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy\"
 ]" \
 --description 'Policy to handle oci-cli calls from the host of OCI360.' 2>&1 >/dev/null) || true
 
 v_policy_name_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_policy_name}")
+
+function check_policy_exist ()
+{
+  # Check and add rule 3 if not in policy
+  v_value="$1"
+  v_pos="$2" # Position to add new rule. 1 or NULL
+  v_value_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_value}")
+  v_result=$(jq 'index("'"${v_value_comp}"'") // empty' <<< "$v_policy_stms_comp")
+  if [ -z "${v_result}" ]
+  then
+    if [ "$v_pos" = "1" ]
+    then
+      v_new_policy_stms=$(jq '["'"${v_value}"'"] + .' <<< "${v_new_policy_stms}")
+    else
+      v_new_policy_stms=$(jq '. + ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
+    fi
+  fi
+}
 
 if grep -q -F 'PolicyAlreadyExists' <<< "${v_err}"
 then
@@ -85,21 +108,19 @@ then
 
   # Check and add rule 1 if not in policy
   v_value="allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy"
-  v_value_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_value}")
-  v_result=$(jq 'index("'"${v_value_comp}"'") // empty' <<< "$v_policy_stms_comp")
-  if [ -z "${v_result}" ]
-  then
-    v_new_policy_stms=$(jq '. += ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
-  fi
+  check_policy_exist "$v_value"
 
   # Check and add rule 2 if not in policy
   v_value="allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy"
-  v_value_comp=$(tr '[:upper:]' '[:lower:]' <<< "${v_value}")
-  v_result=$(jq 'index("'"${v_value_comp}"'") // empty' <<< "$v_policy_stms_comp")
-  if [ -z "${v_result}" ]
-  then
-    v_new_policy_stms=$(jq '. += ["'"${v_value}"'"]' <<< "${v_new_policy_stms}")
-  fi
+  check_policy_exist "$v_value"
+
+  # Check and add rule 3 if not in policy
+  v_value="define tenancy usage-report as ${v_usage_cost_tenancy}"
+  check_policy_exist "$v_value" 1
+
+  # Check and add rule 4 if not in policy (in the beggining)
+  v_value="endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report"
+  check_policy_exist "$v_value"
 
   if ! diff <(echo "${v_policy_stms}") <(echo "${v_new_policy_stms}") > /dev/null
   then
@@ -107,6 +128,7 @@ then
     oci iam policy update \
     --policy-id ${v_policy_id} \
     --force \
+    --version-date '' \
     --statements "${v_new_policy_stms}"
   else
     echo 'Policy already has all the required rules.'
@@ -114,7 +136,7 @@ then
 elif [ -n "${v_err}" ]
 then
   echo "${v_err}"
-  echo "Unable to create ${v_dyngroup_name}."
+  echo "Unable to create ${v_policy_name}."
   exit 1
 fi
 
