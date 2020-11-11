@@ -1,5 +1,5 @@
 #!/bin/bash
-# v1.0
+# v1.1
 # This script will make the deployment and configuration of OCI360 files and folders.
 
 set -eo pipefail
@@ -90,7 +90,7 @@ v_wallet_pass="Oracle.123.$(openssl rand -hex 4)"
 orapki wallet create -wallet ${v_oci360_netadmin} -auto_login -pwd ${v_wallet_pass}
 mkstore -wrl ${v_oci360_netadmin} -createCredential oci360xe oci360 oracle <<< "${v_wallet_pass}"
 
-if [ ! -f ${v_oci360_netadmin}/tnsnames.ora ]
+if ! grep -qF 'OCI360XE' ${v_oci360_netadmin}/tnsnames.ora
 then
   echo 'OCI360XE =
   (DESCRIPTION =
@@ -99,7 +99,7 @@ then
       (SERVER = DEDICATED)
       (SERVICE_NAME = XEPDB1)
     )
-  )' > ${v_oci360_netadmin}/tnsnames.ora
+  )' >> ${v_oci360_netadmin}/tnsnames.ora
 fi
 
 if [ ! -f ${v_oci360_netadmin}/sqlnet.ora ]
