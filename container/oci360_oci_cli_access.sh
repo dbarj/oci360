@@ -61,12 +61,15 @@ v_tenancy_id=$(oci iam compartment list \
 --raw-output \
 --query "data[?contains(\"id\",'tenancy')].id | [0]")
 
+# Don't change this: https://docs.cloud.oracle.com/en-us/iaas/Content/Billing/Tasks/accessingusagereports.htm
+v_usage_cost_tenancy='ocid1.tenancy.oc1..aaaaaaaaned4fkpkisbwjlr56u7cj63lf3wffbilvqknstgtvzub7vhqkggq'
+
 v_err=$(oci iam policy create \
 --compartment-id "${v_tenancy_id}" \
 --name "${v_policy_name}"  \
 --statements \
 "[
-  \"define tenancy usage-report as ${v_tenancy_id}\",
+  \"define tenancy usage-report as ${v_usage_cost_tenancy}\",
   \"allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy\",
   \"allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy\",
   \"endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report\"
@@ -106,7 +109,7 @@ then
   check_policy_exist
 
   # Check and add rule 3 if not in policy
-  v_value="define tenancy usage-report as ${v_tenancy_id}"
+  v_value="define tenancy usage-report as ${v_usage_cost_tenancy}"
   check_policy_exist
 
   # Check and add rule 4 if not in policy
