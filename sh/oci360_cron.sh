@@ -8,11 +8,19 @@
 # https://github.com/dbarj/oci360/wiki/Automate-OCI360-18c-XE
 # https://github.com/dbarj/oci360/wiki/Automate-OCI360-ADB
 # ----------------------------------------------------------------------------
-# v1.14
+# v1.15
 # ----------------------------------------------------------------------------
 
 source ~/.bash_profile
 set -eo pipefail
+
+## Default values. If you want to change them, modify in the .cfg file.
+
+v_retention_period=30 # Number of days to keep past oci360 executions.
+v_billing_period=90   # Number of days to get billing data.
+v_audit_period=30     # Number of days to get audit data.
+v_monit_period=30     # Number of days to get monitoring data.
+v_usage_period=30     # Number of days to get reporting data.
 
 # Funcions
 
@@ -24,6 +32,7 @@ echoTime ()
 exitError ()
 {
   echoTime "$1"
+  kill -9 $(ps -s $$ -o pid= | grep -v $$) 2>&-
   exit 1
 }
 
@@ -49,16 +58,11 @@ incr_oci360_step ()
   [ -z "$OCI360_CRON_STEP" ] && OCI360_CRON_STEP=1 || OCI360_CRON_STEP=$(($OCI360_CRON_STEP+1))
 }
 
+# If unhandled error, code will stop and save current step.
 trap 'trap_err $LINENO' ERR
-trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM
+trap 'exitError "Code interrupted."' SIGINT SIGTERM
 
-## Default values. If you want to change them, modify in the .cfg file.
-
-v_retention_period=30 # Number of days to keep past oci360 executions.
-v_billing_period=90   # Number of days to get billing data.
-v_audit_period=30     # Number of days to get audit data.
-v_monit_period=30     # Number of days to get monitoring data.
-v_usage_period=30     # Number of days to get reporting data.
+# Directories
 
 v_thisdir="$(dirname "$(readlink -f "$0")")"
 v_basedir="$(readlink -f "$v_thisdir/../")"   # Folder of OCI360 Tool
@@ -74,6 +78,9 @@ v_dir_ociout=$v_basedir/out     # Output folder of OCI360 execution.
 v_dir_ocilog=$v_basedir/log     # Log folder of OCI360 execution.
 
 v_timeout=$((24*3600)) # Timeout to run JSON exporter. 3600 = 1 hour
+
+# Convert to original directory if symbolic link.
+v_dir_www=$(readlink -f "${v_dir_www}")
 
 # If you want to have multiple tenancies being executed for the same server, you can optionally pass the tenancy name as a parameter for this script.
 # In this case, you must also create a profile for the tenancy on .oci/config and all the corresponding sub-folders.
@@ -370,19 +377,32 @@ then
   mv "${v_dir_exp}"/oci_json_export_*.zip ${v_dir_ociexp} || true
   rmdir "${v_dir_exp}" || true
 
-  v_exp_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//') && v_ret=$? || v_ret=$?
-  if [ $v_ret -ne 0 ]
+  if ! ls oci_json_export_*_*.zip 1> /dev/null 2>&1
   then
     echoTime "Could not find oci_json_export_*_*.zip file on \"${v_dir_ociexp}\"."
     exitError "Restart the script removing OCI360_LAST_EXEC_STEP from ${v_config_file}."
   fi
 
+  v_exp_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
   ${v_dir_oci360}/sh/oci_json_merger.sh "${v_exp_file}_*.zip" "${v_exp_file}.zip"
 else
   echoTime 'Skip export merger execution.'
+fi
 
-  v_exp_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//') && v_ret=$? || v_ret=$?
-  if [ $v_ret -ne 0 ]
+if [ -z "${v_exp_file}" ]
+then
+
+  if ls oci_json_export_*_*.zip 1> /dev/null 2>&1
+  then
+    v_exp_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
+  fi
+
+  if ls oci_json_export_*.zip 1> /dev/null 2>&1
+  then
+    v_exp_file=$(ls -t1 oci_json_export_*.zip | head -n 1 | sed 's/.zip$//')
+  fi
+
+  if [ -z "${v_exp_file}" ]
   then
     echoTime "Could not find oci_json_export_*_*.zip file on \"${v_dir_ociexp}\"."
     exitError "Restart the script removing OCI360_LAST_EXEC_STEP from ${v_config_file}."
@@ -416,23 +436,22 @@ fi
 if [ ${OCI360_SKIP_MERGER_BILL} -eq 0 ]
 then
   echoTime "Merging oci_json_billing.sh outputs."
+
   if ls "${v_dir_bill}"/oci_json_billing_*.zip 1> /dev/null 2>&1
   then
     mv "${v_dir_bill}"/oci_json_billing_*.zip ${v_dir_ociexp}
     rmdir "${v_dir_bill}" || true
-    if [ $v_ret -eq 0 ]
-    then
-      v_file=$(ls -t1 oci_json_billing_*.zip | sed 's/.zip$//' | head -n 1) || true
-      if [ -f ${v_file}.zip ]
-      then
-        mkdir ${v_file}
-        unzip -d ${v_file} ${v_file}.zip
-        cd ${v_file}
-        zip -m ${v_dir_ociexp}/${v_exp_file}.zip *.json
-        cd ${v_dir_ociexp}
-        rm -rf ${v_file}
-      fi
-    fi
+  fi
+
+  if ls oci_json_billing_*.zip 1> /dev/null 2>&1
+  then
+    v_file=$(ls -t1 oci_json_billing_*.zip | head -n 1 | sed 's/.zip$//')
+    mkdir ${v_file}
+    unzip -d ${v_file} ${v_file}.zip
+    cd ${v_file}
+    zip -m ${v_dir_ociexp}/${v_exp_file}.zip *.json
+    cd ${v_dir_ociexp}
+    rm -rf ${v_file}
   else
     echoTime "Unable to find oci_json_billing_*.zip files."
   fi
@@ -467,29 +486,32 @@ fi
 if [ ${OCI360_SKIP_MERGER_AUDIT} -eq 0 ]
 then
   echoTime "Merging oci_json_audit.sh outputs."
-  mv "${v_dir_audit}"/oci_json_audit_*.zip ${v_dir_ociexp} || true
-  rmdir "${v_dir_audit}" || true
-  if [ $v_ret -eq 0 ]
+
+  if ls "${v_dir_audit}"/oci_json_audit_*.zip 1> /dev/null 2>&1
+  then
+    mv "${v_dir_audit}"/oci_json_audit_*.zip ${v_dir_ociexp}
+    rmdir "${v_dir_audit}" || true
+  fi
+
+  if ls oci_json_audit_*_*.zip 1> /dev/null 2>&1
   then
     export MERGE_UNIQUE=0
     v_prefix_file=$(ls -t1 oci_json_audit_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
-    if [ -f ${v_prefix_file}_*.zip ]
-    then
-      ${v_dir_oci360}/sh/oci_json_merger.sh "${v_prefix_file}_*.zip" "${v_prefix_file}.zip"
-    else
-      echoTime "Unable to find oci_json_audit_*_*.zip files."
-    fi
+    ${v_dir_oci360}/sh/oci_json_merger.sh "${v_prefix_file}_*.zip" "${v_prefix_file}.zip"
     unset MERGE_UNIQUE
-    v_file=$(ls -t1 oci_json_audit_*.zip | sed 's/.zip$//' | head -n 1) || true
-    if [ -f ${v_file}.zip ]
-    then
-      mkdir ${v_file}
-      unzip -d ${v_file} ${v_file}.zip
-      cd ${v_file}
-      zip -m ${v_dir_ociexp}/${v_exp_file}.zip *.json
-      cd ${v_dir_ociexp}
-      rm -rf ${v_file}
-    fi
+  fi
+
+  if ls oci_json_audit_*.zip 1> /dev/null 2>&1
+  then
+    v_file=$(ls -t1 oci_json_audit_*.zip | head -n 1 | sed 's/.zip$//')
+    mkdir ${v_file}
+    unzip -d ${v_file} ${v_file}.zip
+    cd ${v_file}
+    zip -m ${v_dir_ociexp}/${v_exp_file}.zip *.json
+    cd ${v_dir_ociexp}
+    rm -rf ${v_file}
+  else
+    echoTime "Unable to find oci_json_audit_*_*.zip files."
   fi
 else
   echoTime 'Skip audit merger execution.'
@@ -535,7 +557,7 @@ then
       echoTime "Unable to find oci_json_monitoring_*_*.zip files."
     fi
     unset MERGE_UNIQUE
-    v_file=$(ls -t1 oci_json_monitoring_*.zip | sed 's/.zip$//' | head -n 1) || true
+    v_file=$(ls -t1 oci_json_monitoring_*.zip | head -n 1 | sed 's/.zip$//') || true
     if [ -f ${v_file}.zip ]
     then
       mkdir ${v_file}
@@ -599,7 +621,7 @@ if [ $OCI360_SKIP_PLACE_ZIPS -eq 0 ]
 then
   rm -f ${v_dir_ociout}/oci_csv_usage_*.zip
   rm -f ${v_dir_ociout}/oci_json_export_*.zip
-  
+
   if [ -n "${v_oci_bucket}" ]
   then
     [ -n "${OCI_CLI_ARGS_BUCKET}" ] && OCI_CLI_ARGS_BKP="${OCI_CLI_ARGS}" && export OCI_CLI_ARGS="${OCI_CLI_ARGS_BUCKET}"
