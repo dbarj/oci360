@@ -66,9 +66,9 @@ v_err=$(oci iam policy create \
 --name "${v_policy_name}"  \
 --statements \
 "[
+  \"define tenancy usage-report as ${v_tenancy_id}\",
   \"allow dynamic-group ${v_dyngroup_name} to read all-resources in tenancy\",
   \"allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy\",
-  \"define tenancy usage-report as ${v_tenancy_id}\",
   \"endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report\"
 ]" \
 --description 'Policy to handle oci-cli calls from the host of OCI360.' 2>&1 >/dev/null) || true
@@ -126,7 +126,7 @@ then
 elif [ -n "${v_err}" ]
 then
   echo "${v_err}"
-  echo "Unable to create ${v_dyngroup_name}."
+  echo "Unable to create ${v_policy_name}."
   exit 1
 fi
 
