@@ -10,9 +10,6 @@
 # To execute the stable version of this script, execute the line below:
 # bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/master/container/setup_docker.sh)"
 #
-# To execute the latest (unstable) version of this script, execute the line below:
-# bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/Development/container/setup_docker.sh)"
-#
 ######################################################
 
 set -eo pipefail
@@ -38,7 +35,7 @@ v_oci360_con_name="oci360-tool"
 v_apache_con_name="oci360-apache"
 
 # Don't change unless asked.
-v_git_branch="Development"
+v_git_branch="master"
 v_oci360_uid=54322
 
 # Check if root
