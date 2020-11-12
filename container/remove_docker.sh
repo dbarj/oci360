@@ -14,6 +14,8 @@ trap 'trap_err $LINENO' ERR
 
 # Directory Paths
 v_master_directory="/u01"
+[ -n "${OCI360_ROOT_DIR}" ] && v_master_directory="${OCI360_ROOT_DIR}"
+
 v_db_dir="${v_master_directory}/oci360_database"
 v_apache_dir="${v_master_directory}/oci360_apache"
 
@@ -32,7 +34,6 @@ docker stop ${v_oci360_con_name} || true
 docker rm ${v_oci360_con_name} || true
 
 rm -rf "${v_apache_dir}"
-mkdir -p "${v_apache_dir}"
 
 docker stop ${v_apache_con_name} || true
 docker rm ${v_apache_con_name} || true
