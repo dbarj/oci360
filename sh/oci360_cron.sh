@@ -118,9 +118,8 @@ v_script_trc="${v_dir_ocilog}/run.${v_script_runtime}.trc"
 echo "From this point, all the output will also be redirected to \"${v_script_log}\"."
 
 # Redirect script STDOUT and STDERR to file.
-exec 2<&-
-exec 2<>"${v_script_trc}"
-exec &> >(tee -a "${v_script_log}")
+exec 2>"${v_script_trc}"
+exec > >(tee -a "${v_script_log}")
 
 set -x
 
@@ -230,7 +229,7 @@ then
   echoTime "Calling oci_json_export.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_export.sh ALL_REGIONS > ${v_dir_ocilog}/oci_json_export.log 2>&1 &
   v_pid_exp=$!
-  echoTime "Process oci_json_export.sh in running with PID ${v_pid_exp}."
+  echoTime "Process oci_json_export.sh is running with PID ${v_pid_exp}."
 else
   echoTime 'Skip oci_json_export.sh execution.'
 fi
@@ -257,7 +256,7 @@ then
   echoTime "Calling oci_json_billing.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_billing.sh ALL $(date -d "-${v_billing_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_json_billing.log 2>&1 &
   v_pid_bill=$!
-  echoTime "Process oci_json_billing.sh in running with PID ${v_pid_bill}."
+  echoTime "Process oci_json_billing.sh is running with PID ${v_pid_bill}."
 else
   echoTime 'Skip oci_json_billing.sh execution.'
 fi
@@ -284,7 +283,7 @@ then
   echoTime "Calling oci_json_audit.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_audit.sh ALL_REGIONS $(date -d "-${v_audit_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_json_audit.log 2>&1 &
   v_pid_audit=$!
-  echoTime "Process oci_json_audit.sh in running with PID ${v_pid_audit}."
+  echoTime "Process oci_json_audit.sh is running with PID ${v_pid_audit}."
 else
   echoTime 'Skip oci_json_audit.sh execution.'
 fi
@@ -311,7 +310,7 @@ then
   echoTime "Calling oci_json_monitoring.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_monitoring.sh ALL_REGIONS $(date -d "-${v_monit_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_json_monitoring.log 2>&1 &
   v_pid_monit=$!
-  echoTime "Process oci_json_monitoring.sh in running with PID ${v_pid_monit}."
+  echoTime "Process oci_json_monitoring.sh is running with PID ${v_pid_monit}."
 else
   echoTime 'Skip oci_json_monitoring.sh execution.'
 fi
@@ -337,7 +336,7 @@ then
   echoTime "Calling oci_csv_usage.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_csv_usage.sh -r $(date -d "-${v_usage_period} day" +%Y-%m-%d) > ${v_dir_ocilog}/oci_csv_usage.log 2>&1 &
   v_pid_usage=$!
-  echoTime "Process oci_csv_usage.sh in running with PID ${v_pid_usage}."
+  echoTime "Process oci_csv_usage.sh is running with PID ${v_pid_usage}."
 else
   echoTime 'Skip oci_csv_usage.sh execution.'
 fi
@@ -350,15 +349,17 @@ move_and_remove_folder ()
 {
   # $1 -> Subfolder.
   # $2 -> File to move to parent folder.
-  if ls "${1}"/"${2}" 1> /dev/null 2>&1
+  if ls "${1}"/${2} 1> /dev/null 2>&1
   then
-    mv "${1}"/"${2}" "${1}"
+    mv "${1}"/${2} .
     rmdir "${1}" || true
   fi
 }
 
 copy_json_from_zip1_to_zip2 ()
 {
+  # $1 -> Zip 1 (relative PATH).
+  # $2 -> Zip 2 (full PATH).
   v_fdr=$(sed 's/.zip$//' <<< "${1}")
   mkdir "${v_fdr}"
   unzip -d "${v_fdr}" "${1}"
@@ -368,8 +369,10 @@ copy_json_from_zip1_to_zip2 ()
   rm -rf "${v_fdr}"
 }
 
-wait_pid_if_exists ()
+wait_pid_if_notnull ()
 {
+  # $1 -> PID.
+  # $2 -> Description
   if [ -n "${1}" ]
   then
     echoTime "Waiting process ${2} with PID ${1}. Hold on."
@@ -388,13 +391,13 @@ incr_oci360_step
 
 if [ ${OCI360_SKIP_EXP} -eq 0 ]
 then
-  echoTime "Waiting for oci_json_export.sh to finish."
+  echoTime "Checking oci_json_export.sh..."
   echoTime "Trace File: tail -f ${v_dir_exp}/oci_json_export.log"
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_export.log"
-  tail -f ${v_dir_ocilog}/oci_json_export.log & || true
+  tail -f ${v_dir_ocilog}/oci_json_export.log &
 fi
 
-wait_pid_if_exists "$v_pid_exp" "oci_json_export.sh"
+wait_pid_if_notnull "$v_pid_exp" "oci_json_export.sh"
 
 if [ $v_ret -ne 0 ]
 then
@@ -444,12 +447,12 @@ incr_oci360_step
 
 if [ ${OCI360_SKIP_BILL} -eq 0 ]
 then
-  echoTime "Waiting for oci_json_billing.sh to finish."
+  echoTime "Checking oci_json_billing.sh..."
   echoTime "Trace File: tail -f ${v_dir_bill}/oci_json_billing.log"
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_billing.log"
 fi
 
-wait_pid_if_exists "$v_pid_bill" "oci_json_billing.sh"
+wait_pid_if_notnull "$v_pid_bill" "oci_json_billing.sh"
 
 if [ ${OCI360_SKIP_BILL} -eq 0 ]
 then
@@ -486,12 +489,12 @@ incr_oci360_step
 
 if [ ${OCI360_SKIP_AUDIT} -eq 0 ]
 then
-  echoTime "Waiting for oci_json_audit.sh to finish."
+  echoTime "Checking oci_json_audit.sh..."
   echoTime "Trace File: tail -f ${v_dir_audit}/oci_json_audit.log"
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_audit.log"
 fi
 
-wait_pid_if_exists "$v_pid_audit" "oci_json_audit.sh"
+wait_pid_if_notnull "$v_pid_audit" "oci_json_audit.sh"
 
 if [ ${OCI360_SKIP_AUDIT} -eq 0 ]
 then
@@ -538,12 +541,12 @@ incr_oci360_step
 
 if [ ${OCI360_SKIP_MONIT} -eq 0 ]
 then
-  echoTime "Waiting for oci_json_monitoring.sh to finish."
+  echoTime "Checking oci_json_monitoring.sh..."
   echoTime "Trace File: tail -f ${v_dir_monit}/oci_json_monitoring.log"
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci_json_monitoring.log"
 fi
 
-wait_pid_if_exists "$v_pid_monit" "oci_json_monitoring.sh"
+wait_pid_if_notnull "$v_pid_monit" "oci_json_monitoring.sh"
 
 if [ ${OCI360_SKIP_MONIT} -eq 0 ]
 then
@@ -593,12 +596,12 @@ incr_oci360_step
 
 if [ ${OCI360_SKIP_USAGE} -eq 0 ]
 then
-  echoTime "Waiting for oci_csv_usage.sh to finish."
+  echoTime "Checking oci_csv_usage.sh..."
   echoTime "Trace File: tail -f ${v_dir_usage}/oci_csv_usage.log"
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci_csv_usage.log"
 fi
 
-wait_pid_if_exists "$v_pid_usage" "oci_csv_usage.sh"
+wait_pid_if_notnull "$v_pid_usage" "oci_csv_usage.sh"
 
 if [ ${OCI360_SKIP_USAGE} -eq 0 ]
 then
@@ -654,6 +657,8 @@ then
     [ -n "${v_csv_file}" ] && cp -av ${v_dir_ociexp}/${v_csv_file} ${v_dir_ociout}
     cp -av ${v_dir_ociexp}/${v_exp_file}.zip ${v_dir_ociout}
   fi
+else
+  echoTime 'Skip positioning zip files.'
 fi
 
 ####################################
@@ -682,16 +687,14 @@ EOF
 
   echoTime "Log File: tail -f ${v_dir_ocilog}/oci360.out"
 
-  set +e
-  sqlplus ${v_conn} > ${v_dir_ocilog}/oci360.out << EOF
+  sqlplus ${v_conn} > ${v_dir_ocilog}/oci360.out << EOF &
 DEF moat369_pre_sw_output_fdr = '${v_dir_ociout}'
 DEF oci360_pre_obj_schema = '${v_schema_name}'
 DEF oci360_clean_on_exit = 'OFF'
 ${v_oci360_opts}
 @oci360.sql
 EOF
-  v_ret=$?
-  set -eo pipefail
+  wait_pid_if_notnull "$!" "SQLPlus"
 
   if [ $v_ret -ne 0 ]
   then
@@ -743,7 +746,7 @@ ln -sf ${v_dir_name} latest
 ### Cleanup for next Exec ###
 #############################
 
-# Create folders if not exit
+# Create processed folders
 [ ! -d "${v_dir_ociout}/processed" ] && mkdir "${v_dir_ociout}/processed"
 [ ! -d "${v_dir_ociexp}/processed" ] && mkdir "${v_dir_ociexp}/processed"
 
