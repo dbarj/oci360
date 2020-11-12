@@ -1,5 +1,5 @@
 #!/bin/bash -x
-# v1.1
+# v1.2
 
 ######################################################
 #
@@ -24,19 +24,12 @@ trap_err ()
   exit 1
 }
 
-loop_wait_proc ()
-{
-  while kill -0 "$1"
-  do
-    echo "Process is still running. Please wait."
-    sleep 30
-  done
-}
-
 trap 'trap_err $LINENO' ERR
 
 # Directory Paths
 v_master_directory="/u01"
+[ -n "${OCI360_ROOT_DIR}" ] && v_master_directory="${OCI360_ROOT_DIR}"
+
 v_db_dir="${v_master_directory}/oci360_database"
 v_apache_dir="${v_master_directory}/oci360_apache"
 
@@ -76,6 +69,17 @@ fi
 systemctl enable docker
 systemctl start docker
 
+loop_wait_proc ()
+{
+  set +x
+  while kill -0 "$1"
+  do
+    echo "$(date '+%Y%m%d_%H%M%S'): Process is still running. Please wait."
+    sleep 30
+  done
+  set -x
+}
+
 ###########################
 # Docker Image for 18c XE #
 ###########################
@@ -97,15 +101,15 @@ then
   cd -
   rm -rf docker-images/
 else
-  echo "oracle/database:18.4.0-xe image already exists."
+  echo "18c XE docker image already created."
 fi
 
 docker images
-docker ps
+docker ps -a
 
 # Those IDs cannot be changed as they must be aligned with the docker image.
 # 54321 -> User: oracle
-# ${v_oci360_uid} -> User: oci360
+# 54322 -> User: oci360
 
 if ! $(getent passwd oci360 > /dev/null)
 then
@@ -159,7 +163,7 @@ do
     echo "Error while creating the ${v_oci360_con_name} container. Check docker logs."
     exit 1
   fi
-  echo 'Waiting Database creation.'
+  echo "$(date '+%Y%m%d_%H%M%S'): Process is still running. Please wait."
   sleep 30
 done
 set -x
@@ -190,7 +194,7 @@ Alias /oci360 "/usr/local/apache2/htdocs/oci360/"
 </Directory>
 EOF
 
-cat << 'EOF' > "${v_apache_dir}/.htaccess"
+cat << 'EOF' > "${v_master_directory}/www/.htaccess"
 AuthType Basic
 AuthName "Restricted Content"
 AuthUserFile /etc/httpd/.htpasswd
@@ -216,7 +220,8 @@ openssl req \
 -keyout "${v_apache_dir}/ssl/server.key" \
 -subj "/C=BR/ST=RJ/L=RJ/O=OCI360/CN=${SERVER_NAME}"
 
-chmod 600 "${v_apache_dir}"/ssl/server.*
+chmod -R g-rwx "${v_apache_dir}"
+chmod -R o-rwx "${v_apache_dir}"
 
 touch "${v_apache_dir}/.htpasswd"
 
@@ -236,6 +241,8 @@ httpd:2.4
 v_http_pass="$(openssl rand -hex 6)"
 
 docker exec -it ${v_apache_con_name} htpasswd -b /etc/httpd/.htpasswd oci360 ${v_http_pass}
+
+chmod 644 "${v_apache_dir}/.htpasswd"
 
 # Enable port 443
 firewall-cmd --add-service=https || true
