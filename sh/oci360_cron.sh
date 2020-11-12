@@ -4,10 +4,11 @@
 # Written by Rodrigo Jorge <http://www.dbarj.com.br/>
 # Last updated on: Apr/2020 by Rodrigo Jorge
 # ----------------------------------------------------------------------------
+#
 # This is a crontab script that will run the full OCI360 stack every X min.
 # For more information how to deploy this, check:
-# https://github.com/dbarj/oci360/wiki/Automate-OCI360-18c-XE
-# https://github.com/dbarj/oci360/wiki/Automate-OCI360-ADB
+#
+# https://github.com/dbarj/oci360/wiki/Install-OCI360
 #
 # ----------------------------------------------------------------------------
 # v1.16
@@ -213,6 +214,11 @@ echo_process_pid ()
   echoTime "Process \"${1}\" is running with PID ${2}."
 }
 
+echo_skip_section ()
+{
+  echoTime "Skip '${1}' execution."
+}
+
 incr_oci360_step
 [ $OCI360_LAST_EXEC_STEP -gt $OCI360_CRON_STEP ] && OCI360_SKIP_CLEAN_START=1
 
@@ -378,12 +384,12 @@ copy_json_from_zip1_to_zip2 ()
 
 wait_pid_if_notnull ()
 {
-  # $1 -> PID.
-  # $2 -> Description
-  if [ -n "${1}" ]
+  # $1 -> Process.
+  # $2 -> PID
+  if [ -n "${2}" ]
   then
-    echoTime "Waiting process \"${2}\" with PID ${1}. Hold on."
-    wait ${1} && v_ret=$? || v_ret=$?
+    echoTime "Waiting process \"${1}\" with PID ${2}. Hold on."
+    wait ${2} && v_ret=$? || v_ret=$?
   else
     v_ret=0
   fi
@@ -394,16 +400,17 @@ echo_unable_find ()
   echoTime "Unable to find \"${1}\" files on \"$(pwd)\"."
 }
 
-echo_skip_section ()
-{
-  echoTime "Skip '${1}' execution."
-}
-
 echo_print_trace_log ()
 {
   echoTime "Checking ${1}..."
-  [ -n "${2}" ] && echoTime "Trace File: tail -f ${2}"
-  [ -n "${3}" ] && echoTime "Log File: tail -f ${3}"
+  if [ -n "${2}" ]
+  then
+    echoTime "Trace File: tail -f ${2}"
+  fi
+  if [ -n "${3}" ]
+  then
+    echoTime "Log File: tail -f ${3}"
+  fi
 }
 
 cd "${v_dir_ociexp}"
@@ -419,7 +426,7 @@ then
   tail -f ${v_dir_ocilog}/oci_json_export.log &
 fi
 
-wait_pid_if_notnull "$v_pid_exp" "oci_json_export.sh"
+wait_pid_if_notnull "oci_json_export.sh" $v_pid_exp
 
 if [ $v_ret -ne 0 ]
 then
@@ -435,8 +442,9 @@ then
   echoTime "Merging oci_json_export.sh outputs."
   if ls oci_json_export_*_*.zip 1> /dev/null 2>&1
   then
-    v_exp_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
-    ${v_dir_oci360}/sh/oci_json_merger.sh "${v_exp_file}_*.zip" "${v_exp_file}.zip"
+    v_exp_file_prefix=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
+    v_exp_file="${v_exp_file_prefix}.zip"
+    ${v_dir_oci360}/sh/oci_json_merger.sh "${v_exp_file_prefix}_*.zip" "${v_exp_file}"
   else
     echo_unable_find "oci_json_export_*_*.zip"
     exitError "Restart the script removing OCI360_LAST_EXEC_STEP from ${v_config_file}."
@@ -447,10 +455,9 @@ fi
 
 if [ -z "${v_exp_file}" ]
 then
-
   if ls oci_json_export_*.zip 1> /dev/null 2>&1
   then
-    v_exp_file=$(ls -t1 oci_json_export_*.zip | head -n 1 | sed 's/.zip$//')
+    v_exp_file=$(ls -t1 oci_json_export_*.zip | head -n 1)
   else
     echo_unable_find "oci_json_export_*.zip"
     exitError "Restart the script removing OCI360_LAST_EXEC_STEP from ${v_config_file}."
@@ -467,7 +474,7 @@ then
   echo_print_trace_log "oci_json_billing.sh" "${v_dir_bill}/oci_json_billing.log" "${v_dir_ocilog}/oci_json_billing.log"
 fi
 
-wait_pid_if_notnull "$v_pid_bill" "oci_json_billing.sh"
+wait_pid_if_notnull "oci_json_billing.sh" $v_pid_bill
 
 if [ ${OCI360_SKIP_BILL} -eq 0 ]
 then
@@ -475,7 +482,7 @@ then
   then
     echoTime "oci_json_billing.sh completed."
   else
-    echoTime "oci_json_billing.sh failed. Returned $v_ret."
+    echoTime "oci_json_billing.sh failed. Return: $v_ret."
     OCI360_SKIP_MERGER_BILL=1
   fi
 fi
@@ -488,7 +495,7 @@ then
   if ls oci_json_billing_*.zip 1> /dev/null 2>&1
   then
     v_file=$(ls -t1 oci_json_billing_*.zip | head -n 1)
-    copy_json_from_zip1_to_zip2 "${v_file}" "${v_dir_ociexp}/${v_exp_file}.zip"
+    copy_json_from_zip1_to_zip2 "${v_file}" "${v_dir_ociexp}/${v_exp_file}"
   else
     echo_unable_find "oci_json_billing_*.zip"
   fi
@@ -506,7 +513,7 @@ then
   echo_print_trace_log "oci_json_audit.sh" "${v_dir_audit}/oci_json_audit.log" "${v_dir_ocilog}/oci_json_audit.log"
 fi
 
-wait_pid_if_notnull "$v_pid_audit" "oci_json_audit.sh"
+wait_pid_if_notnull "oci_json_audit.sh" $v_pid_audit
 
 if [ ${OCI360_SKIP_AUDIT} -eq 0 ]
 then
@@ -514,7 +521,7 @@ then
   then
     echoTime "oci_json_audit.sh completed."
   else
-    echoTime "oci_json_audit.sh failed. Returned $v_ret."
+    echoTime "oci_json_audit.sh failed. Return: $v_ret."
     OCI360_SKIP_MERGER_AUDIT=1
   fi
 fi
@@ -538,7 +545,7 @@ then
   if ls oci_json_audit_*.zip 1> /dev/null 2>&1
   then
     v_file=$(ls -t1 oci_json_audit_*.zip | head -n 1)
-    copy_json_from_zip1_to_zip2 "${v_file}" "${v_dir_ociexp}/${v_exp_file}.zip"
+    copy_json_from_zip1_to_zip2 "${v_file}" "${v_dir_ociexp}/${v_exp_file}"
   else
     echo_unable_find "oci_json_audit_*.zip"
   fi
@@ -556,7 +563,7 @@ then
   echo_print_trace_log "oci_json_monitoring.sh" "${v_dir_monit}/oci_json_monitoring.log" "${v_dir_ocilog}/oci_json_monitoring.log"
 fi
 
-wait_pid_if_notnull "$v_pid_monit" "oci_json_monitoring.sh"
+wait_pid_if_notnull "oci_json_monitoring.sh" $v_pid_monit
 
 if [ ${OCI360_SKIP_MONIT} -eq 0 ]
 then
@@ -564,19 +571,16 @@ then
   then
     echoTime "oci_json_monitoring.sh completed."
   else
-    echoTime "oci_json_monitoring.sh failed. Returned $v_ret."
+    echoTime "oci_json_monitoring.sh failed. Return: $v_ret."
+    OCI360_SKIP_MERGER_MONIT=1
   fi
 fi
+
+move_and_remove_folder "${v_dir_monit}" "oci_json_monitoring_*_*.zip"
 
 if [ ${OCI360_SKIP_MERGER_MONIT} -eq 0 ]
 then
   echoTime "Merging oci_json_monitoring.sh outputs."
-
-  if ls "${v_dir_monit}"/oci_json_monitoring_*.zip 1> /dev/null 2>&1
-  then
-    mv "${v_dir_monit}"/oci_json_monitoring_*.zip ${v_dir_ociexp}
-    rmdir "${v_dir_monit}" || true
-  fi
 
   if ls oci_json_monitoring_*_*.zip 1> /dev/null 2>&1
   then
@@ -590,8 +594,8 @@ then
 
   if ls oci_json_monitoring_*.zip 1> /dev/null 2>&1
   then
-    v_file=$(ls -t1 oci_json_monitoring_*.zip | head -n 1 | sed 's/.zip$//')
-    copy_json_from_zip1_to_zip2 "${v_file}" "${v_dir_ociexp}/${v_exp_file}.zip"
+    v_file=$(ls -t1 oci_json_monitoring_*.zip | head -n 1)
+    copy_json_from_zip1_to_zip2 "${v_file}" "${v_dir_ociexp}/${v_exp_file}"
   else
     echo_unable_find "oci_json_monitoring_*.zip"
   fi
@@ -609,7 +613,7 @@ then
   echo_print_trace_log "oci_csv_usage.sh" "${v_dir_usage}/oci_csv_usage.log" "${v_dir_ocilog}/oci_csv_usage.log"
 fi
 
-wait_pid_if_notnull "$v_pid_usage" "oci_csv_usage.sh"
+wait_pid_if_notnull "oci_csv_usage.sh" $v_pid_usage
 
 if [ ${OCI360_SKIP_USAGE} -eq 0 ]
 then
@@ -617,7 +621,7 @@ then
   then
     echoTime "oci_csv_usage.sh completed."
   else
-    echoTime "oci_csv_usage.sh failed. Returned $v_ret."
+    echoTime "oci_csv_usage.sh failed. Return: $v_ret."
     OCI360_SKIP_MERGER_USAGE=1
   fi
 fi
@@ -656,13 +660,13 @@ then
     export OCI_UP_GZIP=1
     export OCI_CLEAN_BUCKET=1
     echoTime "Log File: tail -f ${v_dir_ocilog}/oci_bucket_upload.log"
-    bash ${v_dir_oci360}/sh/oci_bucket_upload.sh "${v_oci_bucket}" "${v_dir_ociexp}/${v_exp_file}.zip" > ${v_dir_ocilog}/oci_bucket_upload.log 2>&1
+    bash ${v_dir_oci360}/sh/oci_bucket_upload.sh "${v_oci_bucket}" "${v_dir_ociexp}/${v_exp_file}" > ${v_dir_ocilog}/oci_bucket_upload.log 2>&1
     unset OCI_CLEAN_BUCKET
     [ -n "${v_csv_file}" ] && bash ${v_dir_oci360}/sh/oci_bucket_upload.sh "${v_oci_bucket}" "${v_dir_ociexp}/${v_csv_file}" >> ${v_dir_ocilog}/oci_bucket_upload.log 2>&1
     [ -n "${OCI_CLI_ARGS_BUCKET}" ] && export OCI_CLI_ARGS="${OCI_CLI_ARGS_BKP}"
   else
     [ -n "${v_csv_file}" ] && cp -av ${v_dir_ociexp}/${v_csv_file} ${v_dir_ociout}
-    cp -av ${v_dir_ociexp}/${v_exp_file}.zip ${v_dir_ociout}
+    cp -av ${v_dir_ociexp}/${v_exp_file} ${v_dir_ociout}
   fi
 else
   echo_skip_section "Zip Prepare"
@@ -672,10 +676,10 @@ fi
 ### Reporter (OCI360 SQL script) ###
 ####################################
 
+cd ${v_dir_oci360}
+
 incr_oci360_step
 [ $OCI360_LAST_EXEC_STEP -gt $OCI360_CRON_STEP ] && OCI360_SKIP_SQLPLUS=1
-
-cd ${v_dir_oci360}
 
 if [ ${OCI360_SKIP_SQLPLUS} -eq 0 ]
 then
@@ -692,8 +696,6 @@ ${v_oci360_opts}
 --
 EOF
 
-  echoTime "Log File: tail -f ${v_dir_ocilog}/oci360.out"
-
   sqlplus ${v_conn} > ${v_dir_ocilog}/oci360.out << EOF &
 DEF moat369_pre_sw_output_fdr = '${v_dir_ociout}'
 DEF oci360_pre_obj_schema = '${v_schema_name}'
@@ -704,7 +706,8 @@ EOF
 
   v_pid_sqlp="$!"
   echo_process_pid "SQLPlus" ${v_pid_sqlp}
-  wait_pid_if_notnull ${v_pid_sqlp} "SQLPlus"
+  echo_print_trace_log "SQLPlus" "" "${v_dir_ocilog}/oci360.out"
+  wait_pid_if_notnull "SQLPlus" ${v_pid_sqlp}
 
   if [ $v_ret -ne 0 ]
   then
@@ -771,24 +774,40 @@ find ${v_dir_www} -maxdepth 1 -type d -mtime +${v_retention_period} -exec rm -rf
 # Always clean csv_usage as they occupy a huge space and can be easily recreated:
 find ${v_dir_ociexp}/processed/ -maxdepth 1 -type f -name oci_csv_usage_*.zip -exec rm -f {} \;
 
-# Move processed ZIP file
-mv ${v_dir_ociexp}/oci_json_export_*.zip     ${v_dir_ociexp}/processed/
-mv ${v_dir_ociexp}/oci_json_billing_*.zip    ${v_dir_ociexp}/processed/ || true
-mv ${v_dir_ociexp}/oci_json_audit_*.zip      ${v_dir_ociexp}/processed/ || true
-mv ${v_dir_ociexp}/oci_json_monitoring_*.zip ${v_dir_ociexp}/processed/ || true
-mv ${v_dir_ociexp}/oci_csv_usage_*.zip       ${v_dir_ociexp}/processed/ || true
+###############################
+### Move processed ZIP file ###
+###############################
+
+move_exp_to_processed ()
+{
+  [ -f ${1} ] && mv ${1} ${v_dir_ociexp}/processed/
+}
+
+move_exp_to_processed ${v_dir_ociexp}/oci_json_export_*.zip
+move_exp_to_processed ${v_dir_ociexp}/oci_json_billing_*.zip
+move_exp_to_processed ${v_dir_ociexp}/oci_json_audit_*.zip
+move_exp_to_processed ${v_dir_ociexp}/oci_json_monitoring_*.zip
+move_exp_to_processed ${v_dir_ociexp}/oci_csv_usage_*.zip
+
 mv ${v_oci_file} ${v_dir_ociout}/processed/
 
-# Clean HIST Files once a week
+########################
+### Clean HIST Files ###
+########################
 
-#if [ $(date '+%u') -eq 1 ]
-#then
-  echoTime "Cleaning hist files."
-  bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${v_dir_ociexp}/processed/billing_hist.zip" history_list.txt ${v_billing_period} || true
-  bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${v_dir_ociexp}/processed/monit_hist.zip"   history_list.txt ${v_monit_period}   || true
-  bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${v_dir_ociexp}/processed/audit_hist.zip"   history_list.txt ${v_audit_period}   || true
-  bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${v_dir_ociexp}/processed/usage_hist.zip"   history_list.txt ${v_usage_period}   || true
-#fi
+clean_hist_zip ()
+{
+  if [ -f "${1}" ]
+  then
+    bash ${v_dir_oci360}/sh/oci_zip_hist_clean.sh "${1}" history_list.txt ${2} || true
+  fi
+}
+
+echoTime "Cleaning hist files."
+clean_hist_zip "${v_dir_ociexp}/processed/billing_hist.zip" ${v_billing_period}
+clean_hist_zip "${v_dir_ociexp}/processed/monit_hist.zip" ${v_monit_period}
+clean_hist_zip "${v_dir_ociexp}/processed/audit_hist.zip" ${v_audit_period}
+clean_hist_zip "${v_dir_ociexp}/processed/usage_hist.zip" ${v_usage_period}
 
 # Clean last execution step if exists.
 sed -i '/OCI360_LAST_EXEC_STEP=/d' ${v_config_file}
