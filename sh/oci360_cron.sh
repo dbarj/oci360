@@ -156,7 +156,7 @@ pid_check ()
 pid_check $$
 
 # Create TMPDIR
-[ ! -d ${TMPDIR} ] && mkdir ${TMPDIR}
+[ ! -d ${TMPDIR} ] && mkdir -p ${TMPDIR}
 
 # Clean past temp files.
 rm -rf ${TMPDIR}/.oci/
