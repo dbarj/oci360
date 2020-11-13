@@ -113,6 +113,7 @@ then
   useradd -u ${v_oci360_uid} -g users -G docker oci360
 else
   v_oci360_uid=$(id -u oci360)
+  gpasswd -a oci360 docker
 fi
 
 rm -rf "${v_db_dir}"
