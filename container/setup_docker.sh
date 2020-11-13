@@ -52,15 +52,15 @@ then
   exit 1
 fi
 
-yum -y install yum-utils
-yum -y install git
+rpm -q yum-utils || yum -y install yum-utils
+rpm -q git || yum -y install git
 
 if [ $v_major_version -eq 7 ]
 then
-  yum -y install docker-engine
+  rpm -q docker-engine || yum -y install docker-engine
 else
   yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  yum -y install docker-ce
+  rpm -q docker-ce || yum -y install docker-ce
 fi
 
 systemctl enable docker
