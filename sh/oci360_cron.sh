@@ -182,9 +182,13 @@ rm -rf ${TMPDIR}/.oci/
 [ "${OCI360_SKIP_MERGER_USAGE}" != "1" ] && OCI360_SKIP_MERGER_USAGE=0
 
 # Skip other steps
-[ "${OCI360_SKIP_PLACE_ZIPS}" != "1" ] && OCI360_SKIP_PLACE_ZIPS=0
 [ "${OCI360_SKIP_CLEAN_START}" != "0" ] && OCI360_SKIP_CLEAN_START=1
+[ "${OCI360_SKIP_PLACE_ZIPS}" != "1" ] && OCI360_SKIP_PLACE_ZIPS=0
 [ "${OCI360_SKIP_SQLPLUS}" != "1" ] && OCI360_SKIP_SQLPLUS=0
+[ "${OCI360_SKIP_PREP_APACHE}" != "1" ] && OCI360_SKIP_PREP_APACHE=0
+[ "${OCI360_SKIP_OBFUSCATE}" != "1" ] && OCI360_SKIP_OBFUSCATE=0
+[ "${OCI360_SKIP_MV_APACHE}" != "1" ] && OCI360_SKIP_MV_APACHE=0
+[ "${OCI360_SKIP_MV_PROC}" != "1" ] && OCI360_SKIP_MV_PROC=0
 
 # If there is no Last Exec Step Variable, set it to 0.
 [ -z "$OCI360_LAST_EXEC_STEP" ] && OCI360_LAST_EXEC_STEP=0
@@ -372,12 +376,12 @@ copy_json_from_zip1_to_zip2 ()
 {
   # $1 -> Zip 1 (relative PATH).
   # $2 -> Zip 2 (full PATH).
-  v_fdr=$(sed 's/.zip$//' <<< "${1}")
+  v_fdr=$(basename "${1}" .zip)
   mkdir "${v_fdr}"
   unzip -d "${v_fdr}" "${1}"
   cd "${v_fdr}"
   zip -m "${2}" *.json
-  cd -
+  cd - > /dev/null
   rm -rf "${v_fdr}"
 }
 
@@ -441,9 +445,9 @@ then
   echoTime "Merging oci_json_export.sh outputs."
   if ls oci_json_export_*_*.zip 1> /dev/null 2>&1
   then
-    v_exp_file_prefix=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
-    v_exp_file="${v_exp_file_prefix}.zip"
-    ${v_dir_oci360}/sh/oci_json_merger.sh "${v_exp_file_prefix}_*.zip" "${v_exp_file}"
+    v_prefix_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
+    v_exp_file="${v_prefix_file}.zip"
+    ${v_dir_oci360}/sh/oci_json_merger.sh "${v_prefix_file}_*.zip" "${v_exp_file}"
   else
     echo_unable_find "oci_json_export_*_*.zip"
     exitError "Restart the script removing OCI360_LAST_EXEC_STEP from ${v_config_file}."
@@ -602,7 +606,7 @@ else
   echo_skip_section "Monitoring Merge"
 fi
 
-# Usage Merger
+# Usage Prepare
 
 incr_oci360_step
 [ $OCI360_LAST_EXEC_STEP -gt $OCI360_CRON_STEP ] && OCI360_SKIP_MERGER_USAGE=1
@@ -724,35 +728,82 @@ fi
 #############################
 
 incr_oci360_step
+[ $OCI360_LAST_EXEC_STEP -gt $OCI360_CRON_STEP ] && OCI360_SKIP_PREP_APACHE=1
 
-echoTime "Moving results to Apache."
-
-v_oci_file=$(ls -1t ${v_dir_ociout}/oci360_*.zip | head -n 1)
-v_dir_name=$(basename $v_oci_file .zip)
-v_dir_path=${v_dir_ociout}/${v_dir_name}
-
-mkdir ${v_dir_path}
-unzip -q -d ${v_dir_path} ${v_oci_file}
-chmod -R a+r ${v_dir_path}
-find ${v_dir_path} -type d | xargs chmod a+x
-mv ${v_dir_path}/00001_*.html ${v_dir_path}/index.html
-
-# Run obfuscation tool (if present)
-
-cd ${v_dir_path}
-if [ -f ${v_confdir}/oci360_obfuscate.sh -a "${v_obfuscate}" == "yes" ]
+if [ ${OCI360_SKIP_PREP_APACHE} -eq 0 ]
 then
-  echoTime "Running obfuscation."
-  source ${v_confdir}/oci360_obfuscate.sh || true
+  echoTime "Prepare result for Apache."
+
+  v_oci_file=$(ls -1t ${v_dir_ociout}/oci360_*.zip | head -n 1)
+  v_dir_name=$(basename $v_oci_file .zip)
+  v_dir_path=${v_dir_ociout}/${v_dir_name}
+
+  mkdir ${v_dir_path}
+  unzip -q -d ${v_dir_path} ${v_oci_file}
+  chmod -R a+r ${v_dir_path}
+  find ${v_dir_path} -type d | xargs chmod a+x
+  mv ${v_dir_path}/00001_*.html ${v_dir_path}/index.html
+else
+  echo_skip_section "Prepare Apache"
 fi
 
-############
+if [ -z "${v_oci_file}" ]
+then
+  cd "${v_dir_ociout}"
+  if ls oci360_*.zip 1> /dev/null 2>&1
+  then
+    v_oci_file=$(ls -1t ${v_dir_ociout}/oci360_*.zip | head -n 1)
+    v_dir_name=$(basename $v_oci_file .zip)
+    v_dir_path=${v_dir_ociout}/${v_dir_name}
+  else
+    echo_unable_find "oci360_*.zip"
+    exitError "Restart the script removing OCI360_LAST_EXEC_STEP from ${v_config_file}."
+  fi
+  cd - > /dev/null
+fi
 
-mv ${v_dir_path} ${v_dir_www}
-cd ${v_dir_www}
-rm -f latest
-ln -sf ${v_dir_name} latest
-/usr/sbin/restorecon -R ${v_dir_www} || true
+#########################################
+### Run obfuscation tool (if present) ###
+#########################################
+
+incr_oci360_step
+[ $OCI360_LAST_EXEC_STEP -gt $OCI360_CRON_STEP ] && OCI360_SKIP_OBFUSCATE=1
+
+if ! [ -f ${v_confdir}/oci360_obfuscate.sh -a "${v_obfuscate}" == "yes" ]
+then
+  OCI360_SKIP_OBFUSCATE=1
+fi
+
+if [ ${OCI360_SKIP_OBFUSCATE} -eq 0 ]
+then
+  cd "${v_dir_path}"
+  echoTime "Running obfuscation."
+  source ${v_confdir}/oci360_obfuscate.sh || true
+  cd - > /dev/null
+else
+  echo_skip_section "Obfuscation"
+fi
+
+#############################
+### Move result to Apache ###
+#############################
+
+incr_oci360_step
+[ $OCI360_LAST_EXEC_STEP -gt $OCI360_CRON_STEP ] && OCI360_SKIP_MV_APACHE=1
+
+if [ ${OCI360_SKIP_MV_APACHE} -eq 0 ]
+then
+  echoTime "Moving results to Apache."
+
+  mv ${v_dir_path} ${v_dir_www}
+  cd ${v_dir_www}
+  rm -f latest
+  ln -sf ${v_dir_name} latest
+  /usr/sbin/restorecon -R ${v_dir_www} || true
+  cd - > /dev/null
+else
+  echo_skip_section "Move Apache"
+fi
 
 #############################
 ### Cleanup for next Exec ###
@@ -779,16 +830,29 @@ find ${v_dir_ociexp}/processed/ -maxdepth 1 -type f -name oci_csv_usage_*.zip -e
 
 move_exp_to_processed ()
 {
-  [ -f ${1} ] && mv ${1} ${v_dir_ociexp}/processed/
+  if [ -f ${1} ]
+  then
+    mv ${1} ${v_dir_ociexp}/processed/
+  fi
 }
 
-move_exp_to_processed ${v_dir_ociexp}/oci_json_export_*.zip
-move_exp_to_processed ${v_dir_ociexp}/oci_json_billing_*.zip
-move_exp_to_processed ${v_dir_ociexp}/oci_json_audit_*.zip
-move_exp_to_processed ${v_dir_ociexp}/oci_json_monitoring_*.zip
-move_exp_to_processed ${v_dir_ociexp}/oci_csv_usage_*.zip
+incr_oci360_step
+[ $OCI360_LAST_EXEC_STEP -gt $OCI360_CRON_STEP ] && OCI360_SKIP_MV_PROC=1
 
-mv ${v_oci_file} ${v_dir_ociout}/processed/
+if [ ${OCI360_SKIP_MV_PROC} -eq 0 ]
+then
+  echoTime "Moving processed files."
+
+  move_exp_to_processed ${v_dir_ociexp}/oci_json_export_*.zip
+  move_exp_to_processed ${v_dir_ociexp}/oci_json_billing_*.zip
+  move_exp_to_processed ${v_dir_ociexp}/oci_json_audit_*.zip
+  move_exp_to_processed ${v_dir_ociexp}/oci_json_monitoring_*.zip
+  move_exp_to_processed ${v_dir_ociexp}/oci_csv_usage_*.zip
+  
+  mv ${v_oci_file} ${v_dir_ociout}/processed/
+else
+  echo_skip_section "Move Processed Files"
+fi
 
 ########################
 ### Clean HIST Files ###
