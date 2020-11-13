@@ -2,7 +2,6 @@
 #
 # ----------------------------------------------------------------------------
 # Written by Rodrigo Jorge <http://www.dbarj.com.br/>
-# Last updated on: Apr/2020 by Rodrigo Jorge
 # ----------------------------------------------------------------------------
 #
 # This is a crontab script that will run the full OCI360 stack every X min.
