@@ -10,7 +10,7 @@
 # https://github.com/dbarj/oci360/wiki/Install-OCI360
 #
 # ----------------------------------------------------------------------------
-# v1.16
+# v1.17
 # ----------------------------------------------------------------------------
 
 source ~/.bash_profile
@@ -20,7 +20,7 @@ set -eo pipefail
 
 v_retention_period=30 # Number of days to keep past oci360 executions.
 v_billing_period=90   # Number of days to get billing data.
-v_audit_period=30     # Number of days to get audit data.
+v_audit_period=7      # Number of days to get audit data.
 v_monit_period=30     # Number of days to get monitoring data.
 v_usage_period=30     # Number of days to get reporting data.
 
@@ -830,7 +830,7 @@ find ${v_dir_ociexp}/processed/ -maxdepth 1 -type f -name oci_csv_usage_*.zip -e
 
 move_exp_to_processed ()
 {
-  if [ -f ${1} ]
+  if ls ${1} 1> /dev/null 2>&1
   then
     mv ${1} ${v_dir_ociexp}/processed/
   fi
@@ -843,11 +843,11 @@ if [ ${OCI360_SKIP_MV_PROC} -eq 0 ]
 then
   echoTime "Moving processed files."
 
-  move_exp_to_processed ${v_dir_ociexp}/oci_json_export_*.zip
-  move_exp_to_processed ${v_dir_ociexp}/oci_json_billing_*.zip
-  move_exp_to_processed ${v_dir_ociexp}/oci_json_audit_*.zip
-  move_exp_to_processed ${v_dir_ociexp}/oci_json_monitoring_*.zip
-  move_exp_to_processed ${v_dir_ociexp}/oci_csv_usage_*.zip
+  move_exp_to_processed "${v_dir_ociexp}/oci_json_export_*.zip"
+  move_exp_to_processed "${v_dir_ociexp}/oci_json_billing_*.zip"
+  move_exp_to_processed "${v_dir_ociexp}/oci_json_audit_*.zip"
+  move_exp_to_processed "${v_dir_ociexp}/oci_json_monitoring_*.zip"
+  move_exp_to_processed "${v_dir_ociexp}/oci_csv_usage_*.zip"
   
   mv ${v_oci_file} ${v_dir_ociout}/processed/
 else
