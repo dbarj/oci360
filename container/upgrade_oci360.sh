@@ -18,7 +18,11 @@ trap 'trap_err $LINENO' ERR
 
 [ "$(id -u -n)" != "root" ] && echo "Must be executed as root! Exiting..." && exit 1
 
-v_oci360_tool='/u01/oci360_tool'
+# Directory Paths
+v_master_directory="/u01"
+[ -n "${OCI360_ROOT_DIR}" ] && v_master_directory="${OCI360_ROOT_DIR}"
+
+v_oci360_tool="${v_master_directory}/oci360_tool"
 
 v_exec_date=$(/bin/date '+%Y%m%d%H%M%S')
 
