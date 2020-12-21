@@ -114,11 +114,11 @@ then
   v_value="allow dynamic-group ${v_dyngroup_name} to read usage-reports in tenancy"
   check_policy_exist "$v_value"
 
-  # Check and add rule 3 if not in policy
+  # Check and add rule 3 if not in policy (in the beggining)
   v_value="define tenancy usage-report as ${v_usage_cost_tenancy}"
   check_policy_exist "$v_value" 1
 
-  # Check and add rule 4 if not in policy (in the beggining)
+  # Check and add rule 4 if not in policy
   v_value="endorse dynamic-group ${v_dyngroup_name} to read objects in tenancy usage-report"
   check_policy_exist "$v_value"
 

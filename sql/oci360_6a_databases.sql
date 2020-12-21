@@ -70,6 +70,36 @@ END;
 
 -----------------------------------------
 
+DEF title = 'Database System Tags'
+DEF main_table = 'OCI360_DB_SYSTEMS'
+
+VAR OCI360_TAG_COLS CLOB;
+
+BEGIN
+  SELECT LISTAGG(DBMS_ASSERT.ENQUOTE_NAME(COLUMN_NAME),',' || CHR(10) || '       ')
+           WITHIN GROUP(ORDER BY COLUMN_ID)
+  INTO :OCI360_TAG_COLS
+  FROM USER_TAB_COLUMNS
+  WHERE TABLE_NAME='OCI360_DB_SYSTEMS'
+  AND   COLUMN_NAME LIKE 'DEFINED_TAGS$%';
+END;
+/
+
+BEGIN
+  :sql_text := q'{
+SELECT DISTINCT
+       ID,
+       CLUSTER_NAME,
+       DISPLAY_NAME,
+       }' || :OCI360_TAG_COLS || q'{
+FROM   OCI360_DB_SYSTEMS t1
+}';
+END;
+/
+@@&&9a_pre_one.
+
+-----------------------------------------
+
 DEF title = 'Database System VIP IDs'
 DEF main_table = 'OCI360_DB_SYSTEMS'
 
@@ -85,6 +115,7 @@ WHERE  VIP_IDS is not null
 END;
 /
 @@&&9a_pre_one.
+
 
 -----------------------------------------
 
