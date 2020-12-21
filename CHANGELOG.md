@@ -1,5 +1,8 @@
 ## Versions ##
 
+* 20.08 (2020-12-21)
+  - Improved container scripts and deployment.
+
 * 20.07 (2020-11-09)
   - Easy tool deployment using container.
   - Preparing for future release of monitoring section.
