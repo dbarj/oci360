@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: May/2019 by Rodrigo Jorge
-# Version 1.02
+# Version 1.03
 #************************************************************************
 set -eo pipefail
 
@@ -180,7 +180,15 @@ then
       continue
     fi
     c_dates=$(grep -o -E '[0-9]{4}-[0-9]{2}-[0-9]{2}' <<< "${c_cmd}") || true
-    if [ $(wc -l <<< "${c_dates}") -eq 2 ]
+    if [ -z "${c_dates}" ]
+    then
+      v_file_epoch=$(date -r "${c_file}" -u '+%s')
+      if [ $((v_now_epoch-v_file_epoch)) -ge $((3600*24*${v_retention})) ]
+      then
+        # echo "$v_file_epoch - Removing ${c_file}"
+        removeFromZip "${c_file}"
+      fi
+    elif [ $(wc -l <<< "${c_dates}") -eq 2 ]
     then
       c_date1=$(head -n 1 <<< "${c_dates}")
       c_date2=$(tail -n 1 <<< "${c_dates}")
@@ -197,14 +205,6 @@ then
       if [ $((v_now_epoch-c_date_epoch)) -ge $((3600*24*${v_retention})) ]
       then
         # echo "${c_dates} - Removing ${c_file}"
-        removeFromZip "${c_file}"
-      fi
-    elif [ $(wc -l <<< "${c_dates}") -eq 0 ]
-    then
-      v_file_epoch=$(date -r "${c_file}" -u '+%s')
-      if [ $((v_now_epoch-v_file_epoch)) -ge $((3600*24*${v_retention})) ]
-      then
-        # echo "$v_file_epoch - Removing ${c_file}"
         removeFromZip "${c_file}"
       fi
     fi
