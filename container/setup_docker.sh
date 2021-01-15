@@ -37,6 +37,7 @@ v_apache_con_name="oci360-apache"
 # Don't change unless asked.
 v_git_branch="master"
 v_oci360_uid=54322
+v_git_oracle_commit_hash="4f064778150234ee2be2a1176b026c5e875965ac"
 
 # Check if root
 [ "$(id -u -n)" != "root" ] && echo "Must be executed as root! Exiting..." && exit 1
@@ -92,8 +93,14 @@ if [ "$(docker images -q oracle/database:18.4.0-xe)" == "" ]
 then
   rm -rf docker-images/
   git clone https://github.com/oracle/docker-images.git
+  if [ -n "${v_git_oracle_commit_hash}" ]
+  then
+    cd docker-images
+    git checkout ${v_git_oracle_commit_hash}
+    cd -
+  fi
   cd docker-images/OracleDatabase/SingleInstance/dockerfiles
-  ./buildDockerImage.sh -v 18.4.0 -x &
+  ./buildContainerImage.sh -v 18.4.0 -x &
   loop_wait_proc "$!"
   cd -
   rm -rf docker-images/
