@@ -23,6 +23,7 @@ v_master_directory="/u01"
 [ -n "${OCI360_ROOT_DIR}" ] && v_master_directory="${OCI360_ROOT_DIR}"
 
 v_oci360_tool="${v_master_directory}/oci360_tool"
+v_oci360_config="${v_oci360_tool}/scripts"
 
 v_exec_date=$(/bin/date '+%Y%m%d%H%M%S')
 
