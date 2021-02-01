@@ -447,7 +447,7 @@ then
   then
     v_prefix_file=$(ls -t1 oci_json_export_*_*.zip | head -n 1 | sed 's/_[^_]*$//')
     v_exp_file="${v_prefix_file}.zip"
-    bash ${v_dir_oci360}/sh/oci_json_merger.sh "${v_prefix_file}_*.zip" "${v_exp_file}"
+    ${v_dir_oci360}/sh/oci_json_merger.sh "${v_prefix_file}_*.zip" "${v_exp_file}"
   else
     echo_unable_find "oci_json_export_*_*.zip"
     exitError "Restart the script removing OCI360_LAST_EXEC_STEP from ${v_config_file}."
