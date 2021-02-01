@@ -73,7 +73,7 @@ undef in_main_param1 in_main_param2 in_main_param3 in_main_param4 in_main_param5
 -- Override moat369_sections with sections_param if provided
 @@&&fc_set_value_var_nvl. 'sections_param' '&&sections_param.' '&&moat369_sections.'
 DEF moat369_sections = '&&sections_param.'
-undef sections_param
+-- undef sections_param -- Commented for better debugging
 
 -- Start
 @@&&fc_def_output_file. step_pre_file_driver 'step_pre_file_driver.sql'
