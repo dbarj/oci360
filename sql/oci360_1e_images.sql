@@ -1,8 +1,8 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_IMAGES'
-@@&&fc_json_loader. 'OCI360_INSTANCES'
+@@&&fc_table_loader. 'OCI360_IMAGES'
+@@&&fc_table_loader. 'OCI360_INSTANCES'
 -----------------------------------------
 
 DEF title = 'Images'

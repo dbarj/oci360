@@ -1,9 +1,9 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_INST_CONFIG'
-@@&&fc_json_loader. 'OCI360_INST_POOLS'
-@@&&fc_json_loader. 'OCI360_INST_POOLS_INSTS'
+@@&&fc_table_loader. 'OCI360_INST_CONFIG'
+@@&&fc_table_loader. 'OCI360_INST_POOLS'
+@@&&fc_table_loader. 'OCI360_INST_POOLS_INSTS'
 -----------------------------------------
 
 DEF title = 'Instance Configurations'

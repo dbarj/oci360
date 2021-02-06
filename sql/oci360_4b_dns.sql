@@ -1,7 +1,7 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_DNS_ZONES'
+@@&&fc_table_loader. 'OCI360_DNS_ZONES'
 -----------------------------------------
 
 DEF title = 'Zones'

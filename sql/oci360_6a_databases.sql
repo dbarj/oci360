@@ -1,19 +1,19 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_DATABASES'
-@@&&fc_json_loader. 'OCI360_DB_SYSTEMS'
-@@&&fc_json_loader. 'OCI360_DB_SYSTEM_SHAPES'
-@@&&fc_json_loader. 'OCI360_DB_VERSIONS'
-@@&&fc_json_loader. 'OCI360_DB_NODES'
-@@&&fc_json_loader. 'OCI360_DB_BACKUPS'
-@@&&fc_json_loader. 'OCI360_DB_BACKUP_JOBS'
-@@&&fc_json_loader. 'OCI360_DATAGUARD_ASSOC'
-@@&&fc_json_loader. 'OCI360_DB_PATCH_BYDB'
-@@&&fc_json_loader. 'OCI360_DB_PATCH_BYDB_HIST'
-@@&&fc_json_loader. 'OCI360_DB_PATCH_BYDS'
-@@&&fc_json_loader. 'OCI360_DB_PATCH_BYDS_HIST'
-@@&&fc_json_loader. 'OCI360_PRIVATEIPS'
+@@&&fc_table_loader. 'OCI360_DATABASES'
+@@&&fc_table_loader. 'OCI360_DB_SYSTEMS'
+@@&&fc_table_loader. 'OCI360_DB_SYSTEM_SHAPES'
+@@&&fc_table_loader. 'OCI360_DB_VERSIONS'
+@@&&fc_table_loader. 'OCI360_DB_NODES'
+@@&&fc_table_loader. 'OCI360_DB_BACKUPS'
+@@&&fc_table_loader. 'OCI360_DB_BACKUP_JOBS'
+@@&&fc_table_loader. 'OCI360_DATAGUARD_ASSOC'
+@@&&fc_table_loader. 'OCI360_DB_PATCH_BYDB'
+@@&&fc_table_loader. 'OCI360_DB_PATCH_BYDB_HIST'
+@@&&fc_table_loader. 'OCI360_DB_PATCH_BYDS'
+@@&&fc_table_loader. 'OCI360_DB_PATCH_BYDS_HIST'
+@@&&fc_table_loader. 'OCI360_PRIVATEIPS'
 -----------------------------------------
 
 DEF title = 'Databases'

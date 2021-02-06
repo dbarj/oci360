@@ -1,9 +1,9 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_INSTANCES'
-@@&&fc_json_loader. 'OCI360_VOLUMES'
-@@&&fc_json_loader. 'OCI360_SECLISTS'
+@@&&fc_table_loader. 'OCI360_INSTANCES'
+@@&&fc_table_loader. 'OCI360_VOLUMES'
+@@&&fc_table_loader. 'OCI360_SECLISTS'
 -----------------------------------------
 
 DEF oci360_func_1g = '&&moat369_sw_folder./oci360_1g_changes_func.sql'

@@ -6,7 +6,7 @@
 DEF oci360_collector  = '&&moat369_sw_base./sh/oci_json_export.sh'
 DEF oci360_tables     = '&&moat369_sw_base./sh/oci_table_json.csv'
 DEF oci360_columns    = '&&moat369_sw_base./sh/oci_cols_json.csv'
-DEF fc_json_loader    = '&&moat369_sw_folder./oci360_fc_json_loader.sql'
+DEF fc_table_loader   = '&&moat369_sw_folder./oci360_fc_table_loader.sql'
 DEF fc_json_metadata  = '&&moat369_sw_folder./oci360_fc_json_metadata.sql'
 
 DEF oci360_tzcolformat = 'YYYY-MM-DD"T"HH24:MI:SS.FF6TZH:TZM'

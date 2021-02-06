@@ -1,12 +1,12 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_SECLISTS'
-@@&&fc_json_loader. 'OCI360_VCNS'
-@@&&fc_json_loader. 'OCI360_COMPARTMENTS'
-@@&&fc_json_loader. 'OCI360_SUBNETS'
-@@&&fc_json_loader. 'OCI360_VNICS'
-@@&&fc_json_loader. 'OCI360_PRIVATEIPS'
+@@&&fc_table_loader. 'OCI360_SECLISTS'
+@@&&fc_table_loader. 'OCI360_VCNS'
+@@&&fc_table_loader. 'OCI360_COMPARTMENTS'
+@@&&fc_table_loader. 'OCI360_SUBNETS'
+@@&&fc_table_loader. 'OCI360_VNICS'
+@@&&fc_table_loader. 'OCI360_PRIVATEIPS'
 -----------------------------------------
 
 DEF title = 'Security Lists per Subnet'

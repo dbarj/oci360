@@ -1,7 +1,7 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_USAGECOSTS_TAGGED_DAILY'
+@@&&fc_table_loader. 'OCI360_USAGECOSTS_TAGGED_DAILY'
 -----------------------------------------
 
 DEF title = 'Distinct Tags, Resources, Services'

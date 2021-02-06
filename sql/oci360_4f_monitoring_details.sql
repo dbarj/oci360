@@ -1,9 +1,9 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_MONIT_METRIC_DATA_1HMAX'
-@@&&fc_json_loader. 'OCI360_VNICS'
-@@&&fc_json_loader. 'OCI360_INSTANCES'
+@@&&fc_table_loader. 'OCI360_MONIT_METRIC_DATA_1HMAX'
+@@&&fc_table_loader. 'OCI360_VNICS'
+@@&&fc_table_loader. 'OCI360_INSTANCES'
 -----------------------------------------
 
 DEF oci360_list_subsec_start = '&&moat369_sw_folder./oci360_fc_list_subsection_start.sql'

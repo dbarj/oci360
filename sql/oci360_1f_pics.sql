@@ -1,10 +1,10 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_PIC_AGREES'
-@@&&fc_json_loader. 'OCI360_PIC_LISTING'
-@@&&fc_json_loader. 'OCI360_PIC_SUBS'
-@@&&fc_json_loader. 'OCI360_PIC_VERSIONS'
+@@&&fc_table_loader. 'OCI360_PIC_AGREES'
+@@&&fc_table_loader. 'OCI360_PIC_LISTING'
+@@&&fc_table_loader. 'OCI360_PIC_SUBS'
+@@&&fc_table_loader. 'OCI360_PIC_VERSIONS'
 -----------------------------------------
 
 DEF title = 'PIC Agreements'

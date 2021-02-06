@@ -1,7 +1,7 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_BDS_INSTANCES'
+@@&&fc_table_loader. 'OCI360_BDS_INSTANCES'
 -----------------------------------------
 
 DEF title = 'BigData Cluster Info'

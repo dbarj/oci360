@@ -1,11 +1,11 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_CROSSCONN'
-@@&&fc_json_loader. 'OCI360_CROSSCONN_GRP'
-@@&&fc_json_loader. 'OCI360_CROSSCONN_LOC'
-@@&&fc_json_loader. 'OCI360_CROSSCONN_PORT'
-@@&&fc_json_loader. 'OCI360_CROSSCONN_STATUS'
+@@&&fc_table_loader. 'OCI360_CROSSCONN'
+@@&&fc_table_loader. 'OCI360_CROSSCONN_GRP'
+@@&&fc_table_loader. 'OCI360_CROSSCONN_LOC'
+@@&&fc_table_loader. 'OCI360_CROSSCONN_PORT'
+@@&&fc_table_loader. 'OCI360_CROSSCONN_STATUS'
 -----------------------------------------
 
 DEF title = 'Cross-Connections'

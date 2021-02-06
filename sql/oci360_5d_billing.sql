@@ -1,16 +1,16 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_USAGECOSTS'
-@@&&fc_json_loader. 'OCI360_SERV_ENTITLEMENTS'
-@@&&fc_json_loader. 'OCI360_SERV_RESOURCES'
-@@&&fc_json_loader. 'OCI360_ACCOUNTDETAILS'
-@@&&fc_json_loader. 'OCI360_USAGECOSTS_TAGGED_DAILY'
-@@&&fc_json_loader. 'OCI360_USAGETAGS'
-@@&&fc_json_loader. 'OCI360_USAGE'
-@@&&fc_json_loader. 'OCI360_CHECKQUOTA'
-@@&&fc_json_loader. 'OCI360_PROMOTIONS'
-@@&&fc_json_loader. 'OCI360_CLOUDLIMITS'
+@@&&fc_table_loader. 'OCI360_USAGECOSTS'
+@@&&fc_table_loader. 'OCI360_SERV_ENTITLEMENTS'
+@@&&fc_table_loader. 'OCI360_SERV_RESOURCES'
+@@&&fc_table_loader. 'OCI360_ACCOUNTDETAILS'
+@@&&fc_table_loader. 'OCI360_USAGECOSTS_TAGGED_DAILY'
+@@&&fc_table_loader. 'OCI360_USAGETAGS'
+@@&&fc_table_loader. 'OCI360_USAGE'
+@@&&fc_table_loader. 'OCI360_CHECKQUOTA'
+@@&&fc_table_loader. 'OCI360_PROMOTIONS'
+@@&&fc_table_loader. 'OCI360_CLOUDLIMITS'
 -----------------------------------------
 
 --- Get some Billing info before starting

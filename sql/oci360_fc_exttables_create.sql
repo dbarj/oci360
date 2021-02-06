@@ -242,18 +242,18 @@ UNDEF oci360_step_file
 -- Convert JSON and CSV into tables
 @@&&fc_spool_start.
 SPO &&step_json_full_loader.
-SELECT '@@&&fc_json_loader. ' || table_name
+SELECT '@@&&fc_table_loader. ' || table_name
 FROM "&&oci360_obj_jsontabs."
 WHERE (in_zip=1 or in_col_csv=1) and table_type='JSON'
 ORDER BY 1;
-SELECT '@@&&fc_json_loader. ' || table_name
+SELECT '@@&&fc_table_loader. ' || table_name
 FROM "&&oci360_obj_jsontabs."
 WHERE in_zip=1 and table_type='CSV'
 ORDER BY 1;
 SPO OFF
 @@&&fc_spool_end.
 
--- HOS &&cmd_awk. -F',' '{print("@@&&fc_json_loader. "$2)}' &&oci360_tables. > &&step_json_full_loader.
+-- HOS &&cmd_awk. -F',' '{print("@@&&fc_table_loader. "$2)}' &&oci360_tables. > &&step_json_full_loader.
 
 COL skip_json_full_loader NEW_V skip_json_full_loader
 SELECT DECODE('&&oci360_load_mode.','PRE_LOAD','','&&fc_skip_script.') skip_json_full_loader FROM DUAL;
@@ -261,13 +261,13 @@ COL skip_json_full_loader clear
 
 @@&&skip_json_full_loader.&&step_json_full_loader.
 
--- Disable fc_json_loader / fc_csv_loader if did a full PRE_LOAD or if it is OFF
-COL fc_json_loader NEW_V fc_json_loader
+-- Disable fc_table_loader / fc_csv_loader if did a full PRE_LOAD or if it is OFF
+COL fc_table_loader NEW_V fc_table_loader
 COL fc_csv_loader  NEW_V fc_csv_loader
-SELECT '&&fc_skip_script.' fc_json_loader,
+SELECT '&&fc_skip_script.' fc_table_loader,
        '&&fc_skip_script.' fc_csv_loader
 FROM DUAL WHERE '&&oci360_load_mode.' != 'ON_DEMAND';
-COL fc_json_loader clear
+COL fc_table_loader clear
 COL fc_csv_loader  clear
 
 @@&&fc_zip_driver_files. &&step_json_full_loader.

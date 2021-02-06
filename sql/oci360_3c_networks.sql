@@ -1,10 +1,10 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_CPE'
-@@&&fc_json_loader. 'OCI360_IPSEC_CONNS'
-@@&&fc_json_loader. 'OCI360_VIRT_CIRC'
-@@&&fc_json_loader. 'OCI360_VIRT_CIRC_PUBPREF'
+@@&&fc_table_loader. 'OCI360_CPE'
+@@&&fc_table_loader. 'OCI360_IPSEC_CONNS'
+@@&&fc_table_loader. 'OCI360_VIRT_CIRC'
+@@&&fc_table_loader. 'OCI360_VIRT_CIRC_PUBPREF'
 -----------------------------------------
 
 DEF title = 'CPEs'
