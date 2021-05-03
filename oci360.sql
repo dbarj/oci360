@@ -1,7 +1,7 @@
 /*****************************************************************************************
    
     OCI360 - Oracle Cloud Infrastructure 360-degree View
-    oci360_copyright (C) 2020  Rodrigo Jorge
+    oci360_copyright (C) 2021  Rodrigo Jorge
 
 *****************************************************************************************/
 -- Optional parameter if output is not current folder
