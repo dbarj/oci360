@@ -1,11 +1,11 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_FILE_SYSTEMS'
-@@&&fc_json_loader. 'OCI360_FS_EXPORTS'
-@@&&fc_json_loader. 'OCI360_FS_EXPORT_SETS'
-@@&&fc_json_loader. 'OCI360_MOUNT_TARGETS'
-@@&&fc_json_loader. 'OCI360_SNAPSHOTS'
+@@&&fc_table_loader. 'OCI360_FILE_SYSTEMS'
+@@&&fc_table_loader. 'OCI360_FS_EXPORTS'
+@@&&fc_table_loader. 'OCI360_FS_EXPORT_SETS'
+@@&&fc_table_loader. 'OCI360_MOUNT_TARGETS'
+@@&&fc_table_loader. 'OCI360_SNAPSHOTS'
 -----------------------------------------
 
 DEF title = 'NFS File system'

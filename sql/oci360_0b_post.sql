@@ -31,7 +31,7 @@ UNDEF oci360_log_csv
 -- Undef variables
 UNDEF oci360_collector
 UNDEF oci360_tables
-UNDEF fc_json_loader
+UNDEF fc_table_loader
 UNDEF fc_json_metadata
 UNDEF oci360_tzcolformat
 UNDEF skip_billing_sql

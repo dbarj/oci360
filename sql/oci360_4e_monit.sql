@@ -1,8 +1,8 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_MONIT_METRIC_LIST'
-@@&&fc_json_loader. 'OCI360_MONIT_METRIC_DATA_1HMAX'
+@@&&fc_table_loader. 'OCI360_MONIT_METRIC_LIST'
+@@&&fc_table_loader. 'OCI360_MONIT_METRIC_DATA_1HMAX'
 -----------------------------------------
 
 DEF title = 'Monitoring Metric List'

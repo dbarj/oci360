@@ -1,8 +1,8 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_VCNS'
-@@&&fc_json_loader. 'OCI360_REGIONS_SUBS'
+@@&&fc_table_loader. 'OCI360_VCNS'
+@@&&fc_table_loader. 'OCI360_REGIONS_SUBS'
 -----------------------------------------
 
 @@&&fc_def_output_file. oci360_sub_sections 'oci360_sub_sections.sql'

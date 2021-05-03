@@ -1,17 +1,17 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_INSTANCES'
-@@&&fc_json_loader. 'OCI360_SUBNETS'
-@@&&fc_json_loader. 'OCI360_VCNS'
-@@&&fc_json_loader. 'OCI360_PRIVATEIPS'
-@@&&fc_json_loader. 'OCI360_REMOTE_PEERING'
-@@&&fc_json_loader. 'OCI360_LOCAL_PEERING'
-@@&&fc_json_loader. 'OCI360_PUBLICIPS'
-@@&&fc_json_loader. 'OCI360_VNIC_ATTACHS'
-@@&&fc_json_loader. 'OCI360_VNICS'
-@@&&fc_json_loader. 'OCI360_DRG_ATTACHS'
-@@&&fc_json_loader. 'OCI360_DB_NODES'
+@@&&fc_table_loader. 'OCI360_INSTANCES'
+@@&&fc_table_loader. 'OCI360_SUBNETS'
+@@&&fc_table_loader. 'OCI360_VCNS'
+@@&&fc_table_loader. 'OCI360_PRIVATEIPS'
+@@&&fc_table_loader. 'OCI360_REMOTE_PEERING'
+@@&&fc_table_loader. 'OCI360_LOCAL_PEERING'
+@@&&fc_table_loader. 'OCI360_PUBLICIPS'
+@@&&fc_table_loader. 'OCI360_VNIC_ATTACHS'
+@@&&fc_table_loader. 'OCI360_VNICS'
+@@&&fc_table_loader. 'OCI360_DRG_ATTACHS'
+@@&&fc_table_loader. 'OCI360_DB_NODES'
 -----------------------------------------
 
 DEF title = 'Infrastructure Visual Design'

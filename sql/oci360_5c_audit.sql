@@ -1,7 +1,7 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_AUDIT_EVENTS'
+@@&&fc_table_loader. 'OCI360_AUDIT_EVENTS'
 -----------------------------------------
 
 DEF max_rows = 1000

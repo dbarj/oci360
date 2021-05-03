@@ -1,11 +1,11 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_BV_BACKUPS'
-@@&&fc_json_loader. 'OCI360_BVOLUMES'
-@@&&fc_json_loader. 'OCI360_COMPARTMENTS'
-@@&&fc_json_loader. 'OCI360_BKP_POLICY'
-@@&&fc_json_loader. 'OCI360_BKP_POLICY_ASSIGN'
+@@&&fc_table_loader. 'OCI360_BV_BACKUPS'
+@@&&fc_table_loader. 'OCI360_BVOLUMES'
+@@&&fc_table_loader. 'OCI360_COMPARTMENTS'
+@@&&fc_table_loader. 'OCI360_BKP_POLICY'
+@@&&fc_table_loader. 'OCI360_BKP_POLICY_ASSIGN'
 -----------------------------------------
 
 -----------------------------------------

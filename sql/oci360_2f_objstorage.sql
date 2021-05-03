@@ -1,14 +1,14 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_NAMESERVER'
-@@&&fc_json_loader. 'OCI360_NAMESERVER_META'
-@@&&fc_json_loader. 'OCI360_BUCKETS'
-@@&&fc_json_loader. 'OCI360_MULTIPARTS'
-@@&&fc_json_loader. 'OCI360_OBJECTS'
-@@&&fc_json_loader. 'OCI360_PREAUTH_REQUESTS'
-@@&&fc_json_loader. 'OCI360_OS_WORKREQS'
-@@&&fc_json_loader. 'OCI360_OBJECT_POLICIES'
+@@&&fc_table_loader. 'OCI360_NAMESERVER'
+@@&&fc_table_loader. 'OCI360_NAMESERVER_META'
+@@&&fc_table_loader. 'OCI360_BUCKETS'
+@@&&fc_table_loader. 'OCI360_MULTIPARTS'
+@@&&fc_table_loader. 'OCI360_OBJECTS'
+@@&&fc_table_loader. 'OCI360_PREAUTH_REQUESTS'
+@@&&fc_table_loader. 'OCI360_OS_WORKREQS'
+@@&&fc_table_loader. 'OCI360_OBJECT_POLICIES'
 -----------------------------------------
 
 COL skip_objects_table NEW_V skip_objects_table

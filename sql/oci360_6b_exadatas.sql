@@ -1,8 +1,8 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_DB_SYSTEMS'
-@@&&fc_json_loader. 'OCI360_DB_EXAINFRA'
+@@&&fc_table_loader. 'OCI360_DB_SYSTEMS'
+@@&&fc_table_loader. 'OCI360_DB_EXAINFRA'
 -----------------------------------------
 
 DEF title = 'Database Estimated Costs'

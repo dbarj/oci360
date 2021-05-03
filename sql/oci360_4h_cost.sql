@@ -1,7 +1,7 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_REPORTS_COST'
+@@&&fc_table_loader. 'OCI360_REPORTS_COST'
 -----------------------------------------
 
 DEF oci360_usage_tzcolformat = 'YYYY-MM-DD"T"HH24:MI"Z"'

@@ -1,19 +1,19 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_REGIONS_SUBS'
-@@&&fc_json_loader. 'OCI360_LOCATION'
-@@&&fc_json_loader. 'OCI360_COMPARTMENTS'
-@@&&fc_json_loader. 'OCI360_ADS'
-@@&&fc_json_loader. 'OCI360_FAULT_DOMAINS'
-@@&&fc_json_loader. 'OCI360_VOLUMES'
-@@&&fc_json_loader. 'OCI360_BVOLUMES'
-@@&&fc_json_loader. 'OCI360_BACKUPS'
-@@&&fc_json_loader. 'OCI360_BV_BACKUPS'
-@@&&fc_json_loader. 'OCI360_OBJECTS'
-@@&&fc_json_loader. 'OCI360_INSTANCES'
-@@&&fc_json_loader. 'OCI360_VOL_ATTACHS'
-@@&&fc_json_loader. 'OCI360_BV_ATTACHS'
+@@&&fc_table_loader. 'OCI360_REGIONS_SUBS'
+@@&&fc_table_loader. 'OCI360_LOCATION'
+@@&&fc_table_loader. 'OCI360_COMPARTMENTS'
+@@&&fc_table_loader. 'OCI360_ADS'
+@@&&fc_table_loader. 'OCI360_FAULT_DOMAINS'
+@@&&fc_table_loader. 'OCI360_VOLUMES'
+@@&&fc_table_loader. 'OCI360_BVOLUMES'
+@@&&fc_table_loader. 'OCI360_BACKUPS'
+@@&&fc_table_loader. 'OCI360_BV_BACKUPS'
+@@&&fc_table_loader. 'OCI360_OBJECTS'
+@@&&fc_table_loader. 'OCI360_INSTANCES'
+@@&&fc_table_loader. 'OCI360_VOL_ATTACHS'
+@@&&fc_table_loader. 'OCI360_BV_ATTACHS'
 -----------------------------------------
 
 DEF title = 'Region Subscription'

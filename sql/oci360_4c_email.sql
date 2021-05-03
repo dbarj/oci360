@@ -1,8 +1,8 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_EMAIL_SENDERS'
-@@&&fc_json_loader. 'OCI360_EMAIL_SUPPR'
+@@&&fc_table_loader. 'OCI360_EMAIL_SENDERS'
+@@&&fc_table_loader. 'OCI360_EMAIL_SUPPR'
 -----------------------------------------
 
 DEF title = 'Approved senders'

@@ -1,10 +1,10 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_LIMITS_SERVICE'
-@@&&fc_json_loader. 'OCI360_LIMITS_QUOTA'
-@@&&fc_json_loader. 'OCI360_LIMITS_VALUE'
-@@&&fc_json_loader. 'OCI360_LIMITS_RES_AVAIL'
+@@&&fc_table_loader. 'OCI360_LIMITS_SERVICE'
+@@&&fc_table_loader. 'OCI360_LIMITS_QUOTA'
+@@&&fc_table_loader. 'OCI360_LIMITS_VALUE'
+@@&&fc_table_loader. 'OCI360_LIMITS_RES_AVAIL'
 -----------------------------------------
 
 DEF title = 'Limits Service'

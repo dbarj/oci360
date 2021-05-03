@@ -1,9 +1,9 @@
 -----------------------------------------
 -- Tables Used in this Section
 -----------------------------------------
-@@&&fc_json_loader. 'OCI360_USAGECOSTS_TAGGED_HOURLY'
-@@&&fc_json_loader. 'OCI360_USAGECOSTS'
-@@&&fc_json_loader. 'OCI360_SERV_RESOURCES'
+@@&&fc_table_loader. 'OCI360_USAGECOSTS_TAGGED_HOURLY'
+@@&&fc_table_loader. 'OCI360_USAGECOSTS'
+@@&&fc_table_loader. 'OCI360_SERV_RESOURCES'
 -----------------------------------------
 
 --- Get some Billing info before starting
