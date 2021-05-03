@@ -36,6 +36,7 @@ v_apache_con_name="oci360-apache"
 
 # Don't change unless asked.
 v_git_branch="master"
+[ -n "${OCI360_GIT_BRANCH}" ] && v_git_branch="${OCI360_GIT_BRANCH}"
 v_oci360_uid=54322
 v_git_oracle_commit_hash="4f064778150234ee2be2a1176b026c5e875965ac"
 
