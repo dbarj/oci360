@@ -10,7 +10,7 @@
 # https://github.com/dbarj/oci360/wiki/Install-OCI360
 #
 # ----------------------------------------------------------------------------
-# v1.17
+# v1.18
 # ----------------------------------------------------------------------------
 
 source ~/.bash_profile
@@ -241,6 +241,9 @@ if [ ${OCI360_SKIP_EXP} -eq 0 ]
 then
   [ ! -d "${v_dir_exp}" ] && mkdir "${v_dir_exp}"
   cd "${v_dir_exp}"
+  [ ! -d "${v_dir_ociexp}/processed" ] && mkdir "${v_dir_ociexp}/processed"
+  export HIST_ZIP_FILE="${v_dir_ociexp}/processed/tenancy_hist.zip"
+  [ -d "${HIST_ZIP_FILE}.lock.d" ] && rmdir "${HIST_ZIP_FILE}.lock.d"
 
   echoTime "Calling oci_json_export.sh."
   timeout ${v_timeout} bash ${v_dir_oci360}/sh/oci_json_export.sh ALL_REGIONS > ${v_dir_ocilog}/oci_json_export.log 2>&1 &
@@ -871,6 +874,8 @@ clean_hist_zip "${v_dir_ociexp}/processed/billing_hist.zip" ${v_billing_period}
 clean_hist_zip "${v_dir_ociexp}/processed/monit_hist.zip" ${v_monit_period}
 clean_hist_zip "${v_dir_ociexp}/processed/audit_hist.zip" ${v_audit_period}
 clean_hist_zip "${v_dir_ociexp}/processed/usage_hist.zip" ${v_usage_period}
+
+rm -f "${v_dir_ociexp}/processed/tenancy_hist.zip"
 
 # Clean last execution step if exists.
 sed -i '/OCI360_LAST_EXEC_STEP=/d' ${v_config_file}
