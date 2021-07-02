@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 2.12
+# Version 2.13
 #************************************************************************
 set -eo pipefail
 
@@ -101,7 +101,7 @@ function echoDebug ()
     v_msg="$(date '+%Y%m%d_%H%M%S'): $v_msg"
     [ -n "${v_exec_id}" ] && v_msg="$v_msg (${v_exec_id})"
     echo "$v_msg" >> "${v_filename}"
-    [ -f "../${v_filename}" ] && echo "$v_msg" >> "../${v_filename}"
+    [ -f "../${v_filename}" ] && echo "$v_msg - FROM ${v_region}" >> "../${v_filename}"
   fi
   return 0
 }
@@ -259,6 +259,7 @@ fi
 
 echoDebug "Temporary folder is: ${v_tmpfldr}"
 echoDebug "OCI Parallel is: ${v_oci_parallel}"
+echoDebug "HIST file is: ${HIST_ZIP_FILE}"
 echoDebug "DEBUG level is: ${DEBUG}" 2
 echoDebug "OCI JSON Include is: ${OCI_JSON_INCLUDE}" 2
 echoDebug "OCI JSON Exclude is: ${OCI_JSON_EXCLUDE}" 2
@@ -593,13 +594,16 @@ function jsonGenericMaster ()
         echoDebug "Background: ${v_arg4} \"${v_arg1} ${v_params}\"" 3
         v_file_out="${v_tmpfldr}/$(uuidgen)"
         ${v_arg4} "${v_arg1} ${v_params}" > "${v_file_out}.out" 2> "${v_file_out}.err" &
-        v_sub_pids_list+=($!)
+        v_ret=$! # Will use v_ret to store PID of child temporarily just to DEBUG.
+        v_sub_pids_list+=($v_ret)
         v_sub_files_list+=("${v_file_out}")
+        echoDebug "Info: ${v_arg4} \"${v_arg1} ${v_params}\". PID: $v_ret" 8
         $v_tag_mode && v_sub_newits_list+=(${v_newits})
         while :
         do
           v_procs_sub=$(jobs -p | wc -l)
-          [ $v_procs_sub -lt $v_oci_parallel ] && break || echoDebug "Current child jobs: $v_procs_sub. Waiting slot." 8
+          echoDebug "Current child jobs: $v_procs_sub."
+          [ $v_procs_sub -lt $v_oci_parallel ] && break || echoDebug "Waiting slot." 8
           sleep $wait_time
           v_counter=$((v_counter+1))
           if [ ${v_counter} -gt ${v_limit} ]
@@ -634,7 +638,7 @@ function jsonGenericMaster ()
       wait ${v_sub_pids_list[$v_i]}
       v_ret=$?
       set -e
-      [ $v_ret -ne 0 ] && echoDebug "Failed background process: ${v_sub_pids_list[$v_i]}" 3
+      [ $v_ret -ne 0 ] && echoDebug "Failed background process: ${v_sub_pids_list[$v_i]}. Returned: $v_ret" 3
       v_out=$(< "${v_sub_files_list[$v_i]}.out")
       $v_tag_mode && v_newits="${v_sub_newits_list[$v_i]}"
       echoDebug "Merging File: $(($v_i+1)) of $v_procs_tot" 3
@@ -688,19 +692,11 @@ function runOCI ()
   v_out=$(getFromHist "${v_search}") && v_ret=$? || v_ret=$?
   if [ $v_ret -ne 0 ]
   then
-    echoDebug "${v_oci} ${v_arg1}"
-    if [ -n "${v_tmpfldr}" ]
-    then
-      b_out=$(set +x; callOCI "${v_arg1}" 2> ${v_tmpfldr}/oci.err) && b_ret=$? || b_ret=$?
-      b_err=$(<${v_tmpfldr}/oci.err)
-      rm -f ${v_tmpfldr}/oci.err
-    else
-      # This crasy string will store the stdout in "b_out", stderr in "b_err" and ret in "b_ret"
-      # https://stackoverflow.com/questions/13806626/capture-both-stdout-and-stderr-in-bash
-      set +x
-      eval "$({ b_err=$({ b_out=$( callOCI "${v_arg1}" ); b_ret=$?; } 2>&1; declare -p b_out b_ret >&2); declare -p b_err; } 2>&1)"
-      set ${v_dbgflag}
-    fi
+    # This crasy string will store the stdout in "b_out", stderr in "b_err" and ret in "b_ret"
+    # https://stackoverflow.com/questions/13806626/capture-both-stdout-and-stderr-in-bash
+    set +x
+    eval "$({ b_err=$({ b_out=$( callOCI "${v_arg1}" ); b_ret=$?; } 2>&1; declare -p b_out b_ret >&2); declare -p b_err; } 2>&1)"
+    set ${v_dbgflag}
     [ "${b_out}" == '{"data":[]}' ] && b_out='' # In case it is empty data, clean it for space savings.
     if [ -n "${b_err}" -o $b_ret -ne 0 ]
     then
@@ -1279,6 +1275,7 @@ function main ()
        [ -n "${OCI_JSON_EXCLUDE}" ] && [[ ",${OCI_JSON_EXCLUDE}," = *",${c_name},"* ]] && continue
        runAndZip $c_name $c_file
     done 3< <(echo "$v_func_list")
+    [ -f "${v_this_script%.*}.log" -a -f "$v_outfile" -a "${v_param1}" == "ALL_REGIONS" ] && ${v_zip} -qm "$v_outfile" "${v_this_script%.*}.log"
     v_ret=0
   fi
 }
