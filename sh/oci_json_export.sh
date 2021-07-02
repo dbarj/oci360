@@ -21,7 +21,7 @@
 #************************************************************************
 # Available at: https://github.com/dbarj/oci-scripts
 # Created on: Aug/2018 by Rodrigo Jorge
-# Version 2.11
+# Version 2.13
 #************************************************************************
 set -eo pipefail
 
@@ -54,6 +54,9 @@ v_tmpfldr="$(mktemp -d -u -p ${TMPDIR}/.oci 2>&- || mktemp -d -u)"
 [[ "${DEBUG}" == "" ]] && DEBUG=1
 [ ! -z "${DEBUG##*[!0-9]*}" ] || DEBUG=1
 
+# If Shell is executed with "-x", all core functions will set this flag 
+printf %s\\n "$-" | grep -q -F 'x' && v_dbgflag='-x' || v_dbgflag='+x'
+
 # If OCI_JSON_EXCLUDE is unset, by default will exclude the following items.
 [ -z "${OCI_JSON_EXCLUDE}" ] && OCI_JSON_EXCLUDE="OS-Objects"
 
@@ -66,6 +69,11 @@ v_tmpfldr="$(mktemp -d -u -p ${TMPDIR}/.oci 2>&- || mktemp -d -u)"
 #  8 = + Job Wait Loop
 #  9 = + Parallel Wait Loop
 # 10 = + Lock/Unlock Loop
+
+# Export HIST_ZIP_FILE with the file name where will keep or read for historical info to avoid reprocessing.
+[[ "${HIST_ZIP_FILE}" == "" ]] && HIST_ZIP_FILE=""
+
+v_hist_folder="tenancy_history"
 
 trap "trap - SIGTERM && cleanAllonAbort && kill -- -$$" SIGINT SIGTERM
 
@@ -93,7 +101,7 @@ function echoDebug ()
     v_msg="$(date '+%Y%m%d_%H%M%S'): $v_msg"
     [ -n "${v_exec_id}" ] && v_msg="$v_msg (${v_exec_id})"
     echo "$v_msg" >> "${v_filename}"
-    [ -f "../${v_filename}" ] && echo "$v_msg" >> "../${v_filename}"
+    [ -f "../${v_filename}" ] && echo "$v_msg - FROM ${v_region}" >> "../${v_filename}"
   fi
   return 0
 }
@@ -224,6 +232,18 @@ else
   echoError "Press CTRL+C in next 10 seconds if you want to exit and fix this."
   sleep 10
 fi
+if [ -n "${v_tmpfldr}" -a ! -w "${v_tmpfldr}" ]
+then
+  echoError "Temporary folder \"${v_tmpfldr}\" is NOT WRITABLE. Execution will take much longer."
+  echoError "Press CTRL+C in next 10 seconds if you want to exit and fix this."
+  sleep 10
+  v_tmpfldr=""
+fi
+
+if [ -n "${HIST_ZIP_FILE}" -a -d "${HIST_ZIP_FILE}.lock.d" -a -z "${HIST_IGNORE_LOCK}" ]
+then
+  exitError "Lock folder \"${HIST_ZIP_FILE}.lock.d\" exists. Remove it before starting this script."
+fi
 
 if [ -n "${v_tmpfldr}" -a ! -w "${v_tmpfldr}" ]
 then
@@ -239,6 +259,7 @@ fi
 
 echoDebug "Temporary folder is: ${v_tmpfldr}"
 echoDebug "OCI Parallel is: ${v_oci_parallel}"
+echoDebug "HIST file is: ${HIST_ZIP_FILE}"
 echoDebug "DEBUG level is: ${DEBUG}" 2
 echoDebug "OCI JSON Include is: ${OCI_JSON_INCLUDE}" 2
 echoDebug "OCI JSON Exclude is: ${OCI_JSON_EXCLUDE}" 2
@@ -393,7 +414,7 @@ function jsonSimple ()
   }
 
   set +e
-  v_fout=$(callOCI "${v_arg1}")
+  v_fout=$(runOCI "${v_arg1}")
   v_ret=$?
   set -e
   [ $v_ret -ne 0 ] && err
@@ -405,7 +426,7 @@ function jsonSimple ()
     while [ -n "${v_next_page}" -a "${v_next_page}" != "null" ]
     do
       set +e
-      v_out=$(callOCI "${v_arg1} --page ${v_next_page}")
+      v_out=$(runOCI "${v_arg1} --page ${v_next_page}")
       v_ret=$?
       set -e
       [ $v_ret -ne 0 ] && err
@@ -573,13 +594,16 @@ function jsonGenericMaster ()
         echoDebug "Background: ${v_arg4} \"${v_arg1} ${v_params}\"" 3
         v_file_out="${v_tmpfldr}/$(uuidgen)"
         ${v_arg4} "${v_arg1} ${v_params}" > "${v_file_out}.out" 2> "${v_file_out}.err" &
-        v_sub_pids_list+=($!)
+        v_ret=$! # Will use v_ret to store PID of child temporarily just to DEBUG.
+        v_sub_pids_list+=($v_ret)
         v_sub_files_list+=("${v_file_out}")
+        echoDebug "Info: ${v_arg4} \"${v_arg1} ${v_params}\". PID: $v_ret" 8
         $v_tag_mode && v_sub_newits_list+=(${v_newits})
         while :
         do
           v_procs_sub=$(jobs -p | wc -l)
-          [ $v_procs_sub -lt $v_oci_parallel ] && break || echoDebug "Current child jobs: $v_procs_sub. Waiting slot." 8
+          echoDebug "Current child jobs: $v_procs_sub."
+          [ $v_procs_sub -lt $v_oci_parallel ] && break || echoDebug "Waiting slot." 8
           sleep $wait_time
           v_counter=$((v_counter+1))
           if [ ${v_counter} -gt ${v_limit} ]
@@ -614,7 +638,7 @@ function jsonGenericMaster ()
       wait ${v_sub_pids_list[$v_i]}
       v_ret=$?
       set -e
-      [ $v_ret -ne 0 ] && echoDebug "Failed background process: ${v_sub_pids_list[$v_i]}" 3
+      [ $v_ret -ne 0 ] && echoDebug "Failed background process: ${v_sub_pids_list[$v_i]}. Returned: $v_ret" 3
       v_out=$(< "${v_sub_files_list[$v_i]}.out")
       $v_tag_mode && v_newits="${v_sub_newits_list[$v_i]}"
       echoDebug "Merging File: $(($v_i+1)) of $v_procs_tot" 3
@@ -649,6 +673,55 @@ function jsonConcat ()
   [ "${v_chk_json}" == "no" ] && v_arg2=$(${v_jq} '.data | {"data":[.]}' <<< "$v_arg2")
   ${v_jq} 'reduce inputs as $i (.; .data += $i.data)' <(echo "$v_arg1") <(echo "$v_arg2")
   return 0
+}
+
+function runOCI ()
+{
+  ##########
+  # This function will check if the given OCI cli to execute was already executed before and if the output is stored in HIST_ZIP_FILE.
+  # If not executed, will run callOCI and later save the output.
+  ##########
+
+  set -eo pipefail # Exit if error in any call.
+  set ${v_dbgflag} # Enable Debug
+  [ "$#" -eq 1 -a "$1" != "" ] || { echoError "${FUNCNAME[0]} needs 1 parameter"; return 1; }
+  local v_arg1 v_out v_ret v_search
+  local b_out b_err b_ret
+  v_arg1="$1"
+  [ -n "${v_region}" ] && v_search="${v_region} ${v_arg1}" || v_search="${v_arg1}"
+  v_out=$(getFromHist "${v_search}") && v_ret=$? || v_ret=$?
+  if [ $v_ret -ne 0 ]
+  then
+    # This crasy string will store the stdout in "b_out", stderr in "b_err" and ret in "b_ret"
+    # https://stackoverflow.com/questions/13806626/capture-both-stdout-and-stderr-in-bash
+    set +x
+    eval "$({ b_err=$({ b_out=$( callOCI "${v_arg1}" ); b_ret=$?; } 2>&1; declare -p b_out b_ret >&2); declare -p b_err; } 2>&1)"
+    set ${v_dbgflag}
+    [ "${b_out}" == '{"data":[]}' ] && b_out='' # In case it is empty data, clean it for space savings.
+    if [ -n "${b_err}" -o $b_ret -ne 0 ]
+    then
+      [ $b_ret -ne 0 ] && { echoError "## Command Failed (ret: ${b_ret}):"; echoDebug "Command Failed (ret: ${b_ret})"; }
+      [ $b_ret -eq 0 ] && echoError "## Command Succeeded w/ stderr:"
+      echoError "${v_oci} ${v_arg1}"
+      echoError "########"
+      echoError "${b_err}"
+    fi
+    if [ $b_ret -eq 0 ]
+    then
+      v_out="${b_out}"
+      # [ -z "${b_err}" ] && putOnHist "${v_search}" "${v_out}" || true
+      create_lock_or_wait zipfile "${v_tmpfldr_root}"
+      putOnHist "${v_search}" "${v_out}" || true
+      remove_lock zipfile "${v_tmpfldr_root}"
+    else
+      return $b_ret
+    fi
+  else
+    echoDebug "Got \"${v_search}\" from Zip Hist."      
+  fi
+  ${v_jq} -e . >/dev/null 2>&1 <<< "${v_out}" && v_ret=$? || v_ret=$?
+  echo "${v_out}"
+  return ${v_ret}
 }
 
 function callOCI ()
@@ -1067,6 +1140,110 @@ else
 
 fi
 
+##############################
+### BEGIN HISTORY FUNCTIONS
+##############################
+
+function uncompressHist ()
+{
+  ##########
+  # Uncompress files from previous execution into v_hist_folder path to be used by getFromHist function.
+  ##########
+
+  set ${v_dbgflag} # Enable Debug
+  if [ -n "${HIST_ZIP_FILE}" ]
+  then
+    rm -rf "${v_hist_folder}"
+    mkdir "${v_hist_folder}"
+    if [ -r "${HIST_ZIP_FILE}" ]
+    then
+      unzip -q -d "${v_hist_folder}" "${HIST_ZIP_FILE}"
+    fi
+  fi
+  return 0
+}
+
+function cleanHist ()
+{
+  ##########
+  # Clean folder where current history files will be placed.
+  ##########
+
+  set ${v_dbgflag} # Enable Debug
+  if [ -n "${HIST_ZIP_FILE}" ]
+  then
+    rm -rf "${v_hist_folder}"
+  fi
+  return 0
+}
+
+function getFromHist ()
+{
+  ##########
+  # This function will get the output of the command from the zip hist file that was executed before.
+  ##########
+
+  set -eo pipefail
+  set ${v_dbgflag} # Enable Debug
+  [ -z "${HIST_ZIP_FILE}" ] && return 1
+  [ "$#" -ne 1 ] && { echoError "${FUNCNAME[0]} needs 1 parameter"; return 1; }
+  local v_arg1 v_line v_sep v_list v_file v_file_epoch v_now_epoch
+  v_arg1="$1"
+  v_list="history_list.txt"
+  v_sep="|"
+  [ ! -r "${v_hist_folder}/${v_list}" ] && return 1
+  v_line=$(grep -F "${v_arg1}${v_sep}" "${v_hist_folder}/${v_list}")
+  [ $(wc -l <<< "${v_line}") -gt 1 ] && return 1
+  v_file=$(cut -d"${v_sep}" -f2 <<< "${v_line}")
+  [ -z "${v_file}" ] && return 1
+  [ ! -r "${v_hist_folder}/${v_file}" ] && return 1
+  cat "${v_hist_folder}/${v_file}"
+  return 0
+}
+
+function putOnHist ()
+{
+  ##########
+  # This function will save the output of the command in a zip hist file to be later used again.
+  ##########
+
+  set -eo pipefail
+  set ${v_dbgflag} # Enable Debug
+  [ -z "${HIST_ZIP_FILE}" ] && return 1
+  [ ! -d "${v_hist_folder}" ] && return 1
+  [ "$#" -ne 2 ] && { echoError "${FUNCNAME[0]} needs 2 parameters"; return 1; }
+  local v_arg1 v_arg2 v_line v_sep v_list v_file v_last
+  v_arg1="$1"
+  v_arg2="$2"
+  v_list="history_list.txt"
+  v_sep="|"
+  [ -r "${v_hist_folder}/${v_list}" ] && v_line=$(grep -F "${v_arg1}${v_sep}" "${v_hist_folder}/${v_list}") || true
+  if [ -z "${v_line}" ]
+  then
+    if [ -r "${v_hist_folder}/${v_list}" ]
+    then
+      v_last=$(cut -d"${v_sep}" -f2 < "${v_hist_folder}/${v_list}" | sed 's/\.json$//' | sort -nr | head -n 1)
+    else
+      v_last=0
+    fi
+    v_file="$((v_last+1)).json"
+    [ -r "${v_hist_folder}/${v_file}" ] && return 1
+    echo "${v_arg1}${v_sep}${v_file}" >> "${v_hist_folder}/${v_list}"
+    echo "${v_arg2}" > "${v_hist_folder}/${v_file}"
+  else
+    [ $(wc -l <<< "${v_line}") -gt 1 ] && return 1
+    v_file=$(cut -d"${v_sep}" -f2 <<< "${v_line}")
+    # [ ! -r "${v_hist_folder}/${v_file}" ] && return 1
+    echo "${v_arg2}" > "${v_hist_folder}/${v_file}"
+  fi
+  ${v_zip} -qj ${HIST_ZIP_FILE} "${v_hist_folder}/${v_list}"
+  ${v_zip} -qj ${HIST_ZIP_FILE} "${v_hist_folder}/${v_file}"
+  return 0
+}
+
+##############################
+### END HISTORY FUNCTIONS
+##############################
 
 function cleanTmpFiles ()
 {
@@ -1098,6 +1275,7 @@ function main ()
        [ -n "${OCI_JSON_EXCLUDE}" ] && [[ ",${OCI_JSON_EXCLUDE}," = *",${c_name},"* ]] && continue
        runAndZip $c_name $c_file
     done 3< <(echo "$v_func_list")
+    [ -f "${v_this_script%.*}.log" -a -f "$v_outfile" -a "${v_param1}" == "ALL_REGIONS" ] && ${v_zip} -qm "$v_outfile" "${v_this_script%.*}.log"
     v_ret=0
   fi
 }
@@ -1105,11 +1283,14 @@ function main ()
 # Start code execution. If ALL_REGIONS, call main for each region.
 echoDebug "BEGIN"
 cleanTmpFiles
+uncompressHist
 if [ "${v_param1}" == "ALL_REGIONS" ]
 then
   l_regions=$(IAM-RegionSub | ${v_jq} -r '.data[]."region-name"')
   v_oci_orig="$v_oci"
   v_outfile_pref="${v_this_script%.*}_$(date '+%Y%m%d%H%M%S')"
+  v_hist_folder_orig="${v_hist_folder}"
+  v_hist_folder="../${v_hist_folder_orig}"
   if [ $(echo "$l_regions" | wc -l) -gt 1 ]
   then
     for v_region in $l_regions
@@ -1133,6 +1314,7 @@ then
         rmdir ${v_region}
         [ -n "${v_tmpfldr_root}" ] && { v_tmpfldr="${v_tmpfldr_root}/${v_region}"; cleanTmpFiles; rmdir "${v_tmpfldr}"; }
     done
+    v_hist_folder="${v_hist_folder_orig}"
     v_tmpfldr="${v_tmpfldr_root}"
     echo "Export finished."
   elif [ $(echo "$l_regions" | wc -l) -eq 1 -a -n "$l_regions" ]
@@ -1148,6 +1330,7 @@ then
 else
   main
 fi
+cleanHist
 cleanTmpFiles
 echoDebug "END"
 

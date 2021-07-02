@@ -1,6 +1,6 @@
 #!/bin/bash
 # v1.1
-# This script will make the deployment and configuration of OCI360 files and folders.
+# This script will deploy and configure of OCI360 files and folders.
 
 set -eo pipefail
 set -x
@@ -46,15 +46,22 @@ mkdir -p ${v_oci360_config}
 mkdir -p ${v_oci360_netadmin}
 
 mkdir -p /var/www/
+rm -f /var/www/oci360
 ln -s ${v_oci360_www} /var/www/oci360
 
 [ -z "${OCI360_UID}" ] && OCI360_UID=54322
-useradd -u ${OCI360_UID} -g users -m -d ${v_oci360_home} oci360
+if ! $(getent passwd oci360 > /dev/null)
+then
+  useradd -u ${OCI360_UID} -g users -m -d ${v_oci360_home} oci360
+fi
 chown -R oci360: ${v_oci360_www} ${v_oci360_home}
 
-echo 'export ORACLE_HOME=/opt/oracle/product/18c/dbhomeXE' >> ${v_oci360_home}/.bash_profile
+ORACLE_SID=`awk -F: '/^[^#].*:/ {print $1}' /etc/oratab`
+ORACLE_HOME=`awk -F: '/^[^#].*:/ {print $2}' /etc/oratab`
+
+echo "export ORACLE_HOME=${ORACLE_HOME}" >> ${v_oci360_home}/.bash_profile
 echo 'export PATH=$PATH:$ORACLE_HOME/bin:$ORACLE_HOME/OPatch' >> ${v_oci360_home}/.bash_profile
-echo 'export ORACLE_SID=XE' >> ${v_oci360_home}/.bash_profile
+echo "export ORACLE_SID=${ORACLE_SID}" >> ${v_oci360_home}/.bash_profile
 
 source ${v_oci360_home}/.bash_profile
 
@@ -95,11 +102,11 @@ fi
 # Create wallet files.
 v_wallet_pass="Oracle.123.$(openssl rand -hex 4)"
 orapki wallet create -wallet ${v_oci360_netadmin} -auto_login -pwd ${v_wallet_pass}
-mkstore -wrl ${v_oci360_netadmin} -createCredential oci360xe oci360 oracle <<< "${v_wallet_pass}"
+mkstore -wrl ${v_oci360_netadmin} -createCredential oci360db oci360 oracle <<< "${v_wallet_pass}"
 
-if ! grep -qF 'OCI360XE' ${v_oci360_netadmin}/tnsnames.ora
+if ! grep -qF 'OCI360DB' ${v_oci360_netadmin}/tnsnames.ora
 then
-  echo 'OCI360XE =
+  echo 'OCI360DB =
   (DESCRIPTION =
     (ADDRESS = (PROTOCOL = TCP)(HOST = localhost)(PORT = 1521))
     (CONNECT_DATA =
@@ -120,7 +127,7 @@ fi
 if [ ! -f ${v_oci360_config}/oci360.cfg ]
 then
   echo "export TNS_ADMIN=${v_oci360_netadmin}" > ${v_oci360_config}/oci360.cfg
-  echo "v_conn='/@oci360xe'" >> ${v_oci360_config}/oci360.cfg
+  echo "v_conn='/@oci360db'" >> ${v_oci360_config}/oci360.cfg
   echo 'export OCI_CLI_AUTH=instance_principal' >> ${v_oci360_config}/oci360.cfg
 fi
 
@@ -155,12 +162,13 @@ then
   cd -
 fi
 
-cp -av ${v_oci360_tool}/app/sh/oci360_cron.sh ${v_oci360_config}/oci360_run.sh
+ln -sf ${v_oci360_tool}/app/sh/oci360_cron.sh ${v_oci360_config}/oci360_run.sh
+# cp -av ${v_oci360_tool}/app/sh/oci360_cron.sh ${v_oci360_config}/oci360_run.sh
 
 # Change OCI360 password
 v_oci360_pass="$(openssl rand -hex 6)"
 bash ${v_oci360_tool}/app/container/change_oci360_pass.sh "${v_oci360_pass}"
-mkstore -wrl ${v_oci360_netadmin} -modifyCredential oci360xe oci360 ${v_oci360_pass} <<< "${v_wallet_pass}"
+mkstore -wrl ${v_oci360_netadmin} -modifyCredential oci360db oci360 ${v_oci360_pass} <<< "${v_wallet_pass}"
 
 if [ -f ${v_oci360_config}/credentials ]
 then
@@ -180,6 +188,7 @@ chmod 600 ${v_oci360_config}/credentials*
 chgrp dba ${v_oci360_tool}/out/
 chmod g+w ${v_oci360_tool}/out/
 
+rm -f ${v_oci360_home}/oci360_tool
 ln -s ${v_oci360_tool} ${v_oci360_home}/oci360_tool
 
 yum clean all

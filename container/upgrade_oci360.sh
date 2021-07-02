@@ -1,6 +1,6 @@
 #!/bin/bash
 # v1.0
-# This script will make the deployment and configuration of OCI360 files and folders.
+# This script will upgrade and configure of OCI360 files and folders.
 
 # To execute the latest version of this script, execute the line below:
 # bash -c "$(curl -L https://raw.githubusercontent.com/dbarj/oci360/master/container/upgrade_oci360.sh)"
@@ -40,9 +40,9 @@ then
   cd -
 fi
 
-cp -av ${v_oci360_tool}/app/sh/oci360_cron.sh ${v_oci360_config}/oci360_run.sh
+# cp -av ${v_oci360_tool}/app/sh/oci360_cron.sh ${v_oci360_config}/oci360_run.sh
+# chown oci360: ${v_oci360_config}/oci360_run.sh
 
-chown oci360: ${v_oci360_config}/oci360_run.sh
 chown -R oci360: ${v_oci360_tool}/app/
 
 ##############

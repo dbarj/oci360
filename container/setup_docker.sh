@@ -3,8 +3,8 @@
 
 ######################################################
 #
-# This script will create 2 docker containers:
-# 1 - OCI360 engine with 18c XE database.
+# This script will create 2 containers:
+# 1 - OCI360 engine with Oracle Database.
 # 2 - Apache Webserver to expose oci360 output.
 #
 # To execute the latest stable version of this script, run the line below:
@@ -39,6 +39,15 @@ v_git_branch="master"
 [ -n "${OCI360_GIT_BRANCH}" ] && v_git_branch="${OCI360_GIT_BRANCH}"
 v_oci360_uid=54322
 v_git_oracle_commit_hash="4f064778150234ee2be2a1176b026c5e875965ac"
+
+# DB Version
+v_db_version="18.4.0"
+v_db_version_param="${v_db_version} -x"
+v_db_version_container="${v_db_version}-xe"
+# v_db_version="19.3.0"
+# v_db_version_param="${v_db_version} -e"
+# v_db_version_container="${v_db_version}-ee"
+# v_db_version_file="LINUX.X64_193000_db_home.zip"
 
 # Check if root
 [ "$(id -u -n)" != "root" ] && echo "Must be executed as root! Exiting..." && exit 1
@@ -79,9 +88,9 @@ loop_wait_proc ()
   set -x
 }
 
-###########################
-# Docker Image for 18c XE #
-###########################
+#############################
+# Docker Image for Database #
+#############################
 
 if [ $v_major_version -eq 8 ]
 then
@@ -90,7 +99,7 @@ then
   firewall-cmd --reload
 fi
 
-if [ "$(docker images -q oracle/database:18.4.0-xe)" == "" ]
+if [ "$(docker images -q oracle/database:${v_db_version_container})" == "" ]
 then
   rm -rf docker-images/
   git clone https://github.com/oracle/docker-images.git
@@ -100,13 +109,22 @@ then
     git checkout ${v_git_oracle_commit_hash}
     cd -
   fi
-  cd docker-images/OracleDatabase/SingleInstance/dockerfiles
-  ./buildContainerImage.sh -v 18.4.0 -x &
+  if [ -n "${v_db_version_file}" ]
+  then
+    if [ ! -r "${v_db_version_file}" ]
+    then
+      echo "Could not find \"${v_db_version_file}\" in current directory. Please download it."
+      exit 1
+    fi
+    cp -av "${v_db_version_file}" ./docker-images/OracleDatabase/SingleInstance/dockerfiles/${v_db_version}/
+  fi
+  cd ./docker-images/OracleDatabase/SingleInstance/dockerfiles/
+  ./buildContainerImage.sh -v ${v_db_version_param} &
   loop_wait_proc "$!"
   cd -
   rm -rf docker-images/
 else
-  echo "18c XE docker image already created."
+  echo "Docker image for the database is already created."
 fi
 
 docker images
@@ -133,9 +151,9 @@ chown -R 54321:54321 "${v_db_dir}"
 
 cd "${v_db_dir}/setup/"
 
-wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/enable_max_string.sql
-wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/create_oci360.sql
-wget https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/setup_oci360.sh
+wget -nv https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/enable_max_string.sql
+wget -nv https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/create_oci360.sql
+# wget -nv https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/setup_oci360.sh
 
 cd -
 
@@ -148,12 +166,12 @@ docker run \
 -d \
 -p 1521:1521 \
 -e ORACLE_CHARACTERSET=AL32UTF8 \
--e OCI360_BRANCH=${v_git_branch} \
--e OCI360_UID=${v_oci360_uid} \
+-e ORACLE_SID=XE \
+-e ORACLE_PDB=XEPDB1 \
 -v ${v_db_dir}/oradata:/opt/oracle/oradata \
 -v ${v_db_dir}/setup:/opt/oracle/scripts/setup \
 -v ${v_master_directory}:/u01 \
-oracle/database:18.4.0-xe
+oracle/database:${v_db_version_container}
 
 docker logs -f ${v_oci360_con_name} &
 v_pid=$!
@@ -161,7 +179,7 @@ v_pid=$!
 set +x
 while :
 do
-  v_out=$(docker logs ${v_oci360_con_name} 2>&1 >/dev/null)
+  v_out=$(docker logs ${v_oci360_con_name} 2>&1)
   grep -qF 'DATABASE IS READY TO USE!' <<< "$v_out" && break || true
   if grep -qF 'DATABASE SETUP WAS NOT SUCCESSFUL!' <<< "$v_out" ||
      grep -qE 'Error on line [0-9]+ of "setup_oci360.sh".' <<< "$v_out"
@@ -175,6 +193,23 @@ done
 set -x
 
 kill ${v_pid}
+
+#############################
+# Setup OCI360 on Container #
+#############################
+
+cd "${v_db_dir}/setup/"
+wget -nv https://raw.githubusercontent.com/dbarj/oci360/${v_git_branch}/container/setup_oci360.sh
+
+docker exec \
+-it \
+--user root \
+-e OCI360_BRANCH=${v_git_branch} \
+-e OCI360_UID=${v_oci360_uid} \
+${v_oci360_con_name} \
+bash /opt/oracle/scripts/setup/setup_oci360.sh
+
+cd -
 
 ###########################
 # Docker Image for APACHE #
