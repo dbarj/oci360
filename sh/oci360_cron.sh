@@ -10,7 +10,7 @@
 # https://github.com/dbarj/oci360/wiki/Install-OCI360
 #
 # ----------------------------------------------------------------------------
-# v1.18
+# v1.19
 # ----------------------------------------------------------------------------
 
 source ~/.bash_profile
@@ -66,7 +66,7 @@ trap 'exitError "Code interrupted."' SIGINT SIGTERM
 
 # Directories
 
-v_thisdir="$(dirname "$(readlink -f "$0")")"
+v_thisdir="$(dirname "$0")"
 v_basedir="$(readlink -f "$v_thisdir/../")"   # Folder of OCI360 Tool
 v_confdir=$v_basedir/scripts                  # Folder of this script
 
